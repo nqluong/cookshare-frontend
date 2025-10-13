@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,11 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 export default function RegisterScreen() {
+  const { email: paramEmail } = useLocalSearchParams();
+  
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -22,8 +24,15 @@ export default function RegisterScreen() {
     confirmPassword: '',
   });
   const [loading, setLoading] = useState(false);
-  
+
   const { register } = useAuth();
+
+  // Pre-fill email from navigation params
+  useEffect(() => {
+    if (paramEmail && typeof paramEmail === 'string') {
+      setFormData(prev => ({ ...prev, email: paramEmail }));
+    }
+  }, [paramEmail]);
 
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -31,7 +40,7 @@ export default function RegisterScreen() {
 
   const validateForm = () => {
     const { username, email, password, fullname, confirmPassword } = formData;
-    
+
     if (!username.trim() || !email.trim() || !password.trim() || !fullname.trim()) {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
       return false;
@@ -73,7 +82,7 @@ export default function RegisterScreen() {
         password,
         fullname: fullname.trim(),
       });
-      
+
       if (success) {
         Alert.alert('Thành công', 'Đăng ký tài khoản thành công!', [
           {
@@ -92,7 +101,7 @@ export default function RegisterScreen() {
   };
 
   const navigateToLogin = () => {
-    router.back();
+    router.push('/auth/login' as any);
   };
 
   return (
@@ -102,9 +111,14 @@ export default function RegisterScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.formContainer}>
-          <Text style={styles.title}>Tạo tài khoản mới</Text>
-          <Text style={styles.subtitle}>Tham gia cộng đồng CookShare</Text>
+          {/* Logo/Header */}
+          <Text style={styles.appTitle}>Cookshare</Text>
 
+          {/* Main Title */}
+          <Text style={styles.title}>Tạo tài khoản mới</Text>
+          <Text style={styles.subtitle}>Điền thông tin để tạo tài khoản</Text>
+
+          {/* Full Name Input */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -116,6 +130,7 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* Username Input */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -127,6 +142,7 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* Email Input */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -139,6 +155,7 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* Password Input */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -151,6 +168,7 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* Confirm Password Input */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -163,6 +181,7 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* Register Button */}
           <TouchableOpacity
             style={[styles.registerButton, loading && styles.disabledButton]}
             onPress={handleRegister}
@@ -173,6 +192,7 @@ export default function RegisterScreen() {
             </Text>
           </TouchableOpacity>
 
+          {/* Navigate to login */}
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Đã có tài khoản? </Text>
             <TouchableOpacity onPress={navigateToLogin}>
@@ -188,65 +208,60 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: 24,
   },
   formContainer: {
     backgroundColor: 'white',
-    padding: 30,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    padding: 32,
   },
-  title: {
+  appTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 40,
+    color: '#000',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    textAlign: 'center',
     marginBottom: 8,
-    color: '#333',
+    color: '#000',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
     color: '#666',
-    marginBottom: 30,
+    marginBottom: 32,
   },
   inputContainer: {
     marginBottom: 16,
   },
   input: {
-    height: 50,
+    height: 52,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
+    borderColor: '#e1e5e9',
+    borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 16,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
   },
   registerButton: {
-    backgroundColor: '#28a745',
-    height: 50,
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    height: 52,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
+    marginTop: 16,
+    marginBottom: 24,
   },
   registerButtonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -260,8 +275,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   loginLink: {
-    color: '#007bff',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+    opacity: 0.6,
   },
 });

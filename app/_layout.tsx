@@ -22,8 +22,8 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === 'auth';
 
     if (!isAuthenticated && !inAuthGroup) {
-      // Chưa đăng nhập và không ở trong auth group -> chuyển đến login
-      router.replace('/auth/login');
+      // Chưa đăng nhập và không ở trong auth group -> chuyển đến registerForm (Tạo một tài khoản)
+      router.replace('/auth/registerForm');
     } else if (isAuthenticated && inAuthGroup) {
       // Đã đăng nhập và đang ở auth group -> chuyển về main app
       router.replace('/(tabs)');

@@ -17,7 +17,7 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const { login } = useAuth();
 
   const handleLogin = async () => {
@@ -26,60 +26,37 @@ export default function LoginScreen() {
       return;
     }
 
+    if (username.trim().length < 3) {
+      Alert.alert('Lỗi', 'Tên đăng nhập phải có ít nhất 3 ký tự');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+
     setLoading(true);
     try {
-      const success = await login({ username: username.trim(), password });
-      
+      const success = await login({
+        username: username.trim(),
+        password,
+      });
+
       if (success) {
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Lỗi', 'Tên đăng nhập hoặc mật khẩu không đúng');
-      }
-    } catch (error: any) {
-      Alert.alert('Lỗi', error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const testConnection = async () => {
-    setLoading(true);
-    try {
-      const authService = require('../../services/authService').authService;
-      const result = await authService.testConnection();
-      
-      if (result.success && result.workingUrl) {
-        Alert.alert(
-          'Thành công!', 
-          `Platform: ${Platform.OS}\nServer: ${result.workingUrl}\n\n✅ Kết nối thành công!`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                console.log('Working URL found:', result.workingUrl);
-              }
-            }
-          ]
-        );
-      } else {
-        const platformHelp = Platform.OS === 'android' 
-          ? '\n\nAndroid Tips:\n• Emulator: Thử port forwarding\n• Device: adb reverse tcp:8080 tcp:8080'
-          : '\n\niOS Tips:\n• Kiểm tra cùng WiFi\n• Tắt tạm Windows Firewall';
-          
-        Alert.alert(
-          'Không tìm thấy server', 
-          `Platform: ${Platform.OS}\n\nĐã test tất cả địa chỉ IP có thể.\n\nKiểm tra:\n1. Backend có đang chạy?\n2. Cùng mạng WiFi?\n3. Tường lửa Windows?${platformHelp}`
-        );
+        Alert.alert('Lỗi', 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin');
       }
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể test kết nối');
+      Alert.alert('Lỗi', 'Đã có lỗi xảy ra. Vui lòng thử lại');
     } finally {
       setLoading(false);
     }
   };
 
-  const navigateToRegister = () => {
-    router.push('/auth/register' as any);
+  const navigateToRegisterForm = () => {
+    router.push('/auth/registerForm' as any);
   };
 
   return (
@@ -89,9 +66,14 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.formContainer}>
-          <Text style={styles.title}>Chào mừng trở lại!</Text>
-          <Text style={styles.subtitle}>Đăng nhập vào CookShare</Text>
+          {/* Logo/Header */}
+          <Text style={styles.appTitle}>Cookshare</Text>
 
+          {/* Main Title */}
+          <Text style={styles.title}>Đăng nhập</Text>
+          <Text style={styles.subtitle}>Chào mừng bạn quay trở lại</Text>
+
+          {/* Username Input */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -103,6 +85,7 @@ export default function LoginScreen() {
             />
           </View>
 
+          {/* Password Input */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -115,6 +98,7 @@ export default function LoginScreen() {
             />
           </View>
 
+          {/* Login Button */}
           <TouchableOpacity
             style={[styles.loginButton, loading && styles.disabledButton]}
             onPress={handleLogin}
@@ -125,20 +109,11 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.testButton, loading && styles.disabledButton]}
-            onPress={testConnection}
-            disabled={loading}
-          >
-            <Text style={styles.testButtonText}>
-              Test kết nối Server
-            </Text>
-          </TouchableOpacity>
-
+          {/* Navigate to register */}
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>Chưa có tài khoản? </Text>
-            <TouchableOpacity onPress={navigateToRegister}>
-              <Text style={styles.registerLink}>Đăng ký ngay</Text>
+            <TouchableOpacity onPress={navigateToRegisterForm}>
+              <Text style={styles.registerLink}>Tạo tài khoản mới</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -150,80 +125,61 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: 24,
   },
   formContainer: {
     backgroundColor: 'white',
-    padding: 30,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    padding: 32,
   },
-  title: {
+  appTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 40,
+    color: '#000',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    textAlign: 'center',
     marginBottom: 8,
-    color: '#333',
+    color: '#000',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
     color: '#666',
-    marginBottom: 30,
+    marginBottom: 32,
   },
   inputContainer: {
     marginBottom: 16,
   },
   input: {
-    height: 50,
+    height: 52,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
+    borderColor: '#e1e5e9',
+    borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 16,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
   },
   loginButton: {
-    backgroundColor: '#007bff',
-    height: 50,
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    height: 52,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
+    marginTop: 16,
+    marginBottom: 24,
   },
   loginButtonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  testButton: {
-    backgroundColor: '#6c757d',
-    height: 50,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  testButtonText: {
-    color: 'white',
-    fontSize: 14,
     fontWeight: '600',
   },
   registerContainer: {
@@ -236,8 +192,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   registerLink: {
-    color: '#007bff',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+    opacity: 0.6,
   },
 });
