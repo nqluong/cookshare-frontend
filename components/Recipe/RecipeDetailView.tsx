@@ -1,8 +1,8 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import styles from './RecipeDetailView.styles';
+import { MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { Image, ScrollView, Text, TouchableOpacity, View, } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import styles from "../../styles/RecipeDetailView.styles";
 
 type Comment = {
   user: string;
@@ -17,8 +17,8 @@ type Recipe = {
   description: string;
   image: string;
   author: string;
-  prepTime: number;   // phút
-  cookTime: number;   // phút
+  prepTime: number;
+  cookTime: number;
   ingredients: string[];
   steps: string[];
   video?: string;
@@ -35,8 +35,7 @@ type Props = {
 
 export default function RecipeDetailView({ recipe, onBack, onSearch }: Props) {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-      {/* Header */}
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
           <MaterialIcons name="arrow-back-ios" size={32} color="#222" />
@@ -47,83 +46,54 @@ export default function RecipeDetailView({ recipe, onBack, onSearch }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* Scroll content */}
       <ScrollView
-        style={styles.container}
-        contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* Ảnh món ăn */}
         <Image source={{ uri: recipe.image }} style={styles.image} />
 
-        {/* Hàng thông tin like - comment - view */}
         <View style={styles.infoRow}>
-          <Text style={styles.icon}>❤️ {recipe.likes ?? 0}</Text>
-          <Text style={styles.icon}>💬 {recipe.comments?.length ?? 0}</Text>
-          <Text style={styles.icon}>👁️ {recipe.views ?? 0}</Text>
-          <Text style={styles.menuIcon}>⋮</Text>
+          <Text>❤️ {recipe.likes ?? 0}</Text>
+          <Text>💬 {recipe.comments?.length ?? 0}</Text>
+          <Text>👁️ {recipe.views ?? 0}</Text>
         </View>
 
-        {/* Thông tin tác giả và thời gian */}
         <View style={styles.authorRow}>
           <Image source={{ uri: recipe.image }} style={styles.avatar} />
-          <View style={{ flex: 1 }}>
+          <View>
             <Text style={styles.author}>{recipe.author}</Text>
-            <Text style={styles.type}>Món ăn khó</Text>
             <Text style={styles.time}>
-              ⏱️ Chuẩn bị: {recipe.prepTime} phút | Nấu: {recipe.cookTime} phút | Tổng: {recipe.prepTime + recipe.cookTime} phút
+              ⏱️ Chuẩn bị: {recipe.prepTime}p | Nấu: {recipe.cookTime}p
             </Text>
           </View>
         </View>
 
-        {/* Tiêu đề & mô tả */}
         <Text style={styles.title}>{recipe.title}</Text>
         <View style={styles.card}>
           <Text style={styles.cardDesc}>{recipe.description}</Text>
         </View>
 
-        {/* Nguyên liệu */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Nguyên liệu:</Text>
-          {recipe.ingredients.map((item, idx) => (
-            <Text key={idx}>• {item}</Text>
+          {recipe.ingredients.map((item, i) => (
+            <Text key={i}>• {item}</Text>
           ))}
         </View>
 
-        {/* Các bước nấu */}
         <Text style={styles.section}>Các bước nấu:</Text>
         <View style={styles.cardLarge}>
-          {recipe.steps.map((step, idx) => (
-            <Text key={idx} style={{ marginBottom: 4 }}>
-              {idx + 1}. {step}
+          {recipe.steps.map((s, i) => (
+            <Text key={i}>
+              {i + 1}. {s}
             </Text>
           ))}
         </View>
 
-        {/* Video nấu ăn (nếu có) */}
         {recipe.video && (
           <TouchableOpacity style={styles.videoCard}>
-            <Text style={styles.videoIcon}>🎥</Text>
-            <Text>Video nấu ăn</Text>
+            <Text>🎥 Video nấu ăn</Text>
           </TouchableOpacity>
         )}
-
-        {/* Bình luận */}
-        <View style={styles.commentSection}>
-          <Text style={styles.cardTitle}>Bình luận:</Text>
-          {recipe.comments.length > 0 ? (
-            recipe.comments.map((cmt, idx) => (
-              <View key={idx} style={styles.commentRow}>
-                <Text style={styles.commentIcon}>{cmt.icon ?? '💬'}</Text>
-                <Text style={styles.commentUser}>{cmt.user}</Text>
-                <Text style={styles.commentTime}>{cmt.time}</Text>
-                <Text style={styles.commentText}>{cmt.text}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={{ color: '#888', marginTop: 4 }}>Chưa có bình luận</Text>
-          )}
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
