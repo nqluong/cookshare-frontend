@@ -2,7 +2,8 @@
 import axios from "axios";
 
 // ⚠️ Dùng IP thật của máy bạn (xem bằng ipconfig)
-const API_BASE_URL = "http://192.168.1.156:8080/api/recipes";
+let API_BASE_URL = "http://192.168.31.253:8080/api/recipes";
+
 
 export const getAllRecipes = async (page = 0, size = 10) => {
   const res = await axios.get(`${API_BASE_URL}?page=${page}&size=${size}`);

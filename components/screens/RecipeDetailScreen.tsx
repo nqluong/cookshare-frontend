@@ -11,7 +11,7 @@ export default function RecipeDetailScreen() {
   const [loading, setLoading] = useState(true);
 
   // Nếu không có id truyền vào thì dùng id test
-  const recipeId = id || "61edb602-a8ad-4354-838f-f39319d47590";
+  const recipeId = id || "9dee33e1-6532-45c2-9187-1c9db4ac6d41";
 
   useEffect(() => {
     const fetchData = async () => {
