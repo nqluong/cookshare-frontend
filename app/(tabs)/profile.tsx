@@ -45,10 +45,10 @@ export default function ProfileScreen() {
         <View style={styles.userInfo}>
           <Text style={styles.label}>Tên đăng nhập:</Text>
           <Text style={styles.value}>{user?.username || 'Chưa có thông tin'}</Text>
-          
+
           <Text style={styles.label}>Email:</Text>
           <Text style={styles.value}>{user?.email || 'Chưa có thông tin'}</Text>
-          
+
           <Text style={styles.label}>Họ và tên:</Text>
           <Text style={styles.value}>{user?.fullname || 'Chưa có thông tin'}</Text>
         </View>
