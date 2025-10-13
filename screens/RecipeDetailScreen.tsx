@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
-import RecipeDetailView from "../components/recipe/RecipeDetailView";
+import RecipeDetailView from "../components/Recipe/RecipeDetailView";
 import { getRecipeById } from "../services/recipeService";
 
 // ✅ Hàm giới hạn thời gian chờ API (timeout)
@@ -83,9 +83,9 @@ export default function RecipeDetailScreen() {
         ingredients: hardcodedIngredients,
         steps: recipe.instructions
           ? recipe.instructions
-              .replace(/\d+\.\s*/g, "")
-              .split(/(?<=\.)\s+/)
-              .filter(Boolean)
+            .replace(/\d+\.\s*/g, "")
+            .split(/(?<=\.)\s+/)
+            .filter(Boolean)
           : [],
         video: "",
         comments: [],
@@ -93,7 +93,7 @@ export default function RecipeDetailScreen() {
         views: recipe.viewCount ?? 0,
       }}
       onBack={() => router.back()}
-      onSearch={() => {}}
+      onSearch={() => { }}
     />
   );
 }
