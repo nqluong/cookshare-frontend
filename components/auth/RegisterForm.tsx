@@ -81,7 +81,7 @@ export default function AuthRegisterForm() {
                 Alert.alert('Thành công', 'Đăng ký tài khoản thành công!', [
                     {
                         text: 'OK',
-                        onPress: () => router.replace('/(tabs)'),
+                        onPress: () => router.replace('/(tabs)/home' as any),
                     },
                 ]);
             } else {

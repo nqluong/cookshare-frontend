@@ -1,0 +1,1 @@
+export type TabType = 'Yêu thích' | 'Đề xuất' |  'Theo dõi' | 'Lịch sử'  ;

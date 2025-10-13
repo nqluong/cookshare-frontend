@@ -19,14 +19,15 @@ function RootLayoutNav() {
   useEffect(() => {
     if (loading) return; // Đợi auth state được khôi phục
 
-    const inAuthGroup = segments[0] === 'auth';
+    const segmentString = segments.join('/');
+    const inAuthGroup = segmentString.includes('auth');
 
     if (!isAuthenticated && !inAuthGroup) {
       // Chưa đăng nhập và không ở trong auth group -> chuyển đến registerForm (Tạo một tài khoản)
-      router.replace('/auth/registerForm');
+      router.replace('/auth/registerForm' as any);
     } else if (isAuthenticated && inAuthGroup) {
-      // Đã đăng nhập và đang ở auth group -> chuyển về main app
-      router.replace('/(tabs)');
+      // Đã đăng nhập và đang ở auth group -> chuyển về trang home
+      router.replace('/(tabs)/home' as any);
     }
   }, [isAuthenticated, loading, segments]);
 

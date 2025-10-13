@@ -38,7 +38,7 @@ export default function AuthLoginForm() {
             });
 
             if (success) {
-                router.replace('/(tabs)');
+                router.replace('/(tabs)/home' as any);
             } else {
                 Alert.alert('Lỗi', 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin');
             }
