@@ -28,7 +28,3 @@ export const deleteRecipe = async (id: string) => {
   const res = await axios.delete(`${API_BASE_URL}/${id}`);
   return res.data;
 };
-export const getIngredientsByRecipeId = async (recipeId: string) => {
-  const res = await axios.get(`http://192.168.1.156:8080/api/recipes/${recipeId}/ingredients`);
-  return res.data; // giả sử trả về mảng [{name: "Thịt bò"}, ...]
-};

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router'; // ✅ dùng router để điều hướng
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,21 +12,29 @@ import { Colors } from '../../styles/colors';
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState('Yêu thích');
+  const router = useRouter(); // ✅ khởi tạo router
+
+  const handleOpenDetail = () => {
+    router.push('/recipe-detail'); // ✅ chuyển sang màn hình chi tiết
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <SearchBar />
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <FeaturedDish />
         <TopDishes dishes={topDishes} />
+
         <View style={styles.postsContainer}>
-          <Text style={styles.postsTitle}>Nội bật</Text>
+          <Text style={styles.postsTitle}>Nổi bật</Text>
           {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard 
+              key={post.id} 
+              post={post}
+              onPress={handleOpenDetail} // ✅ gắn sự kiện chuyển giao diện
+            />
           ))}
         </View>
       </ScrollView>

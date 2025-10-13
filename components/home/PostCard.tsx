@@ -6,9 +6,10 @@ import { Post } from '../../types/post';
 
 interface PostCardProps {
   post: Post;
+  onPress?: () => void; // ✅ prop để điều hướng khi nhấn
 }
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, onPress }: PostCardProps) {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
   const [likesCount, setLikesCount] = useState(post.likes);
 
@@ -18,7 +19,8 @@ export default function PostCard({ post }: PostCardProps) {
   };
 
   return (
-    <View style={styles.container}>
+    // ✅ Bọc toàn bộ card trong TouchableOpacity để bắt sự kiện nhấn
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
@@ -28,17 +30,11 @@ export default function PostCard({ post }: PostCardProps) {
           <Text style={styles.authorName}>{post.author}</Text>
           <Text style={styles.timeAgo}>{post.timeAgo}</Text>
         </View>
-        <TouchableOpacity>
-          <Ionicons name="ellipsis-vertical" size={20} color={Colors.text.secondary} />
-        </TouchableOpacity>
+        <Ionicons name="ellipsis-vertical" size={20} color={Colors.text.secondary} />
       </View>
 
       {/* Image */}
-      <Image
-        source={{ uri: post.image }}
-        style={styles.image}
-        resizeMode="cover"
-      />
+      <Image source={{ uri: post.image }} style={styles.image} resizeMode="cover" />
 
       {/* Content */}
       <View style={styles.content}>
@@ -54,13 +50,13 @@ export default function PostCard({ post }: PostCardProps) {
               {likesCount}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
+          <View style={styles.actionButton}>
             <Ionicons name="chatbubble-outline" size={20} color={Colors.text.secondary} />
             <Text style={styles.actionText}>{post.comments}</Text>
-          </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
