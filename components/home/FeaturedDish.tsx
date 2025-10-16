@@ -1,19 +1,47 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { getImageUrl } from '../../config/api.config';
 import { Colors } from '../../styles/colors';
+import { Recipe } from '../../types/dish';
 
-export default function FeaturedDish() {
+
+interface FeaturedDishProps {
+  recipe?: Recipe; 
+}
+
+export default function FeaturedDish({ recipe }: FeaturedDishProps) {
+  if (!recipe) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <View style={styles.content}>
+            <Text style={styles.badge}>Món ăn hôm nay ⚡</Text>
+            <Text style={styles.title}>Đang tải...</Text>
+            <Text style={styles.time}>-- phút</Text>
+          </View>
+          <View style={styles.imageContainer}>
+            <View style={styles.image} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  const totalTime = recipe.prepTime + recipe.cookTime;
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.content}>
           <Text style={styles.badge}>Món ăn hôm nay ⚡</Text>
-          <Text style={styles.title}>Phở Bò Truyền Thống</Text>
-          <Text style={styles.time}>20 phút</Text>
+          <Text style={styles.title} numberOfLines={2}>
+            {recipe.title}
+          </Text>
+          <Text style={styles.time}>{totalTime} phút</Text>
         </View>
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: 'https://via.placeholder.com/120' }}
+            source={{ uri: getImageUrl(recipe.featuredImage) }}
             style={styles.image}
             resizeMode="cover"
           />

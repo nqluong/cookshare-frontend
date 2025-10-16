@@ -1,6 +1,7 @@
+import { API_CONFIG } from '../config/api.config';
 import { ApiResponse, ErrorResponse } from '../types/search';
 
-export const BASE_URL = 'http://192.168.21.104:8080';
+export const BASE_URL = API_CONFIG.BASE_URL;
 
 const fetchApi = async (url: string) => {
   try {

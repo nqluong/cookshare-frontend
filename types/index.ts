@@ -3,6 +3,7 @@ export interface Dish {
   name: string;
   image: string;
   likes: number;
+  cookTime: number;
 }
 
 export interface Post {
@@ -14,7 +15,7 @@ export interface Post {
   description: string;
   likes: number;
   comments: number;
-  duration: number;
+  isLiked: boolean;
 }
 
 export interface Tab {

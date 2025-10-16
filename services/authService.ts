@@ -1,5 +1,6 @@
-import { LoginRequest, RegisterRequest } from '../types/auth';
 import { Platform } from 'react-native';
+import { API_CONFIG } from '../config/api.config';
+import { LoginRequest, RegisterRequest } from '../types/auth';
 
 // Dynamic API URL cho các platform khác nhau
 const getAPIBaseURL = () => {
@@ -15,7 +16,7 @@ const getAPIBaseURL = () => {
     }
 
     // Cho iOS Simulator và Physical devices  
-    return 'http://192.168.178.100:8080'; // IP chính của máy tính
+    return API_CONFIG.BASE_URL; // ✅ Sử dụng config chung
   }
 
   // Production - thay bằng production URL
@@ -26,8 +27,8 @@ const API_BASE_URL = getAPIBaseURL();
 
 class AuthService {
   constructor() {
-    console.log(`🔧 AuthService initialized for ${Platform.OS}`);
-    console.log(`📡 API Base URL: ${API_BASE_URL}`);
+    console.log(`AuthService initialized for ${Platform.OS}`);
+    console.log(` API Base URL: ${API_BASE_URL}`);
   }
 
   async login(credentials: LoginRequest): Promise<string> {

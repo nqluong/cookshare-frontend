@@ -8,7 +8,7 @@ interface TabBarProps {
   onTabChange: (tab: string) => void;
 }
 
-const tabs = ['Yêu thích', 'Lịch sử', 'Theo dõi', 'Đề xuất'];
+const tabs = ['Đề xuất', 'Yêu thích', 'Lịch sử', 'Theo dõi'];
 
 const getTabIcon = (tab: string) => {
   switch (tab) {

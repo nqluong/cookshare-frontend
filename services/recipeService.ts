@@ -1,16 +1,11 @@
 import axios from "axios";
-
-// ⚠️ Dùng IP thật của máy bạn (xem bằng ipconfig)
-let API_BASE_URL = "http://192.168.31.253:8080/api/recipes";
-
+import { API_CONFIG } from "../config/api.config";
 
 // 🧩 Tạo instance axios có sẵn config
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 5000, // ⏰ Timeout 5 giây (có thể tăng/giảm)
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: `${API_CONFIG.BASE_URL}/api/recipes`,
+  timeout: API_CONFIG.TIMEOUT,
+  headers: API_CONFIG.DEFAULT_HEADERS,
 });
 
 // 🧠 Hàm xử lý lỗi chung
@@ -68,6 +63,16 @@ export const updateRecipe = async (id: string, data: any) => {
 export const deleteRecipe = async (id: string) => {
   try {
     const res = await api.delete(`/${id}`);
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+// ⭐ Lấy danh sách công thức nổi bật (featured)
+export const getFeaturedRecipes = async (page = 0, size = 10) => {
+  try {
+    const res = await api.get(`/featured?page=${page}&size=${size}`);
     return res.data;
   } catch (error) {
     handleError(error);

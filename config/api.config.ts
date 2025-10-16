@@ -1,0 +1,110 @@
+import { Platform } from 'react-native';
+
+// 🌐 Configuration priorities (theo thứ tự ưu tiên):
+// 1. EXPO_PUBLIC_API_HOST từ .env
+// 2. Manual override trong DEV_CONFIG
+// 3. Auto-detected IP (chỉ trong development)
+// 4. Production URL
+
+// ⚙️ Development Configuration
+const DEV_CONFIG = {
+  // Set manual IP nếu auto-detect không work
+  MANUAL_IP: null as string | null, // Ví dụ: 'http://192.168.1.151:8080'
+  
+  // Fallback IP nếu auto-detect fail
+  FALLBACK_IP: 'http://192.168.1.151:8080',
+  
+  // Port của backend
+  PORT: 8080,
+};
+
+// 🚀 Production Configuration
+const PROD_CONFIG = {
+  API_URL: 'https://api.cookshare.com', // Thay bằng production URL
+};
+
+// 📱 Platform-specific config
+const getPlatformSpecificHost = (): string | null => {
+  if (Platform.OS === 'web') {
+    return 'http://localhost:8080';
+  }
+  
+  if (Platform.OS === 'android') {
+    // Android Emulator sử dụng 10.0.2.2 để trỏ về localhost của máy host
+    return 'http://10.0.2.2:8080';
+  }
+  
+  return null; // iOS/Physical devices sẽ dùng IP thật
+};
+
+// 🔍 Get API Host với priority order
+const getApiHost = (): string => {
+  // 1. Env variable (highest priority)
+  if (process.env.EXPO_PUBLIC_API_HOST) {
+    return process.env.EXPO_PUBLIC_API_HOST;
+  }
+  
+  // 2. Manual override trong development
+  if (__DEV__ && DEV_CONFIG.MANUAL_IP) {
+    return DEV_CONFIG.MANUAL_IP;
+  }
+  
+  // 3. Platform-specific (Android Emulator, Web)
+  const platformHost = getPlatformSpecificHost();
+  if (platformHost) {
+    return platformHost;
+  }
+  
+  // 4. Development fallback
+  if (__DEV__) {
+    return DEV_CONFIG.FALLBACK_IP;
+  }
+  
+  // 5. Production
+  return PROD_CONFIG.API_URL;
+};
+
+const API_HOST = getApiHost();
+
+// Các phiên bản API
+const API_VERSION = {
+  V1: '/api/v1',
+  V2: '/api/v2',
+};
+
+export const API_CONFIG = {
+  // Base URLs
+  BASE_URL: API_HOST,
+  API_V1_URL: `${API_HOST}${API_VERSION.V1}`,
+  API_V2_URL: `${API_HOST}${API_VERSION.V2}`,
+  
+  TIMEOUT: 3000, // 3 giây
+
+  DEFAULT_HEADERS: {
+    'Content-Type': 'application/json',
+  },
+};
+
+// 🖼️ Helper function để tạo URL cho ảnh
+export const getImageUrl = (imagePath: string | null | undefined): string => {
+  if (!imagePath) {
+    return 'https://via.placeholder.com/400'; 
+  }
+  
+  const normalizedPath = imagePath.replace(/\\/g, '/');
+  
+  return `${API_CONFIG.BASE_URL}/${normalizedPath}`;
+};
+
+// 📊 Debug helper - log API config khi khởi động
+if (__DEV__) {
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔧 API Configuration');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(`📱 Platform: ${Platform.OS}`);
+  console.log(`🌐 API Host: ${API_HOST}`);
+  console.log(`📍 API V1: ${API_CONFIG.API_V1_URL}`);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+}
+
+
