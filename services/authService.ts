@@ -1,6 +1,6 @@
-import { LoginRequest, RegisterRequest } from '../types/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-
+import { LoginRequest, RegisterRequest } from '../types/auth';
 // Dynamic API URL cho các platform khác nhau
 const getAPIBaseURL = () => {
   if (__DEV__) {
@@ -15,7 +15,7 @@ const getAPIBaseURL = () => {
     }
 
     // Cho iOS Simulator và Physical devices  
-    return 'http://192.168.178.100:8080'; // IP chính của máy tính
+    return 'http://192.168.21.104:8080'; // IP chính của máy tính
   }
 
   // Production - thay bằng production URL
@@ -55,9 +55,11 @@ class AuthService {
         throw new Error(errorText || 'Đăng nhập thất bại');
       }
 
-      const token = await response.text();
+      const data = await response.json();
+      const accessToken = data.accessToken; 
+      await AsyncStorage.setItem('authToken', accessToken);
       console.log('Login successful, received token');
-      return token;
+      return accessToken;
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.name === 'AbortError') {

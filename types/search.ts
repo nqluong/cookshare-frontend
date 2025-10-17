@@ -2,8 +2,8 @@ export interface Recipe {
   recipeId: string;
   userId: string;
   title: string;
-  description: string | null;
-  username: string | null;
+  slug: string | null;
+  fullName: string | null;
   avatarUrl: string | null;
   featuredImage: string;
   cookTime: number;
@@ -38,4 +38,14 @@ export interface ErrorResponse {
     field: string;
     message: string;
   }>;
+}
+export interface Ingredient {
+  ingredientId: string;
+  name: string;
+  recipeCount: number;
+}
+export interface IngredientsResponse {
+  code: number;
+  result: Ingredient[]; 
+  message?: string;
 }
