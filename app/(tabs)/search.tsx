@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react'; // ✅ SỬA: thêm useEffect
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import CustomIngredientModal from '../../components/Search/CustomIngredientModal';
 import IngredientFilter from '../../components/Search/IngredientFilter';
 import RecipeCard from '../../components/Search/RecipeCard';
 import SearchBar from '../../components/Search/SearchBar';
-import { fetchPopularIngredients, searchRecipes } from '../../services/searchService'; // ✅ SỬA: thêm fetchPopularIngredients
+import SearchHistory from '../../components/Search/SearchHistory';
+import { fetchPopularIngredients, fetchSearchHistory, searchRecipes } from '../../services/searchService';
 import { searchStyles } from '../../styles/SearchStyles';
-import { Ingredient, Recipe } from '../../types/search';
-
+import { Ingredient, Recipe, SearchHistoryItem } from '../../types/search';
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -24,8 +24,41 @@ export default function SearchScreen() {
   const [ingredientsLoading, setIngredientsLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [history, setHistory] = useState<SearchHistoryItem[]>([]); 
+  const [historyLoading, setHistoryLoading] = useState(true);
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        setHistoryLoading(true);
+        const historyData = await fetchSearchHistory(); 
 
-  // ✅ Fetch popular ingredients khi component mount
+        const recipeHistory = historyData
+          .filter(item => item.searchType === 'recipe')
+          .slice(0, 5) 
+          .reverse();
+        setHistory(recipeHistory);
+      } catch (error) {
+        console.error('❌ Load history error:', error);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+    loadHistory();
+  }, []);
+  const historyStrings = history.map(item => item.searchQuery);
+
+  const handleSelectHistory = (query: string) => {
+    setSearchQuery(query);
+    handleSearch(true);
+  };
+
+  const handleClearAll = () => {
+    setHistory([]);
+  };
+
+  const handleDeleteItem = (query: string) => {
+    setHistory(prev => prev.filter(item => item.searchQuery !== query));
+  };
   useEffect(() => {
     const loadIngredients = async () => {
       setIngredientsLoading(true);
@@ -35,8 +68,6 @@ export default function SearchScreen() {
     };
     loadIngredients();
   }, []);
-
-  // ✅ Toggle ingredient bằng ID
   const toggleIngredient = (ingredientName: string) => {
   setSelectedIngredients((prev) =>
     prev.includes(ingredientName)
@@ -78,8 +109,6 @@ export default function SearchScreen() {
     const data = await searchRecipes(searchQuery, selectedIngredients, currentPage, 10);
 
     console.log('📦 API Response:', data);
-
-    // ✅ CHECK ERROR RESPONSE TRƯỚC (HTTP errors từ fetchApi)
     if ('success' in data && data.success === false) {
       setError(data.message || 'Lỗi từ server');
       setRecipes([]);
@@ -87,7 +116,6 @@ export default function SearchScreen() {
       return;
     }
 
-    // ✅ CHECK API ERROR CODE
     if ('code' in data && data.code !== 1000) {
       setError(data.message || 'Lỗi từ server');
       setRecipes([]);
@@ -109,21 +137,21 @@ export default function SearchScreen() {
       if (newRecipes.length === 0) {
         setError('Không tìm thấy món ăn nào');
       } else {
-        setError(null); // Clear error
+        setError(null); 
       }
     } else {
       setError('Response không đúng format');
     }
-  } catch (err: unknown) { // ✅ Explicit unknown type
+  } catch (err: unknown) { 
     let errorMessage = 'Lỗi không xác định';
     if (err instanceof Error) {
       errorMessage = err.message;
      
     } else if (typeof err === 'string') {
-      // ✅ err là string
+     
       errorMessage = err;
     } else if (err && typeof err === 'object' && 'message' in err) {
-      // ✅ err có message property
+    
       errorMessage = (err as { message?: string }).message || 'Unknown error object';
     }
     
@@ -140,6 +168,17 @@ export default function SearchScreen() {
         onSearch={handleSearch}
         onToggleFilter={() => setShowFilter(!showFilter)}
       />
+
+      {/* ✅ SearchHistory - chỉ show khi chưa search + có history */}
+      {!searchQuery.trim() && history.length > 0 && !historyLoading && (
+        <SearchHistory
+          history={historyStrings}  
+          onSelect={handleSelectHistory}
+          onClearAll={handleClearAll}
+          onDeleteItem={handleDeleteItem}
+        />
+      )}
+      
       
       {showFilter && (
         <IngredientFilter

@@ -49,3 +49,17 @@ export interface IngredientsResponse {
   result: Ingredient[]; 
   message?: string;
 }
+export interface SearchHistoryItem {
+  searchId: string;
+  userId: string;
+  searchQuery: string;
+  searchType: 'recipe' | 'ingredient'; 
+  resultCount: number;
+  createdAt: string; 
+}
+
+export interface SearchHistoryResponse {
+  code: number;
+  result: SearchHistoryItem[];
+  message?: string;
+}

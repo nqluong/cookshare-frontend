@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'; // cần cài package này
-import { ApiResponse, ErrorResponse, Ingredient, IngredientsResponse } from '../types/search';
+import { ApiResponse, ErrorResponse, Ingredient, IngredientsResponse, SearchHistoryItem } from '../types/search';
 
 export const BASE_URL = 'http://192.168.21.104:8080';
 
@@ -96,7 +96,7 @@ const fetchApi = async (url: string) => {
       throw new Error('Không thể kết nối đến server');
     }
     
-    throw new Error(errorMessage); // ✅ Throw với message đã format
+    throw new Error(errorMessage); 
   }
 };
 
@@ -137,6 +137,31 @@ export const fetchPopularIngredients = async (): Promise<Ingredient[]> => {
     }
   } catch (error) {
     console.error('❌ Error fetching popular ingredients:', error);
+    return [];
+  }
+};
+export const fetchSearchHistory = async (): Promise<SearchHistoryItem[]> => {
+  try {
+    const url = `${BASE_URL}/searchs/history`;
+    console.log('🚀 Fetching search history:', url);
+    
+    const data = await fetchApi(url);
+    if (
+      data && 
+      'code' in data && 
+      data.code === 1000 && 
+      data.result && 
+      Array.isArray(data.result)
+    ) {
+      const history = data.result as SearchHistoryItem[];
+      console.log('✅ Fetched', history.length, 'search history items');
+      return history;
+    } else {
+      console.error('❌ Invalid history response:', data);
+      return [];
+    }
+  } catch (error: unknown) {
+    console.error('❌ Error fetching search history:', error);
     return [];
   }
 };
