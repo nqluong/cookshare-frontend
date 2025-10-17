@@ -71,6 +71,12 @@ export const searchStyles = StyleSheet.create({
     padding: 12,
     justifyContent: 'space-between',
   },
+  authorName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: 4,
+  },
   recipeTitle: {
     fontSize: 16,
     fontWeight: '600',

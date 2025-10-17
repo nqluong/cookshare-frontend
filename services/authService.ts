@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { API_CONFIG } from '../config/api.config';
 import { LoginRequest, RegisterRequest } from '../types/auth';
@@ -16,7 +17,7 @@ const getAPIBaseURL = () => {
     }
 
     // Cho iOS Simulator và Physical devices  
-    return API_CONFIG.BASE_URL; // ✅ Sử dụng config chung
+    return API_CONFIG.BASE_URL; 
   }
 
   // Production - thay bằng production URL
@@ -56,9 +57,11 @@ class AuthService {
         throw new Error(errorText || 'Đăng nhập thất bại');
       }
 
-      const token = await response.text();
+      const data = await response.json();
+      const accessToken = data.accessToken; 
+      await AsyncStorage.setItem('authToken', accessToken);
       console.log('Login successful, received token');
-      return token;
+      return accessToken;
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.name === 'AbortError') {
