@@ -15,7 +15,7 @@ const getAPIBaseURL = () => {
     }
 
     // Cho iOS Simulator và Physical devices  
-    return 'http://192.168.178.100:8080'; // IP chính của máy tính
+    return 'http://192.168.43.36:8080'; // IP chính của máy tính
   }
 
   // Production - thay bằng production URL
@@ -32,12 +32,12 @@ class AuthService {
 
   async login(credentials: LoginRequest): Promise<string> {
     try {
-      console.log('Attempting login to:', `${API_BASE_URL}/login`);
+      console.log('Attempting login to:', `${API_BASE_URL}/auth/login`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -69,12 +69,12 @@ class AuthService {
 
   async register(userData: RegisterRequest): Promise<string> {
     try {
-      console.log('Attempting register to:', `${API_BASE_URL}/register`);
+      console.log('Attempting register to:', `${API_BASE_URL}/auth/register`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
-      const response = await fetch(`${API_BASE_URL}/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ class AuthService {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
 
       // Thử gọi login với thông tin test để kiểm tra server
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
