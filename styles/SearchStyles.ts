@@ -215,4 +215,28 @@ export const searchStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  // styles/SearchStyles.ts - THÊM
+historyItem: {
+  flexDirection: 'row',
+  padding: 16,
+  borderBottomWidth: 1,
+  borderBottomColor: '#f0f0f0',
+  alignItems: 'center',
+  backgroundColor: '#fff',
+},
+historyQuery: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#333',
+  marginBottom: 4,
+},
+historyType: {
+  fontSize: 14,
+  color: '#fbbc05',
+  marginBottom: 2,
+},
+historyCount: {
+  fontSize: 12,
+  color: '#666',
+},
 });

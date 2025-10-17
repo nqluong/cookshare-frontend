@@ -18,7 +18,7 @@ export default function IngredientFilter({
   setShowInputModal,
   popularIngredients,
   customIngredients,
-  loading = false, // ✅ Default false
+  loading = false, 
 }: IngredientFilterProps) {
   
   // ✅ LOADING STATE
@@ -38,7 +38,6 @@ export default function IngredientFilter({
   return (
     <View style={searchStyles.filterContainer}>
       <View style={searchStyles.ingredientsGrid}>
-        {/* ✅ RENDER INGREDIENT OBJECTS THAY VÌ STRINGS */}
         {popularIngredients.map((ingredient) => {
           const isSelected = selectedIngredients.includes(ingredient.name);
           return (
@@ -62,8 +61,7 @@ export default function IngredientFilter({
             </TouchableOpacity>
           );
         })}
-        
-        {/* ✅ NÚT THÊM CUSTOM INGREDIENT */}
+    
         <TouchableOpacity
           style={searchStyles.inputIngredientButton}
           onPress={() => setShowInputModal(true)}
@@ -83,7 +81,7 @@ export default function IngredientFilter({
                 searchStyles.customIngredientButton,
                 isSelected && searchStyles.selectedIngredient,
               ]}
-              onPress={() => toggleIngredient(item)} // ✅ CUSTOM DÙNG NAME
+              onPress={() => toggleIngredient(item)} 
             >
               <Text
                 style={[
