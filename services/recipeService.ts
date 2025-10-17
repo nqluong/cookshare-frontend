@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // ⚠️ Dùng IP thật của máy bạn (xem bằng ipconfig)
-let API_BASE_URL = "http://192.168.43.36:8080/api/recipes";
+let API_BASE_URL = "http://192.168.0.101:8080/api/recipes";
 
 
 // 🧩 Tạo instance axios có sẵn config
