@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
-import { BASE_URL } from '../../services/searchService';
+import { getImageUrl } from '../../config/api.config';
 import { searchStyles } from '../../styles/SearchStyles';
 import { Recipe } from '../../types/search';
 
@@ -9,10 +10,17 @@ interface RecipeCardProps {
 }
 
 export default function RecipeCard({ item }: RecipeCardProps) {
+  const router = useRouter();
+
+  const handlePress = () => {
+    // 🎯 Dynamic route: /_recipe-detail/[id] (trong tabs layout)
+    router.push(`/_recipe-detail/${item.recipeId}` as any);
+  };
+
   return (
-    <TouchableOpacity style={searchStyles.recipeCard}>   
+    <TouchableOpacity style={searchStyles.recipeCard} onPress={handlePress} activeOpacity={0.7}>   
       <Image
-        source={{ uri: `${BASE_URL}/${item.featuredImage.replace(/\\/g, '/')}` }}
+        source={{ uri: getImageUrl(item.featuredImage) }}
         style={searchStyles.recipeImage}
         resizeMode="cover"
       />

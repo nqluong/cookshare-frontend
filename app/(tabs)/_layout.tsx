@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../styles/colors';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tabs
       initialRouteName='home'
@@ -13,9 +16,14 @@ export default function TabLayout() {
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: Colors.border,
-          height: Platform.OS === 'android' ? 70 : 60,
-          paddingBottom: Platform.OS === 'android' ? 12 : 8,
+          height: Platform.OS === 'android' ? 40 + insets.bottom : 60,
+          paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 8,
           paddingTop: 8,
+          elevation: 8, // Shadow cho Android
+          shadowColor: '#000', // Shadow cho iOS
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
         },
         headerShown: false,
       }}
@@ -73,6 +81,19 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
+        }}
+      />
+      {/* Hide trong tab bar */}
+      <Tabs.Screen
+        name="_view-all"
+        options={{
+          href: null, 
+        }}
+      />
+      <Tabs.Screen
+        name="_recipe-detail/[id]"
+        options={{
+          href: null, // Hide from tab bar (đủ rồi, không cần tabBarButton)
         }}
       />
     </Tabs>

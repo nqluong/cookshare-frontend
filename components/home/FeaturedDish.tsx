@@ -1,15 +1,15 @@
-import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getImageUrl } from '../../config/api.config';
 import { Colors } from '../../styles/colors';
 import { Recipe } from '../../types/dish';
 
 
 interface FeaturedDishProps {
-  recipe?: Recipe; 
+  recipe?: Recipe;
+  onRecipePress?: (recipe: Recipe) => void;
 }
 
-export default function FeaturedDish({ recipe }: FeaturedDishProps) {
+export default function FeaturedDish({ recipe, onRecipePress }: FeaturedDishProps) {
   if (!recipe) {
     return (
       <View style={styles.container}>
@@ -31,7 +31,11 @@ export default function FeaturedDish({ recipe }: FeaturedDishProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
+      <TouchableOpacity 
+        style={styles.card}
+        onPress={() => onRecipePress?.(recipe)}
+        activeOpacity={0.7}
+      >
         <View style={styles.content}>
           <Text style={styles.badge}>Món ăn hôm nay ⚡</Text>
           <Text style={styles.title} numberOfLines={2}>
@@ -46,7 +50,7 @@ export default function FeaturedDish({ recipe }: FeaturedDishProps) {
             resizeMode="cover"
           />
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }

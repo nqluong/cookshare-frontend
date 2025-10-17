@@ -1,18 +1,40 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../../styles/colors';
 import { Recipe } from '../../../types/dish';
 import { recipeToDish } from '../../../utils/recipeHelpers';
 
 interface TrendingRecipesProps {
-  recipes: Recipe[]; // Danh sách công thức đang thịnh hành từ API
-  onRecipePress?: (recipe: Recipe) => void; // Callback khi nhấn vào công thức
+  recipes: Recipe[];
+  onRecipePress?: (recipe: Recipe) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 // Component hiển thị danh sách công thức đang thịnh hành (trending)
-export default function TrendingRecipes({ recipes, onRecipePress }: TrendingRecipesProps) {
+export default function TrendingRecipes({ 
+  recipes, 
+  onRecipePress, 
+  onLoadMore, 
+  hasMore = false, 
+  isLoadingMore = false 
+}: TrendingRecipesProps) {
+  const router = useRouter();
   const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
+
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToEnd = 20;
+    
+    if (layoutMeasurement.width + contentOffset.x >= contentSize.width - paddingToEnd) {
+      if (hasMore && !isLoadingMore && onLoadMore) {
+        onLoadMore();
+      }
+    }
+  };
 
   const toggleLike = (recipeId: string, event: any) => {
     event.stopPropagation();
@@ -44,13 +66,22 @@ export default function TrendingRecipes({ recipes, onRecipePress }: TrendingReci
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Đang thịnh hành 🔥</Text>
-        <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
+        <TouchableOpacity 
+          style={styles.viewAllButton}
+          onPress={() => router.push({ pathname: '/_view-all', params: { type: 'trending' } })}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.viewAllText}>Xem tất cả</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+        </TouchableOpacity>
       </View>
       
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={400}
       >
         {recipes.map((recipe, index) => {
           const dish = recipeToDish(recipe);
@@ -103,6 +134,12 @@ export default function TrendingRecipes({ recipes, onRecipePress }: TrendingReci
             </TouchableOpacity>
           );
         })}
+        
+        {isLoadingMore && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -199,6 +236,22 @@ const styles = StyleSheet.create({
   likesText: {
     fontSize: 11,
     color: Colors.text.secondary,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    width: 90,
+    height: 90,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
