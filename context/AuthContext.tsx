@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthContextType, User, LoginRequest, RegisterRequest } from '../types/auth';
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import { authService } from '../services/authService';
+import { AuthContextType, LoginRequest, RegisterRequest, User } from '../types/auth';
 
 interface AuthState {
   user: User | null;
@@ -13,7 +13,8 @@ type AuthAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'LOGIN_SUCCESS'; payload: { user: User; token: string } }
   | { type: 'LOGOUT' }
-  | { type: 'RESTORE_TOKEN'; payload: { user: User | null; token: string | null } };
+  | { type: 'RESTORE_TOKEN'; payload: { user: User | null; token: string | null } }
+  | { type: 'UPDATE_USER'; payload: Partial<User> };
 
 const initialState: AuthState = {
   user: null,
@@ -45,6 +46,14 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: action.payload.user,
         token: action.payload.token,
         loading: false,
+      };
+    case 'UPDATE_USER':
+      if (!state.user) return state; // Không làm gì nếu user là null
+
+      // Cập nhật user object với các trường mới được truyền vào (payload)
+      return {
+        ...state,
+        user: { ...state.user, ...action.payload },
       };
     default:
       return state;
@@ -82,21 +91,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
-      const token = await authService.login(credentials);
-      
-      // Giải mã token để lấy thông tin user
-      const decodedToken = authService.decodeToken(token);
-      const user: User = {
-        username: credentials.username,
-        email: decodedToken?.email || '',
-        fullname: decodedToken?.fullname || credentials.username,
-      };
+      // Gọi API login → backend trả về { accessToken, tokenType, expiresIn, user }
+      const rawResponse = await authService.login(credentials);
+      const response = typeof rawResponse === 'string' ? JSON.parse(rawResponse) : rawResponse;
+      const { accessToken, user } = response;
 
-      // Lưu token và user data
-      await AsyncStorage.setItem('access_token', token);
+      // Lưu token và user data vào AsyncStorage
+      await AsyncStorage.setItem('access_token', accessToken);
       await AsyncStorage.setItem('user_data', JSON.stringify(user));
 
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+      // Cập nhật state
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token: accessToken } });
       return true;
     } catch (error) {
       console.error('Login failed:', error);
@@ -134,6 +139,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateAuthUser = async (newUserData: Partial<User>) => {
+    if (!state.user) return;
+
+    // 1. Cập nhật state cục bộ (UI)
+    dispatch({ type: 'UPDATE_USER', payload: newUserData });
+
+    // 2. Cập nhật trong AsyncStorage để duy trì trạng thái sau khi app khởi động lại
+    try {
+        const updatedUser = { ...state.user, ...newUserData };
+        await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
+    } catch (error) {
+        console.error('Error updating user data in AsyncStorage:', error);
+    }
+};
+
   const value: AuthContextType = {
     user: state.user,
     token: state.token,
@@ -142,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     isAuthenticated: !!state.token,
     loading: state.loading,
+    updateAuthUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

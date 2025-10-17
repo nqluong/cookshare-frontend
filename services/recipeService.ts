@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { API_CONFIG } from "../config/api.config";
 
@@ -78,12 +79,22 @@ export const deleteRecipe = async (id: string) => {
   }
 };
 
-// Lấy danh sách công thức nổi bật (featured)
-export const getFeaturedRecipes = async (page = 0, size = 10) => {
+export const getAllRecipesByUserId = async (userId: string) => {
   try {
-    const res = await api.get(`/featured?page=${page}&size=${size}`);
+    const token = await AsyncStorage.getItem('access_token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+    const res = await api.get(`/user/${userId}`, { headers });
     return res.data;
   } catch (error) {
     handleError(error);
   }
 };
+
+// Lấy danh sách công thức nổi bật (featured)
+// export const getFeaturedRecipes = async (page = 0, size = 10) => {
+//   try {
+//     const res = await api.get(`/featured?page=${page}&size=${size}`);
+// };

@@ -13,7 +13,7 @@ const getAPIBaseURL = () => {
 
     // Cho Android Emulator
     if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8080';
+      return 'http://192.168.0.102:8080';
     }
 
     // Cho iOS Simulator và Physical devices  
