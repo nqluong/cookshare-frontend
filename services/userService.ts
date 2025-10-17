@@ -1,22 +1,14 @@
+import { API_CONFIG } from '@/config/api.config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { UserProfile } from '../types/user.types';
 
-const getAPIBaseURL = () => {
-  if (__DEV__) {
-    if (Platform.OS === 'web') return 'http://localhost:8080';
-    if (Platform.OS === 'android') return 'http://192.168.0.102:8080';
-    return 'http://192.168.0.102:8080';
-  }
-  return 'https://your-production-domain.com';
-};
-
-const API_BASE_URL = getAPIBaseURL();
+export const BASE_URL = API_CONFIG.BASE_URL;
 
 class UserService {
   constructor() {
     console.log(`🔧 UserService initialized for ${Platform.OS}`);
-    console.log(`📡 API Base URL: ${API_BASE_URL}`);
+    console.log(`📡 API Base URL: ${BASE_URL}`);
   }
 
   private async getAuthToken(): Promise<string | null> {
@@ -32,7 +24,7 @@ class UserService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      const response = await fetch(`${BASE_URL}/users/${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -70,7 +62,7 @@ class UserService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch(`${API_BASE_URL}/users/username/${username}`, {
+      const response = await fetch(`${BASE_URL}/users/username/${username}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +100,7 @@ class UserService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      const response = await fetch(`${BASE_URL}/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +139,7 @@ class UserService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch(`${API_BASE_URL}/users`, {
+      const response = await fetch(`${BASE_URL}/users`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

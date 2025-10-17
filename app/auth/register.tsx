@@ -1,5 +1,4 @@
-import React from 'react';
-import ScreensAuthRegister from '../../screens/Auth/Register';
+import ScreensAuthRegister from '../../screens/auth/Register';
 
 export default function RegisterRoute() {
   return <ScreensAuthRegister />;

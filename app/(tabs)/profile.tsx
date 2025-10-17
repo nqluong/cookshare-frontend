@@ -1,7 +1,7 @@
 import RecipeGrid from "@/components/profile/RecipeGrid";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,

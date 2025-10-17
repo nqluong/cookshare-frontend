@@ -1,23 +1,15 @@
+import { API_CONFIG } from '@/config/api.config';
 import { ApiResponse } from '@/types/user.types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { FollowResponse, FollowUser, PageResponse } from '../types/follow.types';
 
-const getAPIBaseURL = () => {
-  if (__DEV__) {
-    if (Platform.OS === 'web') return 'http://localhost:8080';
-    if (Platform.OS === 'android') return 'http://192.168.0.102:8080';
-    return 'http://192.168.0.102:8080';
-  }
-  return 'https://your-production-domain.com';
-};
-
-const API_BASE_URL = getAPIBaseURL();
+export const BASE_URL = API_CONFIG.BASE_URL;
 
 class FollowService {
   constructor() {
     console.log(`🔧 FollowService initialized for ${Platform.OS}`);
-    console.log(`📡 API Base URL: ${API_BASE_URL}`);
+    console.log(`📡 API Base URL: ${BASE_URL}`);
   }
 
   private async getAuthToken(): Promise<string | null> {
@@ -33,7 +25,7 @@ class FollowService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch(`${API_BASE_URL}/users/${currentUserId}/follow`, {
+      const response = await fetch(`${BASE_URL}/users/${currentUserId}/follow`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +64,7 @@ class FollowService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const response = await fetch(`${API_BASE_URL}/users/${currentUserId}/follow/${targetUserId}`, {
+      const response = await fetch(`${BASE_URL}/users/${currentUserId}/follow/${targetUserId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +103,7 @@ class FollowService {
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(
-        `${API_BASE_URL}/users/${userId}/followers?page=${page}&size=${size}`,
+        `${BASE_URL}/users/${userId}/followers?page=${page}&size=${size}`,
         {
           method: 'GET',
           headers: {
@@ -152,7 +144,7 @@ class FollowService {
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(
-        `${API_BASE_URL}/users/${userId}/following?page=${page}&size=${size}`,
+        `${BASE_URL}/users/${userId}/following?page=${page}&size=${size}`,
         {
           method: 'GET',
           headers: {
@@ -193,7 +185,7 @@ class FollowService {
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(
-        `${API_BASE_URL}/users/${currentUserId}/follow/check/${targetUserId}`,
+        `${BASE_URL}/users/${currentUserId}/follow/check/${targetUserId}`,
         {
           method: 'GET',
           headers: {

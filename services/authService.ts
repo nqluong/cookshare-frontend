@@ -3,28 +3,7 @@ import { Platform } from 'react-native';
 import { API_CONFIG } from '../config/api.config';
 import { LoginRequest, RegisterRequest } from '../types/auth';
 
-// Dynamic API URL cho các platform khác nhau
-const getAPIBaseURL = () => {
-  if (__DEV__) {
-    // Development mode
-    if (Platform.OS === 'web') {
-      return 'http://localhost:8080';
-    }
-
-    // Cho Android Emulator
-    if (Platform.OS === 'android') {
-      return 'http://192.168.0.102:8080';
-    }
-
-    // Cho iOS Simulator và Physical devices  
-    return API_CONFIG.BASE_URL; 
-  }
-
-  // Production - thay bằng production URL
-  return 'https://your-production-domain.com';
-};
-
-const API_BASE_URL = getAPIBaseURL();
+export const API_BASE_URL = API_CONFIG.BASE_URL;
 
 class AuthService {
   constructor() {
