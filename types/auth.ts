@@ -11,9 +11,27 @@ export interface RegisterRequest {
 }
 
 export interface User {
+  userId: string;
   username: string;
   email: string;
-  fullname: string;
+  fullName: string;
+  avatarUrl?: string;
+  bio?: string | null;
+  role: string;
+  isActive: boolean;
+  emailVerified: boolean;
+  lastActive?: string;
+  followerCount?: number;
+  followingCount?: number;
+  recipeCount?: number;
+  createdAt?: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  user: User;
 }
 
 export interface AuthContextType {
@@ -24,4 +42,5 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
+  updateAuthUser: (newUserData: Partial<User>) => void;
 }

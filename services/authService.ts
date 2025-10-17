@@ -1,5 +1,5 @@
-import { LoginRequest, RegisterRequest } from '../types/auth';
 import { Platform } from 'react-native';
+import { LoginRequest, RegisterRequest } from '../types/auth';
 
 // Dynamic API URL cho các platform khác nhau
 const getAPIBaseURL = () => {
@@ -11,11 +11,11 @@ const getAPIBaseURL = () => {
 
     // Cho Android Emulator
     if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8080';
+      return 'http://192.168.0.102:8080';
     }
 
     // Cho iOS Simulator và Physical devices  
-    return 'http://192.168.178.100:8080'; // IP chính của máy tính
+    return 'http://192.168.0.102:8080'; // IP chính của máy tính
   }
 
   // Production - thay bằng production URL
@@ -55,9 +55,16 @@ class AuthService {
         throw new Error(errorText || 'Đăng nhập thất bại');
       }
 
-      const token = await response.text();
-      console.log('Login successful, received token');
-      return token;
+      // ✅ Parse JSON trả về
+      const data = await response.json();
+
+      // Kiểm tra format trả về từ backend
+      if (!data.accessToken || !data.user) {
+        throw new Error('Phản hồi từ server không hợp lệ.');
+      }
+
+      console.log('Login successful:', data.user.username);
+      return data;
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.name === 'AbortError') {

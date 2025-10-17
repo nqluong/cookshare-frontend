@@ -1,6 +1,6 @@
 import { ApiResponse, ErrorResponse } from '../types/search';
 
-export const BASE_URL = 'http://192.168.21.104:8080';
+export const BASE_URL = 'http://192.168.0.102:8080';
 
 const fetchApi = async (url: string) => {
   try {

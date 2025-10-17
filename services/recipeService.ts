@@ -1,7 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 // ⚠️ Dùng IP thật của máy bạn (xem bằng ipconfig)
-let API_BASE_URL = "http://192.168.31.253:8080/api/recipes";
+let API_BASE_URL = "http://192.168.0.102:8080/api/recipes";
 
 
 // 🧩 Tạo instance axios có sẵn config
@@ -68,6 +69,20 @@ export const updateRecipe = async (id: string, data: any) => {
 export const deleteRecipe = async (id: string) => {
   try {
     const res = await api.delete(`/${id}`);
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getAllRecipesByUserId = async (userId: string) => {
+  try {
+    const token = await AsyncStorage.getItem('access_token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+    const res = await api.get(`/user/${userId}`, { headers });
     return res.data;
   } catch (error) {
     handleError(error);
