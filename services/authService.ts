@@ -1,4 +1,4 @@
-import { LoginRequest, RegisterRequest } from '../types/auth';
+import { LoginRequest, RegisterRequest, ForgotPasswordRequest, ChangePasswordRequest } from '../types/auth';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Cookies from 'expo-cookies';
@@ -325,6 +325,94 @@ class AuthService {
       console.error('Logout error:', error);
       // Vẫn xóa user info local dù API call thất bại
       await this.clearUserInfo();
+    }
+  }
+
+  // Quên mật khẩu
+  async forgotPassword(data: ForgotPasswordRequest): Promise<string> {
+    try {
+      console.log('Attempting forgot password to:', `${API_BASE_URL}/auth/forgot-password`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('Forgot password response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Gửi yêu cầu quên mật khẩu thất bại');
+      }
+
+      const message = await response.text();
+      console.log('Forgot password successful');
+      return message;
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout - Không thể kết nối đến server');
+      }
+      throw error;
+    }
+  }
+
+  // Đổi mật khẩu
+  async changePassword(data: ChangePasswordRequest): Promise<string> {
+    try {
+      console.log('Attempting change password to:', `${API_BASE_URL}/auth/change-password`);
+
+      const accessToken = await this.getAccessToken();
+      if (!accessToken) {
+        throw new Error('Không tìm thấy token xác thực');
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+          confirmPassword: data.confirmPassword,
+        }),
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('Change password response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Đổi mật khẩu thất bại');
+      }
+
+      const message = await response.text();
+      console.log('Change password successful');
+      return message;
+    } catch (error: any) {
+      console.error('Change password error:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout - Không thể kết nối đến server');
+      }
+      throw error;
     }
   }
 }

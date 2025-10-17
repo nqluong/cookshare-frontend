@@ -113,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         username: credentials.username,
         email: decodedToken?.email || '',
         fullname: decodedToken?.fullname || credentials.username,
+        role: decodedToken?.role || 'USER', // Lấy role từ token
       };
 
       // Lưu access token và user info (cookies được browser tự động quản lý)

@@ -10,10 +10,21 @@ export interface RegisterRequest {
   fullname: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface User {
   username: string;
   email: string;
   fullname: string;
+  role?: string; // Thêm role để hỗ trợ phân quyền
 }
 
 export interface AuthContextType {

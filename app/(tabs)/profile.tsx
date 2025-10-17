@@ -8,6 +8,30 @@ import { router } from 'expo-router';
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
 
+  const handleAdminPanel = () => {
+    Alert.alert(
+      'Admin Panel',
+      'Chuyển đến trang quản trị?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Đi đến',
+          onPress: () => {
+            // TODO: Navigate to admin panel
+            Alert.alert('Thông báo', 'Tính năng admin panel đang được phát triển');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleChangePassword = () => {
+    router.push('/changePassword' as any);
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Đăng xuất',
@@ -51,7 +75,22 @@ export default function ProfileScreen() {
 
           <Text style={styles.label}>Họ và tên:</Text>
           <Text style={styles.value}>{user?.fullname || 'Chưa có thông tin'}</Text>
+
+          <Text style={styles.label}>Vai trò:</Text>
+          <Text style={styles.value}>{user?.role || 'USER'}</Text>
         </View>
+
+        {/* Change Password Button */}
+        <TouchableOpacity style={styles.changePasswordButton} onPress={handleChangePassword}>
+          <Text style={styles.changePasswordButtonText}>🔑 Đổi mật khẩu</Text>
+        </TouchableOpacity>
+
+        {/* Admin Button - Chỉ hiển thị cho ADMIN */}
+        {user?.role === 'ADMIN' && (
+          <TouchableOpacity style={styles.adminButton} onPress={handleAdminPanel}>
+            <Text style={styles.adminButtonText}>🛠️ Quản trị hệ thống</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -107,6 +146,48 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  adminButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  adminButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  changePasswordButton: {
+    backgroundColor: '#28a745',
+    borderRadius: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  changePasswordButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   logoutButton: {
     backgroundColor: '#dc3545',

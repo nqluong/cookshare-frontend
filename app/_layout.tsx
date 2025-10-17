@@ -22,11 +22,14 @@ function RootLayoutNav() {
     const segmentString = segments.join('/');
     const inAuthGroup = segmentString.includes('auth');
 
+    // Cho phép user đã đăng nhập truy cập changePassword
+    const isChangePasswordRoute = segmentString.includes('changePassword');
+
     if (!isAuthenticated && !inAuthGroup) {
-      // Chưa đăng nhập và không ở trong auth group -> chuyển đến registerForm (Tạo một tài khoản)
-      router.replace('/auth/registerForm' as any);
-    } else if (isAuthenticated && inAuthGroup) {
-      // Đã đăng nhập và đang ở auth group -> chuyển về trang home
+      // Chưa đăng nhập và không ở trong auth group -> chuyển đến login
+      router.replace('/auth/login' as any);
+    } else if (isAuthenticated && inAuthGroup && !isChangePasswordRoute) {
+      // Đã đăng nhập và đang ở auth group (nhưng không phải changePassword) -> chuyển về trang home
       router.replace('/(tabs)/home' as any);
     }
   }, [isAuthenticated, loading, segments]);
@@ -35,6 +38,7 @@ function RootLayoutNav() {
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
+      <Stack.Screen name="changePassword" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
     </Stack>
   );
