@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContextType, User, LoginRequest, RegisterRequest } from '../types/auth';
 import { authService } from '../services/authService';
+
+// Import API base URL (hoặc define ở đây)
+const API_BASE_URL = 'http://localhost:8080'; // Có thể cần cập nhật theo môi trường
 
 interface AuthState {
   user: User | null;
@@ -13,7 +15,8 @@ type AuthAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'LOGIN_SUCCESS'; payload: { user: User; token: string } }
   | { type: 'LOGOUT' }
-  | { type: 'RESTORE_TOKEN'; payload: { user: User | null; token: string | null } };
+  | { type: 'RESTORE_TOKEN'; payload: { user: User | null; token: string | null } }
+  | { type: 'UPDATE_USER'; payload: Partial<User> };
 
 const initialState: AuthState = {
   user: null,
@@ -46,6 +49,14 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         token: action.payload.token,
         loading: false,
       };
+    case 'UPDATE_USER':
+      if (!state.user) return state; // Không làm gì nếu user là null
+
+      // Cập nhật user object với các trường mới được truyền vào (payload)
+      return {
+        ...state,
+        user: { ...state.user, ...action.payload },
+      };
     default:
       return state;
   }
@@ -56,47 +67,72 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Khôi phục token khi app khởi động
+  // Khôi phục session từ cookies khi app khởi động
   useEffect(() => {
-    const restoreToken = async () => {
+    const restoreSession = async () => {
       try {
-        const token = await AsyncStorage.getItem('access_token');
-        const userData = await AsyncStorage.getItem('user_data');
-        
-        if (token && userData) {
-          const user = JSON.parse(userData);
-          dispatch({ type: 'RESTORE_TOKEN', payload: { user, token } });
+        // Kiểm tra xem có session hợp lệ không (cookies sẽ được tự động gửi)
+        const hasValidSession = await authService.hasValidSession();
+
+        if (hasValidSession) {
+          // Lấy user info từ AsyncStorage
+          const userInfo = await authService.getUserInfo();
+
+          if (userInfo) {
+            dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: 'cookie-based' } });
+          } else {
+            // Nếu không có user info trong AsyncStorage, thử lấy từ server
+            try {
+              const response = await fetch(`${API_BASE_URL}/auth/account`, {
+                credentials: 'include',
+              });
+
+              if (response.ok) {
+                const userProfile = await response.json();
+                await authService.saveUserInfo(userProfile);
+                dispatch({ type: 'RESTORE_TOKEN', payload: { user: userProfile, token: 'cookie-based' } });
+              } else {
+                dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
+              }
+            } catch (error) {
+              dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
+            }
+          }
         } else {
           dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
         }
       } catch (error) {
-        console.error('Error restoring token:', error);
+        console.error('Error restoring session:', error);
         dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
       }
     };
 
-    restoreToken();
+    restoreSession();
   }, []);
 
   const login = async (credentials: LoginRequest): Promise<boolean> => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      
+
       const token = await authService.login(credentials);
-      
+
       // Giải mã token để lấy thông tin user
       const decodedToken = authService.decodeToken(token);
       const user: User = {
+        userId: decodedToken?.sub || '',
         username: credentials.username,
         email: decodedToken?.email || '',
-        fullname: decodedToken?.fullname || credentials.username,
+        fullName: decodedToken?.fullname || credentials.username,
+        role: decodedToken?.role || 'USER', // Lấy role từ token
+        isActive: true,
+        emailVerified: false,
       };
 
-      // Lưu token và user data
-      await AsyncStorage.setItem('access_token', token);
-      await AsyncStorage.setItem('user_data', JSON.stringify(user));
+      // Lưu access token và user info (cookies được browser tự động quản lý)
+      await authService.saveAccessToken(token);
+      await authService.saveUserInfo(user);
 
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token: 'cookie-based' } });
       return true;
     } catch (error) {
       console.error('Login failed:', error);
@@ -108,9 +144,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (userData: RegisterRequest): Promise<boolean> => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      
+
       await authService.register(userData);
-      
+
       // Tự động đăng nhập sau khi đăng ký thành công
       const loginSuccess = await login({
         username: userData.username,
@@ -127,11 +163,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await AsyncStorage.multiRemove(['access_token', 'user_data']);
+      // Gọi logout service để invalidate cookies trên server và xóa user info local
+      await authService.logout();
       dispatch({ type: 'LOGOUT' });
     } catch (error) {
       console.error('Logout error:', error);
+      // Vẫn logout local dù API call thất bại
+      dispatch({ type: 'LOGOUT' });
     }
+  };
+
+  const updateAuthUser = (newUserData: Partial<User>) => {
+    dispatch({ type: 'UPDATE_USER', payload: newUserData });
   };
 
   const value: AuthContextType = {
@@ -140,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
+    updateAuthUser,
     isAuthenticated: !!state.token,
     loading: state.loading,
   };

@@ -1,7 +1,5 @@
-import { MaterialIcons } from "@expo/vector-icons";
-import React from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View, } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { getImageUrl } from "../../config/api.config";
 import styles from "../../styles/RecipeDetailView.styles";
 
 type Comment = {
@@ -35,22 +33,12 @@ type Props = {
 
 export default function RecipeDetailView({ recipe, onBack, onSearch }: Props) {
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <MaterialIcons name="arrow-back-ios" size={32} color="#222" />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.headerBtn} onPress={onSearch}>
-          <MaterialIcons name="search" size={38} color="#222" />
-        </TouchableOpacity>
-      </View>
-
+    <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        <Image source={{ uri: recipe.image }} style={styles.image} />
+        <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.image} />
 
         <View style={styles.infoRow}>
           <Text>❤️ {recipe.likes ?? 0}</Text>
@@ -59,7 +47,7 @@ export default function RecipeDetailView({ recipe, onBack, onSearch }: Props) {
         </View>
 
         <View style={styles.authorRow}>
-          <Image source={{ uri: recipe.image }} style={styles.avatar} />
+          <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.avatar} />
           <View>
             <Text style={styles.author}>{recipe.author}</Text>
             <Text style={styles.time}>
@@ -95,6 +83,6 @@ export default function RecipeDetailView({ recipe, onBack, onSearch }: Props) {
           </TouchableOpacity>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

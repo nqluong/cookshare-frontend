@@ -1,4 +1,4 @@
-import RecipeDetailScreen from "../../screens/RecipeDetailScreen";
+import RecipeDetailScreen from "../../../screens/RecipeDetailScreen";
 
 export default function RecipeDetailRoute() {
   return <RecipeDetailScreen />;

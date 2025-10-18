@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getImageUrl } from '../../../config/api.config';
 import { Colors } from '../../../styles/colors';
 import { Recipe } from '../../../types/dish';
@@ -8,10 +8,19 @@ import { Recipe } from '../../../types/dish';
 interface NewestRecipesProps {
   recipes: Recipe[]; // Danh sách công thức mới nhất từ API
   onRecipePress?: (recipe: Recipe) => void; // Callback khi nhấn vào công thức
+  onLoadMore?: () => void; // Callback khi cần load thêm
+  hasMore?: boolean; // Còn data để load không
+  isLoadingMore?: boolean; // Đang load thêm không
 }
 
 // Component hiển thị danh sách công thức mới nhất (theo createdAt)
-export default function NewestRecipes({ recipes, onRecipePress }: NewestRecipesProps) {
+export default function NewestRecipes({ 
+  recipes, 
+  onRecipePress, 
+  onLoadMore, 
+  hasMore = false, 
+  isLoadingMore = false 
+}: NewestRecipesProps) {
   const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
 
   const toggleLike = (recipeId: string, event: any) => {
@@ -124,6 +133,24 @@ export default function NewestRecipes({ recipes, onRecipePress }: NewestRecipesP
           </TouchableOpacity>
         );
       })}
+
+      {/* Chế độ load thêm */}
+      {hasMore && (
+        <View style={styles.loadMoreContainer}>
+          {isLoadingMore ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : (
+            <TouchableOpacity 
+              style={styles.loadMoreButton}
+              onPress={onLoadMore}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.loadMoreText}>Xem thêm</Text>
+              <Ionicons name="chevron-down" size={16} color={Colors.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -223,6 +250,31 @@ const styles = StyleSheet.create({
   statSubText: {
     fontSize: 12,
     color: Colors.text.secondary,
+  },
+  loadMoreContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });
 

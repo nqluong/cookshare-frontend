@@ -10,10 +10,39 @@ export interface RegisterRequest {
   fullname: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface User {
+  userId: string;
   username: string;
   email: string;
-  fullname: string;
+  fullName: string;
+  avatarUrl?: string;
+  bio?: string | null;
+  role?: string;
+  isActive: boolean;
+  emailVerified: boolean;
+  lastActive?: string;
+  followerCount?: number;
+  followingCount?: number;
+  recipeCount?: number;
+  totalLikes?: number;
+  createdAt?: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  user: User;
 }
 
 export interface AuthContextType {
@@ -24,4 +53,5 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
+  updateAuthUser: (newUserData: Partial<User>) => void;
 }

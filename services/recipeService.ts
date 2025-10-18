@@ -1,14 +1,15 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { API_CONFIG } from "../config/api.config";
 
-// 🧩 Tạo instance axios có sẵn config
+// Tạo instance axios có sẵn config
 const api = axios.create({
   baseURL: `${API_CONFIG.BASE_URL}/api/recipes`,
   timeout: API_CONFIG.TIMEOUT,
   headers: API_CONFIG.DEFAULT_HEADERS,
 });
 
-// 🧠 Hàm xử lý lỗi chung
+// Hàm xử lý lỗi chung
 const handleError = (error: any) => {
   if (error.code === "ECONNABORTED") {
     throw new Error("⏰ Yêu cầu quá thời gian, thử lại sau.");
@@ -19,7 +20,7 @@ const handleError = (error: any) => {
   }
 };
 
-// 📜 Lấy danh sách công thức
+// Lấy danh sách công thức
 export const getAllRecipes = async (page = 0, size = 10) => {
   try {
     const res = await api.get(`?page=${page}&size=${size}`);
@@ -29,17 +30,26 @@ export const getAllRecipes = async (page = 0, size = 10) => {
   }
 };
 
-// 🔍 Lấy chi tiết công thức theo ID
-export const getRecipeById = async (id: string) => {
+// Lấy chi tiết công thức theo ID
+export const getRecipeById = async (id: string, token?: string | null) => {
   try {
-    const res = await api.get(`/${id}`);
+    const headers: any = { ...API_CONFIG.DEFAULT_HEADERS };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log('🔑 Sending request with token');
+    } else {
+      console.log('⚠️ No token provided');
+    }
+
+    const res = await api.get(`/${id}`, { headers });
     return res.data;
   } catch (error) {
     handleError(error);
   }
 };
 
-// ➕ Tạo mới công thức
+// Tạo mới công thức
 export const createRecipe = async (data: any) => {
   try {
     const res = await api.post("", data);
@@ -49,7 +59,7 @@ export const createRecipe = async (data: any) => {
   }
 };
 
-// ✏️ Cập nhật công thức
+// Cập nhật công thức
 export const updateRecipe = async (id: string, data: any) => {
   try {
     const res = await api.put(`/${id}`, data);
@@ -59,7 +69,7 @@ export const updateRecipe = async (id: string, data: any) => {
   }
 };
 
-// 🗑️ Xóa công thức
+// Xóa công thức
 export const deleteRecipe = async (id: string) => {
   try {
     const res = await api.delete(`/${id}`);
@@ -69,12 +79,22 @@ export const deleteRecipe = async (id: string) => {
   }
 };
 
-// ⭐ Lấy danh sách công thức nổi bật (featured)
-export const getFeaturedRecipes = async (page = 0, size = 10) => {
+export const getAllRecipesByUserId = async (userId: string) => {
   try {
-    const res = await api.get(`/featured?page=${page}&size=${size}`);
+    const token = await AsyncStorage.getItem('access_token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+    const res = await api.get(`/user/${userId}`, { headers });
     return res.data;
   } catch (error) {
     handleError(error);
   }
 };
+
+// Lấy danh sách công thức nổi bật (featured)
+// export const getFeaturedRecipes = async (page = 0, size = 10) => {
+//   try {
+//     const res = await api.get(`/featured?page=${page}&size=${size}`);
+// };

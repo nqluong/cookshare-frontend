@@ -44,14 +44,14 @@ const fetchApi = async (url: string) => {
     try {
       const responseText = await response.text();
       console.log('📄 Raw response:', responseText);
-      
+
       // Parse JSON nếu có content
       if (responseText) {
         data = JSON.parse(responseText);
       } else {
         data = { message: 'No response body' };
       }
-    } catch (parseError) {   
+    } catch (parseError) {
       throw new Error(`Server error: ${response.status} - Cannot parse response`);
     }
 
@@ -59,7 +59,7 @@ const fetchApi = async (url: string) => {
       console.log('✅ Success response:', data);
       return data;
     } else {
-      
+
       // Map HTTP status to error codes nếu cần
       if (response.status === 400 || response.status === 422) {
         return {
@@ -70,7 +70,7 @@ const fetchApi = async (url: string) => {
           timestamp: data.timestamp,
         };
       }
-      
+
       return {
         success: false,
         code: data.code || response.status,
@@ -79,12 +79,12 @@ const fetchApi = async (url: string) => {
         timestamp: data.timestamp || new Date().toISOString(),
       };
     }
-  } catch (err: unknown) { 
+  } catch (err: unknown) {
     console.error('❌ Network/Fetch error:', err);
-    
-    
+
+
     let errorMessage = 'Lỗi không xác định';
-    
+
     if (err instanceof Error) {
       errorMessage = err.message;
     } else if (typeof err === 'string') {
@@ -97,8 +97,8 @@ const fetchApi = async (url: string) => {
     ) {
       throw new Error('Không thể kết nối đến server');
     }
-    
-    throw new Error(errorMessage); 
+
+    throw new Error(errorMessage);
   }
 };
 
@@ -129,7 +129,7 @@ export const fetchPopularIngredients = async (): Promise<Ingredient[]> => {
     const data = await fetchApi(url);
 
     const ingredientsData = data as IngredientsResponse;
-    
+
     if (ingredientsData.code === 1000 && ingredientsData.result && Array.isArray(ingredientsData.result)) {
       console.log('✅ Fetched', ingredientsData.result.length, 'popular ingredients');
       return ingredientsData.result;
@@ -146,13 +146,13 @@ export const fetchSearchHistory = async (): Promise<SearchHistoryItem[]> => {
   try {
     const url = `${BASE_URL}/searchs/history`;
     console.log('🚀 Fetching search history:', url);
-    
+
     const data = await fetchApi(url);
     if (
-      data && 
-      'code' in data && 
-      data.code === 1000 && 
-      data.result && 
+      data &&
+      'code' in data &&
+      data.code === 1000 &&
+      data.result &&
       Array.isArray(data.result)
     ) {
       const history = data.result as SearchHistoryItem[];

@@ -9,8 +9,9 @@ import { Platform } from 'react-native';
 const DEV_CONFIG = {
   // Set manual IP nếu auto-detect không work
   MANUAL_IP: null as string | null, // Ví dụ: 'http://192.168.1.151:8080'
-  
+
   // Fallback IP nếu auto-detect fail ( điền ip thật ở đây )
+
   FALLBACK_IP: 'http://192.168.21.104:8080',
   
   // Port của backend
@@ -25,11 +26,11 @@ const getPlatformSpecificHost = (): string | null => {
   if (Platform.OS === 'web') {
     return 'http://localhost:8080';
   }
-  
+
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:8080';
   }
-  
+
   return null; // iOS/Physical devices sẽ dùng IP thật
 };
 
@@ -38,23 +39,23 @@ const getApiHost = (): string => {
   if (process.env.EXPO_PUBLIC_API_HOST) {
     return process.env.EXPO_PUBLIC_API_HOST;
   }
-  
+
   // 2. Manual override trong development
   if (__DEV__ && DEV_CONFIG.MANUAL_IP) {
     return DEV_CONFIG.MANUAL_IP;
   }
-  
+
   // 3. Platform-specific (Android Emulator, Web)
   const platformHost = getPlatformSpecificHost();
   if (platformHost) {
     return platformHost;
   }
-  
+
   // 4. Development fallback
   if (__DEV__) {
     return DEV_CONFIG.FALLBACK_IP;
   }
-  
+
   // 5. Production
   return PROD_CONFIG.API_URL;
 };
@@ -72,7 +73,7 @@ export const API_CONFIG = {
   BASE_URL: API_HOST,
   API_V1_URL: `${API_HOST}${API_VERSION.V1}`,
   API_V2_URL: `${API_HOST}${API_VERSION.V2}`,
-  
+
   TIMEOUT: 3000, // 3 giây
 
   DEFAULT_HEADERS: {
@@ -83,11 +84,11 @@ export const API_CONFIG = {
 // 🖼️ Helper function để tạo URL cho ảnh
 export const getImageUrl = (imagePath: string | null | undefined): string => {
   if (!imagePath) {
-    return 'https://via.placeholder.com/400'; 
+    return 'https://via.placeholder.com/400';
   }
-  
+
   const normalizedPath = imagePath.replace(/\\/g, '/');
-  
+
   return `${API_CONFIG.BASE_URL}/${normalizedPath}`;
 };
 

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'; // ✅ dùng router để điều hướng
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FeaturedDish from '../../components/home/FeaturedDish';
@@ -9,7 +9,13 @@ import NewestRecipes from '../../components/home/sections/NewestRecipes';
 import PopularRecipes from '../../components/home/sections/PopularRecipes';
 import TopRatedRecipes from '../../components/home/sections/TopRatedRecipes';
 import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
-import { getHomeSuggestions } from '../../services/homeService';
+import {
+  getHomeSuggestions,
+  getNewestRecipes,
+  getPopularRecipes,
+  getTopRatedRecipes,
+  getTrendingRecipes
+} from '../../services/homeService';
 import { Colors } from '../../styles/colors';
 import { Recipe } from '../../types/dish';
 
@@ -26,6 +32,27 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true); // Trạng thái đang tải
   const [error, setError] = useState<string | null>(null); // Lỗi nếu có
 
+
+  // Pagination state cho Newest
+  const [newestPage, setNewestPage] = useState(0); 
+  const [hasMoreNewest, setHasMoreNewest] = useState(true); 
+  const [isLoadingMoreNewest, setIsLoadingMoreNewest] = useState(false);
+
+  // Pagination state cho Trending
+  const [trendingPage, setTrendingPage] = useState(0);
+  const [hasMoreTrending, setHasMoreTrending] = useState(true);
+  const [isLoadingMoreTrending, setIsLoadingMoreTrending] = useState(false);
+
+  // Pagination state cho Popular
+  const [popularPage, setPopularPage] = useState(0);
+  const [hasMorePopular, setHasMorePopular] = useState(true);
+  const [isLoadingMorePopular, setIsLoadingMorePopular] = useState(false);
+
+  // Pagination state cho TopRated
+  const [topRatedPage, setTopRatedPage] = useState(0);
+  const [hasMoreTopRated, setHasMoreTopRated] = useState(true);
+  const [isLoadingMoreTopRated, setIsLoadingMoreTopRated] = useState(false);
+
   useEffect(() => {
     fetchHomeSuggestions();
   }, []);
@@ -36,23 +63,22 @@ export default function HomeScreen() {
       setLoading(true); 
       setError(null); 
       
-      // Gọi API lấy tất cả gợi ý (featured, popular, newest, topRated, trending)
       const response = await getHomeSuggestions();
       
       if (response.success && response.data) {
-        // 1️⃣ Lưu danh sách công thức nổi bật
+        // Lưu danh sách công thức nổi bật
         setFeaturedRecipes(response.data.featuredRecipes || []);
         
-        // 2️⃣ Lưu danh sách công thức phổ biến
+        // Lưu danh sách công thức phổ biến
         setPopularRecipes(response.data.popularRecipes || []);
         
-        // 3️⃣ Lưu danh sách công thức mới nhất
+        // Lưu danh sách công thức mới nhất
         setNewestRecipes(response.data.newestRecipes || []);
         
-        // 4️⃣ Lưu danh sách công thức đánh giá cao nhất
+        // Lưu danh sách công thức đánh giá cao nhất
         setTopRatedRecipes(response.data.topRatedRecipes || []);
         
-        // 5️⃣ Lưu danh sách công thức đang thịnh hành
+        // Lưu danh sách công thức đang thịnh hành
         setTrendingRecipes(response.data.trendingRecipes || []);
       }
     } catch (err: any) {
@@ -63,8 +89,97 @@ export default function HomeScreen() {
     }
   };
 
-  const handleOpenDetail = () => {
-    router.push('/recipe-detail'); // ✅ chuyển sang màn hình chi tiết
+  const handleOpenDetail = (recipe: Recipe) => {
+    // 🎯 Dynamic route: /_recipe-detail/[id] (trong tabs layout)
+    router.push(`/_recipe-detail/${recipe.recipeId}` as any);
+  };
+
+  // Load more Newest
+  const handleLoadMoreNewest = async () => {
+    if (isLoadingMoreNewest || !hasMoreNewest) return;
+
+    try {
+      setIsLoadingMoreNewest(true);
+      const nextPage = newestPage + 1;
+      const response = await getNewestRecipes(nextPage, 10);
+      
+      if (response.success && response.data) {
+        const newRecipes = response.data.content || [];
+        setNewestRecipes(prev => [...prev, ...newRecipes]);
+        setNewestPage(nextPage);
+        setHasMoreNewest(!response.data.last);
+      }
+    } catch (err: any) {
+      console.error('Error loading more newest recipes:', err);
+    } finally {
+      setIsLoadingMoreNewest(false);
+    }
+  };
+
+  // Load more Trending
+  const handleLoadMoreTrending = async () => {
+    if (isLoadingMoreTrending || !hasMoreTrending) return;
+
+    try {
+      setIsLoadingMoreTrending(true);
+      const nextPage = trendingPage + 1;
+      const response = await getTrendingRecipes(nextPage, 10);
+      
+      if (response.success && response.data) {
+        const newRecipes = response.data.content || [];
+        setTrendingRecipes(prev => [...prev, ...newRecipes]);
+        setTrendingPage(nextPage);
+        setHasMoreTrending(!response.data.last);
+      }
+    } catch (err: any) {
+      console.error('Error loading more trending recipes:', err);
+    } finally {
+      setIsLoadingMoreTrending(false);
+    }
+  };
+
+  // Load more Popular
+  const handleLoadMorePopular = async () => {
+    if (isLoadingMorePopular || !hasMorePopular) return;
+
+    try {
+      setIsLoadingMorePopular(true);
+      const nextPage = popularPage + 1;
+      const response = await getPopularRecipes(nextPage, 20); // 20 items mỗi lần
+      
+      if (response.success && response.data) {
+        const newRecipes = response.data.content || [];
+        setPopularRecipes(prev => [...prev, ...newRecipes]);
+        setPopularPage(nextPage);
+        setHasMorePopular(!response.data.last);
+      }
+    } catch (err: any) {
+      console.error('Error loading more popular recipes:', err);
+    } finally {
+      setIsLoadingMorePopular(false);
+    }
+  };
+
+  // Load more TopRated
+  const handleLoadMoreTopRated = async () => {
+    if (isLoadingMoreTopRated || !hasMoreTopRated) return;
+
+    try {
+      setIsLoadingMoreTopRated(true);
+      const nextPage = topRatedPage + 1;
+      const response = await getTopRatedRecipes(nextPage, 10);
+      
+      if (response.success && response.data) {
+        const newRecipes = response.data.content || [];
+        setTopRatedRecipes(prev => [...prev, ...newRecipes]);
+        setTopRatedPage(nextPage);
+        setHasMoreTopRated(!response.data.last);
+      }
+    } catch (err: any) {
+      console.error('Error loading more topRated recipes:', err);
+    } finally {
+      setIsLoadingMoreTopRated(false);
+    }
   };
 
   if (loading) {
@@ -78,7 +193,7 @@ export default function HomeScreen() {
     );
   }
 
-  // ❌ Hiển thị lỗi nếu có
+  // Hiển thị lỗi nếu có
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
@@ -98,26 +213,38 @@ export default function HomeScreen() {
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <FeaturedDish recipe={featuredRecipes[0]} />
+        <FeaturedDish recipe={featuredRecipes[0]} onRecipePress={handleOpenDetail} />
         
         <TrendingRecipes 
           recipes={trendingRecipes} 
           onRecipePress={handleOpenDetail}
+          onLoadMore={handleLoadMoreTrending}
+          hasMore={hasMoreTrending}
+          isLoadingMore={isLoadingMoreTrending}
         />
         
         <PopularRecipes 
           recipes={popularRecipes} 
           onRecipePress={handleOpenDetail}
+          onLoadMore={handleLoadMorePopular}
+          hasMore={hasMorePopular}
+          isLoadingMore={isLoadingMorePopular}
         />
         
         <TopRatedRecipes 
           recipes={topRatedRecipes} 
           onRecipePress={handleOpenDetail}
+          onLoadMore={handleLoadMoreTopRated}
+          hasMore={hasMoreTopRated}
+          isLoadingMore={isLoadingMoreTopRated}
         />
         
         <NewestRecipes 
           recipes={newestRecipes} 
           onRecipePress={handleOpenDetail}
+          onLoadMore={handleLoadMoreNewest}
+          hasMore={hasMoreNewest}
+          isLoadingMore={isLoadingMoreNewest}
         />
         
         <View style={styles.bottomPadding} />
