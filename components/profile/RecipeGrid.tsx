@@ -1,7 +1,9 @@
 import { getAllRecipesByUserId } from "@/services/recipeService";
 import { BASE_URL } from "@/services/searchService";
+import { Recipe } from "@/types/search";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -12,15 +14,6 @@ import {
 
 interface RecipeGridProps {
   userId: string;
-}
-
-interface Recipe {
-  recipeId: string;
-  title: string;
-  description: string | null;
-  featuredImage: string;
-  likeCount: number;
-  saveCount: number;
 }
 
 const RecipeGrid: React.FC<RecipeGridProps> = ({ userId }) => {
@@ -62,8 +55,8 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId }) => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#FF385C" />
       </View>
     );
   }
@@ -89,6 +82,17 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     backgroundColor: "#fff",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#fff",
+  },
+  list: {
+    padding: 10,
+    paddingBottom: 20,
   },
   card: {
     flexDirection: "row",
@@ -129,9 +133,6 @@ const styles = StyleSheet.create({
     color: "#999",
     textAlign: "center",
     marginTop: 20,
-  },
-  list: {
-    paddingBottom: 10,
   },
 });
 

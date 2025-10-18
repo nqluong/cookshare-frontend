@@ -12,6 +12,7 @@ export interface UserProfile {
   followerCount?: number;
   followingCount?: number;
   recipeCount?: number;
+  totalLikes?: number;
   createdAt?: string;
 }
 

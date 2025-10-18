@@ -5,7 +5,7 @@ import { userService } from "@/services/userService";
 import { UserProfile } from "@/types/user.types";
 import { FontAwesome } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,7 +23,6 @@ import { Colors } from "../../styles/colors";
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { user: currentUser, updateAuthUser } = useAuth();
-
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +83,6 @@ export default function UserProfileScreen() {
   };
 
   // --- Logic Follow/Unfollow ---
-
   const handleFollowPress = async () => {
     if (!currentProfileId || !updateAuthUser) {
       Alert.alert("Lỗi", "Vui lòng đăng nhập");
@@ -144,7 +142,7 @@ export default function UserProfileScreen() {
     if (!user) return null;
     const followingCount = user.followingCount ?? 0;
     const followerCount = user.followerCount ?? 0;
-    const recipeCount = user.recipeCount ?? 0;
+    const totalLikes = user.totalLikes ?? 0;
 
     return (
       <>
@@ -165,7 +163,7 @@ export default function UserProfileScreen() {
               <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
             ) : (
               <Image
-                source={require("../../assets/images/default-avatar.png")} 
+                source={require("../../assets/images/default-avatar.png")}
                 style={styles.avatar}
               />
             )}
@@ -210,8 +208,8 @@ export default function UserProfileScreen() {
           <View style={styles.statsDivider} />
 
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{formatNumber(recipeCount)}</Text>
-            <Text style={styles.statLabel}>Công thức</Text>
+            <Text style={styles.statNumber}>{formatNumber(totalLikes)}</Text>
+            <Text style={styles.statLabel}>Thích</Text>
           </View>
         </View>
 
@@ -266,7 +264,7 @@ export default function UserProfileScreen() {
   const renderItem = () => <RecipeGrid userId={userId || ""} />;
 
   // --- Render Chính ---
-  
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>

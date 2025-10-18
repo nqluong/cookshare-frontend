@@ -36,11 +36,18 @@ class AuthService {
         throw new Error(errorText || 'Đăng nhập thất bại');
       }
 
-      const data = await response.json();
-      const accessToken = data.accessToken; 
-      await AsyncStorage.setItem('authToken', accessToken);
-      console.log('Login successful, received token');
-      return accessToken;
+      // ✅ Parse JSON luôn (backend trả JSON)
+    const data = await response.json();
+
+    // Nếu backend trả token, lưu lại để tái sử dụng
+    if (data.accessToken) {
+      await AsyncStorage.setItem('authToken', data.accessToken);
+    }
+
+    console.log('Login successful, received:', data);
+
+    // ✅ Trả về toàn bộ dữ liệu JSON (gồm user, token,...)
+    return data;
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.name === 'AbortError') {
