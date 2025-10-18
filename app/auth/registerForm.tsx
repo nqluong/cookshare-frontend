@@ -1,4 +1,4 @@
-import ScreensAuthRegisterForm from '../../screens/auth/RegisterForm';
+import ScreensAuthRegisterForm from '../../screens/Auth/RegisterForm';
 
 export default function RegisterFormRoute() {
   return <ScreensAuthRegisterForm />;
