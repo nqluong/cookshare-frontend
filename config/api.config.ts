@@ -11,7 +11,7 @@ const DEV_CONFIG = {
   MANUAL_IP: null as string | null, // Ví dụ: 'http://192.168.1.151:8080'
   
   // Fallback IP nếu auto-detect fail ( điền ip thật ở đây )
-  FALLBACK_IP: 'http://192.168.1.151:8080',
+  FALLBACK_IP: 'http://192.168.21.104:8080',
   
   // Port của backend
   PORT: 8080,

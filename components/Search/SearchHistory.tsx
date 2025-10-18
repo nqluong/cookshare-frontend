@@ -6,6 +6,7 @@ interface SearchHistoryProps {
   onSelect: (query: string) => void;     
   onClearAll: () => void;               
   onDeleteItem: (query: string) => void; 
+  onSearch: () => void;
 }
 
 export default function SearchHistory({
@@ -13,6 +14,7 @@ export default function SearchHistory({
   onSelect,
   onClearAll,
   onDeleteItem,
+  onSearch,
 }: SearchHistoryProps) {
   if (history.length === 0) {
     return null;
@@ -30,13 +32,16 @@ export default function SearchHistory({
 
       {/* Danh sách lịch sử */}
       <FlatList
-        data={history}
+        data={history.slice().reverse()}
         keyExtractor={(item, index) => `${item}-${index}`}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
             <TouchableOpacity
               style={styles.itemTextContainer}
-              onPress={() => onSelect(item)}
+              onPress={() => {
+                onSelect(item);  
+                onSearch();
+              }}
             >
               <Ionicons name="time-outline" size={18} color="#666" style={{ marginRight: 8 }} />
               <Text style={styles.itemText}>{item}</Text>

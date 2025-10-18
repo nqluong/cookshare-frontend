@@ -102,13 +102,7 @@ export default function SearchScreen() {
 
   try {
     const currentPage = reset ? 0 : requestedPage ?? page;
-    console.log('🔍 DEBUG - Current Page Request:', currentPage);
-    console.log('🔍 DEBUG - Search Query:', searchQuery);
-    console.log('🔍 DEBUG - Ingredients:', selectedIngredients);
-    
     const data = await searchRecipes(searchQuery, selectedIngredients, currentPage, 10);
-
-    console.log('📦 API Response:', data);
     if ('success' in data && data.success === false) {
       setError(data.message || 'Lỗi từ server');
       setRecipes([]);
@@ -139,6 +133,25 @@ export default function SearchScreen() {
       } else {
         setError(null); 
       }
+      if (reset && searchQuery.trim()) {
+  setHistory(prev => {
+    const newItem: SearchHistoryItem = {
+      searchId: Math.random().toString(36).substring(2, 9), // hoặc uuid
+      userId: 'local', // giả định là người dùng local
+      searchQuery,
+      searchType: 'recipe',
+      resultCount: recipes.length,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [
+      ...prev.filter(item => item.searchQuery !== searchQuery),
+      newItem,
+    ].slice(0, 5);
+
+    return updated;
+  });
+}
     } else {
       setError('Response không đúng format');
     }
@@ -176,6 +189,7 @@ export default function SearchScreen() {
           onSelect={handleSelectHistory}
           onClearAll={handleClearAll}
           onDeleteItem={handleDeleteItem}
+          onSearch={handleSearch}
         />
       )}
       
