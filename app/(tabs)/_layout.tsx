@@ -6,7 +6,7 @@ import { Colors } from '../../styles/colors';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  
+
   return (
     <Tabs
       initialRouteName='home'
@@ -87,7 +87,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="_view-all"
         options={{
-          href: null, 
+          href: null,
         }}
       />
       <Tabs.Screen

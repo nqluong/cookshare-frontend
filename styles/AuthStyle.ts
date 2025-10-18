@@ -5,8 +5,18 @@ export const authStyles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
     padding: 32,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  
+
   // Header styles
   appTitle: {
     fontSize: 28,
@@ -15,7 +25,7 @@ export const authStyles = StyleSheet.create({
     marginBottom: 40,
     color: '#000',
   },
-  
+
   title: {
     fontSize: 24,
     fontWeight: '600',
@@ -23,23 +33,23 @@ export const authStyles = StyleSheet.create({
     marginBottom: 8,
     color: '#000',
   },
-  
+
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
     color: '#666',
     marginBottom: 32,
   },
-  
+
   // Form styles
   formContainer: {
     flex: 1,
   },
-  
+
   inputContainer: {
     marginBottom: 16,
   },
-  
+
   // Button styles
   primaryButton: {
     backgroundColor: '#000000',
@@ -50,13 +60,13 @@ export const authStyles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
   },
-  
+
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
-  
+
   secondaryButton: {
     backgroundColor: 'transparent',
     height: 52,
@@ -66,13 +76,13 @@ export const authStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e1e5e9',
   },
-  
+
   secondaryButtonText: {
     color: '#000000',
     fontSize: 16,
     fontWeight: '600',
   },
-  
+
   // Social login buttons
   googleButton: {
     backgroundColor: '#f8f9fa',
@@ -84,13 +94,13 @@ export const authStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#dadce0',
   },
-  
+
   googleButtonText: {
     color: '#3c4043',
     fontSize: 16,
     fontWeight: '500',
   },
-  
+
   facebookButton: {
     backgroundColor: '#1877f2',
     height: 52,
@@ -99,63 +109,63 @@ export const authStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  
+
   facebookButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
-  
+
   // Navigation styles
   navigationContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,
   },
-  
+
   navigationText: {
     color: '#666',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
   },
-  
+
   navigationLink: {
     color: '#000000',
     fontSize: 14,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
-  
+
   // State styles
   disabledButton: {
     backgroundColor: '#ccc',
     opacity: 0.6,
   },
-  
+
   loadingButton: {
     opacity: 0.7,
   },
-  
+
   // Divider styles
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 24,
   },
-  
+
   dividerLine: {
     flex: 1,
     height: 1,
     backgroundColor: '#e1e5e9',
   },
-  
+
   dividerText: {
     marginHorizontal: 16,
     color: '#666',
     fontSize: 14,
   },
-  
+
   // Terms and conditions
   termsText: {
     fontSize: 12,
@@ -164,32 +174,32 @@ export const authStyles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 24,
   },
-  
+
   linkText: {
     color: '#000000',
     textDecorationLine: 'underline',
   },
-  
+
   // Error styles
   errorText: {
     color: '#dc3545',
     fontSize: 12,
     marginTop: 4,
   },
-  
+
   // Success styles
   successText: {
     color: '#28a745',
     fontSize: 12,
     marginTop: 4,
   },
-  
+
   // Screen styles
   screenContainer: {
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  
+
   screenContent: {
     flex: 1,
     justifyContent: 'center',
