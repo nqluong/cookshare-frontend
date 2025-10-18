@@ -13,12 +13,12 @@ class AuthService {
 
   async login(credentials: LoginRequest): Promise<string> {
     try {
-      console.log('Attempting login to:', `${API_BASE_URL}/login`);
+      console.log('Attempting login to:', `${API_BASE_URL}/auth/login`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -37,17 +37,17 @@ class AuthService {
       }
 
       // ✅ Parse JSON luôn (backend trả JSON)
-    const data = await response.json();
+      const data = await response.json();
 
-    // Nếu backend trả token, lưu lại để tái sử dụng
-    if (data.accessToken) {
-      await AsyncStorage.setItem('authToken', data.accessToken);
-    }
+      // Nếu backend trả token, lưu lại để tái sử dụng
+      if (data.accessToken) {
+        await AsyncStorage.setItem('authToken', data.accessToken);
+      }
 
-    console.log('Login successful, received:', data);
+      console.log('Login successful, received:', data);
 
-    // ✅ Trả về toàn bộ dữ liệu JSON (gồm user, token,...)
-    return data;
+      // ✅ Trả về toàn bộ dữ liệu JSON (gồm user, token,...)
+      return data;
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.name === 'AbortError') {
@@ -59,12 +59,12 @@ class AuthService {
 
   async register(userData: RegisterRequest): Promise<string> {
     try {
-      console.log('Attempting register to:', `${API_BASE_URL}/register`);
+      console.log('Attempting register to:', `${API_BASE_URL}/auth/register`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
-      const response = await fetch(`${API_BASE_URL}/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +103,7 @@ class AuthService {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
 
       // Thử gọi login với thông tin test để kiểm tra server
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
