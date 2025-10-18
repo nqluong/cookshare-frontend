@@ -1,6 +1,6 @@
 import { FollowUser } from "@/types/follow.types";
 import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FollowList from "../../components/follow/FollowList";
@@ -76,13 +76,13 @@ export default function UserFollowsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.innerContainer}>
-      <TabSelector />
+        <TabSelector />
 
-      <FollowList
-        userId={userId}
-        type={activeTab}
-        onCountUpdate={handleProfileCountUpdate}
-      />
+        <FollowList
+          userId={userId}
+          type={activeTab}
+          onCountUpdate={handleProfileCountUpdate}
+        />
       </View>
     </SafeAreaView>
   );

@@ -3,6 +3,7 @@ export interface Recipe {
   userId: string;
   title: string;
   slug: string | null;
+  description: string | null;
   fullName: string | null;
   avatarUrl: string | null;
   featuredImage: string;

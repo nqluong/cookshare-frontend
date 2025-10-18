@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FollowUser } from "../../types/follow.types";
 
@@ -41,7 +40,10 @@ export default function FollowItem({
 
       {showFollowButton && (
         <TouchableOpacity
-          style={[styles.followButton, user.isFollowing && styles.followingButton]}
+          style={[
+            styles.followButton,
+            user.isFollowing && styles.followingButton,
+          ]}
           onPress={onFollowPress}
           disabled={isFollowLoading}
         >
@@ -107,10 +109,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: "#FF385C",
-    // Thiết lập chiều rộng cố định để ActivityIndicator không làm nhảy nút
-    minWidth: 90, 
-    alignItems: 'center', 
-    justifyContent: 'center',
+    minWidth: 90,
+    alignItems: "center",
+    justifyContent: "center",
   },
   followingButton: {
     backgroundColor: "#fff",
