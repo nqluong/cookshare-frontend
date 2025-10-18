@@ -18,7 +18,7 @@ class AuthService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,12 +59,12 @@ class AuthService {
 
   async register(userData: RegisterRequest): Promise<string> {
     try {
-      console.log('Attempting register to:', `${API_BASE_URL}/register`);
+      console.log('Attempting register to:', `${API_BASE_URL}/auth/register`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
-      const response = await fetch(`${API_BASE_URL}/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
