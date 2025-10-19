@@ -1,5 +1,5 @@
 import { API_CONFIG } from '../config/api.config';
-import { LoginRequest, RegisterRequest, ForgotPasswordRequest, ChangePasswordRequest } from '../types/auth';
+import { LoginRequest, RegisterRequest, ForgotPasswordRequest, ChangePasswordRequest, VerifyOtpRequest, ResetPasswordRequest } from '../types/auth';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Cookies from 'expo-cookies';
@@ -393,6 +393,92 @@ class AuthService {
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
+      throw error;
+    }
+  }
+
+  // Forgot Password APIs
+  async verifyEmail(email: string): Promise<string> {
+    try {
+      console.log('Verifying email:', email);
+
+      const response = await fetch(`${API_BASE_URL}/forgotPassword/verifyMail/${email}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Verify email response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Gửi email thất bại');
+      }
+
+      const message = await response.text();
+      console.log('Email verification sent successfully');
+      return message;
+    } catch (error: any) {
+      console.error('Verify email error:', error);
+      throw error;
+    }
+  }
+
+  async verifyOtp(email: string, otp: number): Promise<string> {
+    try {
+      console.log('Verifying OTP for email:', email, 'OTP:', otp);
+
+      const response = await fetch(`${API_BASE_URL}/forgotPassword/verifyOtp/${email}/${otp}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Verify OTP response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Xác thực OTP thất bại');
+      }
+
+      const message = await response.text();
+      console.log('OTP verification successful');
+      return message;
+    } catch (error: any) {
+      console.error('Verify OTP error:', error);
+      throw error;
+    }
+  }
+
+  async resetPassword(email: string, newPassword: string, confirmPassword: string): Promise<string> {
+    try {
+      console.log('Resetting password for email:', email);
+
+      const response = await fetch(`${API_BASE_URL}/forgotPassword/resetPassword/${email}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          newPassword,
+          confirmPassword,
+        }),
+      });
+
+      console.log('Reset password response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Đặt lại mật khẩu thất bại');
+      }
+
+      const message = await response.text();
+      console.log('Password reset successful');
+      return message;
+    } catch (error: any) {
+      console.error('Reset password error:', error);
       throw error;
     }
   }

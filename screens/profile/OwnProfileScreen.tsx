@@ -3,16 +3,16 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Modal,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -226,7 +226,7 @@ export default function OwnProfileScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       />
-      
+
       {/* Settings Menu Modal */}
       <Modal
         visible={showSettingsMenu}
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "600",
   },
-  
+
   // Settings Menu Styles
   modalOverlay: {
     flex: 1,

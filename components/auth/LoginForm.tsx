@@ -54,12 +54,7 @@ export default function AuthLoginForm() {
     };
 
     const navigateToForgotPassword = () => {
-        Alert.alert(
-            'Thông báo',
-            'Tính năng quên mật khẩu đang được phát triển. Vui lòng liên hệ quản trị viên để được hỗ trợ.',
-            [{ text: 'OK' }]
-        );
-        // router.push('/auth/forgotPassword' as any);
+        router.push('/auth/verifyMail' as any);
     };
 
     return (
