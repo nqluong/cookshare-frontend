@@ -3,16 +3,16 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Modal,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -21,6 +21,8 @@ import { Colors } from "../../styles/colors";
 import { UserProfile } from "../../types/user.types";
 
 export default function OwnProfileScreen() {
+
+  const canGoBack = router.canGoBack();
   const { user, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ export default function OwnProfileScreen() {
 
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {formatNumber(userProfile?.totalLikes || 999900)}
+            {formatNumber(userProfile?.totalLikes || 0)}
           </Text>
           <Text style={styles.statLabel}>Thích</Text>
         </View>
@@ -226,54 +228,53 @@ export default function OwnProfileScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       />
-      
-      {/* Settings Menu Modal */}
-      <Modal
-        visible={showSettingsMenu}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowSettingsMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowSettingsMenu(false)}
-        >
-          <View style={styles.settingsMenu}>
-            {/* Change Password Option */}
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={handleChangePassword}
-            >
-              <Ionicons name="key-outline" size={20} color={Colors.text.primary} />
-              <Text style={styles.menuText}>Đổi mật khẩu</Text>
-            </TouchableOpacity>
 
-            {/* Admin Panel Option (only for ADMIN role) */}
-            {user?.role === 'ADMIN' && (
+      <Modal
+          visible={showSettingsMenu}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSettingsMenu(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowSettingsMenu(false)}
+          >
+            <View style={styles.settingsMenu}>
+              {/* Change Password Option */}
               <TouchableOpacity
                 style={styles.menuItem}
-                onPress={handleAdminPanel}
+                onPress={handleChangePassword}
               >
-                <Ionicons name="shield-outline" size={20} color={Colors.primary} />
-                <Text style={[styles.menuText, { color: Colors.primary }]}>Admin Panel</Text>
+                <Ionicons name="key-outline" size={20} color={Colors.text.primary} />
+                <Text style={styles.menuText}>Đổi mật khẩu</Text>
               </TouchableOpacity>
-            )}
 
-            {/* Logout Option */}
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemDanger]}
-              onPress={() => {
-                setShowSettingsMenu(false);
-                handleLogout();
-              }}
-            >
-              <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-              <Text style={[styles.menuText, { color: "#ef4444" }]}>Đăng xuất</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+              {/* Admin Panel Option (only for ADMIN role) */}
+              {user?.role === 'ADMIN' && (
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={handleAdminPanel}
+                >
+                  <Ionicons name="shield-outline" size={20} color={Colors.primary} />
+                  <Text style={[styles.menuText, { color: Colors.primary }]}>Admin Panel</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Logout Option */}
+              <TouchableOpacity
+                style={[styles.menuItem, styles.menuItemDanger]}
+                onPress={() => {
+                  setShowSettingsMenu(false);
+                  handleLogout();
+                }}
+              >
+                <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+                <Text style={[styles.menuText, { color: "#ef4444" }]}>Đăng xuất</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
     </SafeAreaView>
   );
 }
@@ -292,14 +293,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  safeArea: {
+    backgroundColor: Colors.white,
+  },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 0,
-    paddingBottom: 0,
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[100],
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
+  },
+  placeholder: {
+    width: 32,
   },
   settingsButton: {
     padding: 8,
@@ -410,7 +426,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "600",
   },
-  
+
   // Settings Menu Styles
   modalOverlay: {
     flex: 1,
