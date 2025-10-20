@@ -1,6 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios";
 import { API_CONFIG } from "../config/api.config";
-
 // Tạo instance axios có sẵn config
 const api = axios.create({
   baseURL: API_CONFIG.API_V1_URL,
@@ -18,7 +18,40 @@ const handleError = (error: any) => {
     throw new Error(" Không thể kết nối tới server. Kiểm tra mạng hoặc backend.");
   }
 };
+export const likeRecipe = async (recipeId: string) => {
+  const token = await AsyncStorage.getItem('authToken');
+  const response = await api.post(
+    '/likes-ratings/like',
+    { recipeId },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  console.log("Đã like recipe:", response.data);
+  return response.data;
+};
 
+export const unlikeRecipe = async (recipeId: string) => {
+  const token = await AsyncStorage.getItem('authToken');
+  const response = await api.delete(`/likes-ratings/unlike?recipeId=${recipeId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
+
+export const isRecipeLiked = async (recipeId: string) => {
+  const token = await AsyncStorage.getItem('authToken');
+  const response = await api.get(`/likes-ratings/is-liked?recipeId=${recipeId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
 
 export const getHomeSuggestions = async () => {
   try {

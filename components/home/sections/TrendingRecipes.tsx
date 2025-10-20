@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../../styles/colors';
 import { Recipe } from '../../../types/dish';
@@ -12,18 +11,23 @@ interface TrendingRecipesProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  likedRecipes?: Set<string>;
+  likingRecipeId?: string | null;
+  onToggleLike?: (recipeId: string) => Promise<void>;
 }
 
 // Component hiển thị danh sách công thức đang thịnh hành (trending)
 export default function TrendingRecipes({ 
   recipes, 
-  onRecipePress, 
-  onLoadMore, 
+  onRecipePress,
+  onLoadMore,
   hasMore = false, 
-  isLoadingMore = false 
+  isLoadingMore = false,
+  likedRecipes = new Set<string>(), 
+  likingRecipeId,
+  onToggleLike 
 }: TrendingRecipesProps) {
   const router = useRouter();
-  const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
 
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
@@ -36,17 +40,15 @@ export default function TrendingRecipes({
     }
   };
 
-  const toggleLike = (recipeId: string, event: any) => {
+  const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
-    setLikedRecipes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(recipeId)) {
-        newSet.delete(recipeId);
-      } else {
-        newSet.add(recipeId);
-      }
-      return newSet;
-    });
+    
+    // ✅ Kiểm tra đang loading hoặc không có callback
+    if (likingRecipeId === recipeId || !onToggleLike) {
+      return;
+    }
+
+    await onToggleLike(recipeId); // ✅ Gọi callback từ parent
   };
 
   const getDifficultyText = (difficulty: string) => {
@@ -86,7 +88,8 @@ export default function TrendingRecipes({
         {recipes.map((recipe, index) => {
           const dish = recipeToDish(recipe);
           const isLiked = likedRecipes.has(recipe.recipeId);
-          const currentLikes = isLiked ? recipe.likeCount + 1 : recipe.likeCount;
+          const isLoading = likingRecipeId === recipe.recipeId;
+          const currentLikes = recipe.likeCount; // ✅ Dùng likeCount từ backend
 
           return (
             <TouchableOpacity
@@ -110,17 +113,26 @@ export default function TrendingRecipes({
                   )}
                 </View>
                 <TouchableOpacity
-                  style={styles.likeButton}
+                  style={[
+                    styles.likeButton,
+                    isLoading && styles.loadingLikeButton // ✅ Loading state
+                  ]}
                   onPress={(e) => toggleLike(recipe.recipeId, e)}
                   activeOpacity={0.7}
+                  disabled={isLoading} // ✅ Disable khi loading
                 >
-                  <Ionicons
-                    name={isLiked ? 'heart' : 'heart-outline'}
-                    size={16}
-                    color={isLiked ? Colors.primary : Colors.text.light}
-                  />
+                  {isLoading ? (
+                    <ActivityIndicator size={12} color={Colors.primary} />
+                  ) : (
+                    <Ionicons
+                      name={isLiked ? 'heart' : 'heart-outline'}
+                      size={16}
+                      color={isLiked ? Colors.primary : Colors.text.light}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
+              
               {/* Tên công thức */}
               <Text style={styles.dishName} numberOfLines={1}>
                 {dish.name}
@@ -176,7 +188,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: 90,
     height: 90,
-    borderRadius: 45, // Hình tròn
+    borderRadius: 45,
     backgroundColor: Colors.white,
     overflow: 'hidden',
     borderWidth: 2,
@@ -221,6 +233,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  loadingLikeButton: {
+    opacity: 0.7,
+  },
   dishName: {
     fontSize: 13,
     fontWeight: '600',
@@ -254,4 +269,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-

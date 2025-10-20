@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getImageUrl } from '../../../config/api.config';
 import { Colors } from '../../../styles/colors';
@@ -11,6 +10,9 @@ interface NewestRecipesProps {
   onLoadMore?: () => void; // Callback khi cần load thêm
   hasMore?: boolean; // Còn data để load không
   isLoadingMore?: boolean; // Đang load thêm không
+  likedRecipes?: Set<string>;
+  likingRecipeId?: string | null;
+  onToggleLike?: (recipeId: string) => Promise<void>;
 }
 
 // Component hiển thị danh sách công thức mới nhất (theo createdAt)
@@ -19,22 +21,24 @@ export default function NewestRecipes({
   onRecipePress, 
   onLoadMore, 
   hasMore = false, 
-  isLoadingMore = false 
+  isLoadingMore = false,
+  likedRecipes = new Set<string>(), 
+  likingRecipeId,
+  onToggleLike  
 }: NewestRecipesProps) {
-  const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
 
-  const toggleLike = (recipeId: string, event: any) => {
+
+  const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
-    setLikedRecipes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(recipeId)) {
-        newSet.delete(recipeId);
-      } else {
-        newSet.add(recipeId);
-      }
-      return newSet;
-    });
+    
+    // ✅ Kiểm tra đang loading hoặc không có callback
+    if (likingRecipeId === recipeId || !onToggleLike) {
+      return;
+    }
+
+    await onToggleLike(recipeId); // ✅ Gọi callback từ parent
   };
+
 
   const getDifficultyText = (difficulty: string) => {
     switch (difficulty) {
@@ -53,9 +57,10 @@ export default function NewestRecipes({
     <View style={styles.container}>
       <Text style={styles.title}>Mới nhất</Text>
       {recipes.map((recipe) => {
-        const isLiked = likedRecipes.has(recipe.recipeId);
-        const currentLikes = isLiked ? recipe.likeCount + 1 : recipe.likeCount;
-
+       const isLiked = likedRecipes.has(recipe.recipeId);
+          const isLoading = likingRecipeId === recipe.recipeId;
+          const currentLikes = recipe.likeCount;
+        
         return (
           <TouchableOpacity
             key={recipe.recipeId}
