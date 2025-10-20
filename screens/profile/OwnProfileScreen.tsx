@@ -21,6 +21,8 @@ import { Colors } from "../../styles/colors";
 import { UserProfile } from "../../types/user.types";
 
 export default function OwnProfileScreen() {
+
+  const canGoBack = router.canGoBack();
   const { user, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ export default function OwnProfileScreen() {
 
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {formatNumber(userProfile?.totalLikes || 999900)}
+            {formatNumber(userProfile?.totalLikes || 0)}
           </Text>
           <Text style={styles.statLabel}>Thích</Text>
         </View>
@@ -227,6 +229,7 @@ export default function OwnProfileScreen() {
         contentContainerStyle={styles.scrollContent}
       />
 
+
       {/* Settings Menu Modal */}
       <Modal
         visible={showSettingsMenu}
@@ -260,20 +263,20 @@ export default function OwnProfileScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Logout Option */}
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemDanger]}
-              onPress={() => {
-                setShowSettingsMenu(false);
-                handleLogout();
-              }}
-            >
-              <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-              <Text style={[styles.menuText, { color: "#ef4444" }]}>Đăng xuất</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+              {/* Logout Option */}
+              <TouchableOpacity
+                style={[styles.menuItem, styles.menuItemDanger]}
+                onPress={() => {
+                  setShowSettingsMenu(false);
+                  handleLogout();
+                }}
+              >
+                <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+                <Text style={[styles.menuText, { color: "#ef4444" }]}>Đăng xuất</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
     </SafeAreaView>
   );
 }
@@ -292,14 +295,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  safeArea: {
+    backgroundColor: Colors.white,
+  },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 0,
-    paddingBottom: 0,
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[100],
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
+  },
+  placeholder: {
+    width: 32,
   },
   settingsButton: {
     padding: 8,

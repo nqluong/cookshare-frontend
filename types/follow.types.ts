@@ -4,8 +4,8 @@ export interface FollowUser {
   fullName: string;
   avatarUrl: string | null;
   bio: string | null;
-  followerCount: number;
-  followingCount: number;
+  followerCount?: number;
+  followingCount? : number;
   isFollowing: boolean | null;
 }
 

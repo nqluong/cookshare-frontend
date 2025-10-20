@@ -24,14 +24,14 @@ export default function UserFollowsScreen() {
   }
 
   const handleProfileCountUpdate = (change: number) => {
-    setUsers((prevProfile) => {
-      if (!prevProfile) return prevProfile;
+    setUsers((prevUsers) => {
+      if (!prevUsers) return prevUsers;
 
       // Cập nhật followerCount của người đang xem profile
-      return {
-        ...prevProfile,
-        followerCount: (prevProfile.followerCount || 0) + change,
-      };
+      return prevUsers.map(user => ({
+        ...user,
+        followerCount: (user.followerCount || 0) + change,
+      }));
     });
   };
 
