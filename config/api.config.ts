@@ -12,8 +12,8 @@ const DEV_CONFIG = {
 
   // Fallback IP nếu auto-detect fail ( điền ip thật ở đây )
 
-  FALLBACK_IP: 'http://192.168.230.1:8080',
-  
+  FALLBACK_IP: 'http://192.168.21.101:8080',
+
   // Port của backend
   PORT: 8080,
 };

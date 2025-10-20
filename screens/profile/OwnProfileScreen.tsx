@@ -229,37 +229,39 @@ export default function OwnProfileScreen() {
         contentContainerStyle={styles.scrollContent}
       />
 
+
+      {/* Settings Menu Modal */}
       <Modal
-          visible={showSettingsMenu}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowSettingsMenu(false)}
+        visible={showSettingsMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSettingsMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSettingsMenu(false)}
         >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowSettingsMenu(false)}
-          >
-            <View style={styles.settingsMenu}>
-              {/* Change Password Option */}
+          <View style={styles.settingsMenu}>
+            {/* Change Password Option */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleChangePassword}
+            >
+              <Ionicons name="key-outline" size={20} color={Colors.text.primary} />
+              <Text style={styles.menuText}>Đổi mật khẩu</Text>
+            </TouchableOpacity>
+
+            {/* Admin Panel Option (only for ADMIN role) */}
+            {user?.role === 'ADMIN' && (
               <TouchableOpacity
                 style={styles.menuItem}
-                onPress={handleChangePassword}
+                onPress={handleAdminPanel}
               >
-                <Ionicons name="key-outline" size={20} color={Colors.text.primary} />
-                <Text style={styles.menuText}>Đổi mật khẩu</Text>
+                <Ionicons name="shield-outline" size={20} color={Colors.primary} />
+                <Text style={[styles.menuText, { color: Colors.primary }]}>Admin Panel</Text>
               </TouchableOpacity>
-
-              {/* Admin Panel Option (only for ADMIN role) */}
-              {user?.role === 'ADMIN' && (
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={handleAdminPanel}
-                >
-                  <Ionicons name="shield-outline" size={20} color={Colors.primary} />
-                  <Text style={[styles.menuText, { color: Colors.primary }]}>Admin Panel</Text>
-                </TouchableOpacity>
-              )}
+            )}
 
               {/* Logout Option */}
               <TouchableOpacity
