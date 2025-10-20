@@ -7,12 +7,11 @@ import {
   Alert,
   FlatList,
   Image,
-  Modal,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -27,7 +26,6 @@ export default function OwnProfileScreen() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   useEffect(() => {
     if (user?.username) {
@@ -55,39 +53,8 @@ export default function OwnProfileScreen() {
     setRefreshing(false);
   };
 
-  const handleLogout = () => {
-    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
-      {
-        text: "Hủy",
-        style: "cancel",
-      },
-      {
-        text: "Đăng xuất",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logout();
-            router.replace("/auth/login" as any);
-          } catch (error) {
-            Alert.alert("Lỗi", "Đã có lỗi xảy ra khi đăng xuất");
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleChangePassword = () => {
-    setShowSettingsMenu(false);
-    router.push('/changePassword' as any);
-  };
-
-  const handleAdminPanel = () => {
-    setShowSettingsMenu(false);
-    Alert.alert("Admin Panel", "Tính năng admin panel đang được phát triển!");
-  };
-
-  const toggleSettingsMenu = () => {
-    setShowSettingsMenu(!showSettingsMenu);
+  const handleSettings = () => {
+    router.push('/settings' as any);
   };
 
   const formatNumber = (num: number): string => {
@@ -102,7 +69,7 @@ export default function OwnProfileScreen() {
       {/* Header (Title & Settings Icon) */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={toggleSettingsMenu}
+          onPress={handleSettings}
           style={styles.settingsButton}
         >
           <Ionicons
@@ -228,55 +195,6 @@ export default function OwnProfileScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       />
-
-
-      {/* Settings Menu Modal */}
-      <Modal
-        visible={showSettingsMenu}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowSettingsMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowSettingsMenu(false)}
-        >
-          <View style={styles.settingsMenu}>
-            {/* Change Password Option */}
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={handleChangePassword}
-            >
-              <Ionicons name="key-outline" size={20} color={Colors.text.primary} />
-              <Text style={styles.menuText}>Đổi mật khẩu</Text>
-            </TouchableOpacity>
-
-            {/* Admin Panel Option (only for ADMIN role) */}
-            {user?.role === 'ADMIN' && (
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={handleAdminPanel}
-              >
-                <Ionicons name="shield-outline" size={20} color={Colors.primary} />
-                <Text style={[styles.menuText, { color: Colors.primary }]}>Admin Panel</Text>
-              </TouchableOpacity>
-            )}
-
-              {/* Logout Option */}
-              <TouchableOpacity
-                style={[styles.menuItem, styles.menuItemDanger]}
-                onPress={() => {
-                  setShowSettingsMenu(false);
-                  handleLogout();
-                }}
-              >
-                <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-                <Text style={[styles.menuText, { color: "#ef4444" }]}>Đăng xuất</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
     </SafeAreaView>
   );
 }
@@ -427,45 +345,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.primary,
     fontWeight: "600",
-  },
-
-  // Settings Menu Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 60,
-    paddingRight: 16,
-  },
-  settingsMenu: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    minWidth: 200,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  menuItemDanger: {
-    borderBottomWidth: 0,
-  },
-  menuText: {
-    fontSize: 16,
-    color: Colors.text.primary,
-    marginLeft: 12,
-    fontWeight: '500',
   },
 });
