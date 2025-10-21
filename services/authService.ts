@@ -1,8 +1,7 @@
-import { API_CONFIG } from '../config/api.config';
-import { LoginRequest, RegisterRequest, ForgotPasswordRequest, ChangePasswordRequest } from '../types/auth';
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Cookies from 'expo-cookies';
+import { Platform } from 'react-native';
+import { API_CONFIG } from '../config/api.config';
+import { ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, RegisterRequest } from '../types/auth';
 
 export const API_BASE_URL = API_CONFIG.BASE_URL;
 

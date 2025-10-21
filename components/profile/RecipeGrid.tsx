@@ -70,6 +70,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId }) => {
           data={recipes}
           renderItem={renderRecipeItem}
           keyExtractor={(item) => item.recipeId}
+          scrollEnabled={false}
           contentContainerStyle={styles.list}
         />
       )}
