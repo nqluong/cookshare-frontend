@@ -1,6 +1,7 @@
-import { useRouter } from 'expo-router'; // ✅ dùng router để điều hướng
+import LikedRecipes from '@/components/home/LikedRecipes';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FeaturedDish from '../../components/home/FeaturedDish';
 import SearchBar from '../../components/home/SearchBar';
@@ -11,88 +12,243 @@ import TopRatedRecipes from '../../components/home/sections/TopRatedRecipes';
 import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
 import {
   getHomeSuggestions,
+  getLikedRecipes,
   getNewestRecipes,
   getPopularRecipes,
   getTopRatedRecipes,
-  getTrendingRecipes
+  getTrendingRecipes,
+  isRecipeLiked,
+  likeRecipe,
+  unlikeRecipe
 } from '../../services/homeService';
 import { Colors } from '../../styles/colors';
 import { Recipe } from '../../types/dish';
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState('Đề xuất');
-  const router = useRouter(); // ✅ khởi tạo router
+  const router = useRouter();
   
-  const [featuredRecipes, setFeaturedRecipes] = useState<Recipe[]>([]); // Công thức nổi bật (của admin chọn)
-  const [popularRecipes, setPopularRecipes] = useState<Recipe[]>([]); // Công thức phổ biến
-  const [newestRecipes, setNewestRecipes] = useState<Recipe[]>([]); // Công thức mới nhất
-  const [topRatedRecipes, setTopRatedRecipes] = useState<Recipe[]>([]); // Công thức đánh giá cao
-  const [trendingRecipes, setTrendingRecipes] = useState<Recipe[]>([]); // Công thức đang thịnh hành
+  const [featuredRecipes, setFeaturedRecipes] = useState<Recipe[]>([]);
+  const [popularRecipes, setPopularRecipes] = useState<Recipe[]>([]);
+  const [newestRecipes, setNewestRecipes] = useState<Recipe[]>([]);
+  const [topRatedRecipes, setTopRatedRecipes] = useState<Recipe[]>([]);
+  const [trendingRecipes, setTrendingRecipes] = useState<Recipe[]>([]);
   
-  const [loading, setLoading] = useState(true); // Trạng thái đang tải
-  const [error, setError] = useState<string | null>(null); // Lỗi nếu có
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-
-  // Pagination state cho Newest
+  // Pagination state
   const [newestPage, setNewestPage] = useState(0); 
   const [hasMoreNewest, setHasMoreNewest] = useState(true); 
   const [isLoadingMoreNewest, setIsLoadingMoreNewest] = useState(false);
 
-  // Pagination state cho Trending
   const [trendingPage, setTrendingPage] = useState(0);
   const [hasMoreTrending, setHasMoreTrending] = useState(true);
   const [isLoadingMoreTrending, setIsLoadingMoreTrending] = useState(false);
 
-  // Pagination state cho Popular
   const [popularPage, setPopularPage] = useState(0);
   const [hasMorePopular, setHasMorePopular] = useState(true);
   const [isLoadingMorePopular, setIsLoadingMorePopular] = useState(false);
 
-  // Pagination state cho TopRated
   const [topRatedPage, setTopRatedPage] = useState(0);
   const [hasMoreTopRated, setHasMoreTopRated] = useState(true);
   const [isLoadingMoreTopRated, setIsLoadingMoreTopRated] = useState(false);
 
+  // State cho tracking liked recipes
+  const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
+  const [likingRecipeId, setLikingRecipeId] = useState<string | null>(null);
+  const [likedRecipesList, setLikedRecipesList] = useState<Recipe[]>([]);
+const [likedPage, setLikedPage] = useState(0);
+const [hasMoreLiked, setHasMoreLiked] = useState(true);
+const [isLoadingMoreLiked, setIsLoadingMoreLiked] = useState(false);
+const [isLikedTabLoaded, setIsLikedTabLoaded] = useState(false);
+
   useEffect(() => {
     fetchHomeSuggestions();
   }, []);
+  useEffect(() => {
+  if (activeTab === 'Yêu thích' && !isLikedTabLoaded) {
+    fetchLikedRecipes();
+    setIsLikedTabLoaded(true);
+  }
+}, [activeTab]);
+const fetchLikedRecipes = async () => {
+  try {
+    setLoading(true);
+    const response = await getLikedRecipes(0, 10);
+    console.log("Liked Recipes response:", response);
 
+    if (response.code === 1000 && response.result) {
+      // 🩹 Lọc bỏ item null hoặc thiếu recipe
+      const liked = response.result.content
+        .map((item: any) => item?.recipe)
+        .filter((r: any) => r && r.recipeId);
+
+      setLikedRecipesList(liked);
+      setHasMoreLiked(!response.result.last);
+    } else {
+      console.warn("Không có dữ liệu công thức yêu thích.");
+    }
+  } catch (err: any) {
+    console.error("Lỗi khi tải danh sách yêu thích:", err);
+    setError("Không thể tải danh sách yêu thích");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchHomeSuggestions = async () => {
-    try {
-      setLoading(true); 
-      setError(null); 
+  try {
+    setLoading(true);
+    setError(null);
+
+    const response = await getHomeSuggestions();
+    
+    if (response.success && response.data) {
+      const { trendingRecipes, popularRecipes, newestRecipes, topRatedRecipes, featuredRecipes } = response.data;
       
-      const response = await getHomeSuggestions();
+      const allRecipeIds = [
+        ...(trendingRecipes || []).map((r: Recipe) => r.recipeId),
+        ...(popularRecipes || []).map((r: Recipe) => r.recipeId),
+        ...(newestRecipes || []).map((r: Recipe) => r.recipeId),
+        ...(topRatedRecipes || []).map((r: Recipe) => r.recipeId),
+        ...(featuredRecipes || []).map((r: Recipe) => r.recipeId),
+      ];
+
+      const likePromises = allRecipeIds.map(async (recipeId: string) => {
+        try {
+          const response = await isRecipeLiked(recipeId);
+          console.log(`Recipe ${recipeId} is liked:`, response.result);
+          return { recipeId, isLiked: response.result };
+        } catch (error) {
+          console.error(`Lỗi khi kiểm tra like cho recipeId ${recipeId}:`, error);
+          return { recipeId, isLiked: false };
+        }
+      });
+
+      const likeResults = await Promise.all(likePromises);
+      const likedSet = new Set(likeResults.filter(r => r.isLiked).map(r => r.recipeId));
       
-      if (response.success && response.data) {
-        // Lưu danh sách công thức nổi bật
-        setFeaturedRecipes(response.data.featuredRecipes || []);
-        
-        // Lưu danh sách công thức phổ biến
-        setPopularRecipes(response.data.popularRecipes || []);
-        
-        // Lưu danh sách công thức mới nhất
-        setNewestRecipes(response.data.newestRecipes || []);
-        
-        // Lưu danh sách công thức đánh giá cao nhất
-        setTopRatedRecipes(response.data.topRatedRecipes || []);
-        
-        // Lưu danh sách công thức đang thịnh hành
-        setTrendingRecipes(response.data.trendingRecipes || []);
-      }
-    } catch (err: any) {
-      console.error('Error fetching home suggestions:', err);
-      setError(err.message || 'Không thể tải dữ liệu');
-    } finally {
-      setLoading(false); 
+      setLikedRecipes(likedSet);
+      setFeaturedRecipes(featuredRecipes || []);
+      setPopularRecipes(popularRecipes || []);
+      setNewestRecipes(newestRecipes || []);
+      setTopRatedRecipes(topRatedRecipes || []);
+      setTrendingRecipes(trendingRecipes || []);
     }
-  };
+  } catch (err: any) {
+    console.error('Error fetching home suggestions:', err);
+    setError(err.message || 'Không thể tải dữ liệu');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleOpenDetail = (recipe: Recipe) => {
-    // 🎯 Dynamic route: /_recipe-detail/[id] (trong tabs layout)
     router.push(`/_recipe-detail/${recipe.recipeId}` as any);
   };
+
+const toggleLike = async (recipeId: string) => {
+  if (likingRecipeId) {
+    console.log('Không thể toggle like: đang xử lý');
+    return;
+  }
+  
+  try {
+    setLikingRecipeId(recipeId);
+    console.log(`Bắt đầu toggle like cho recipeId: ${recipeId}`);
+    const isLikedResponse = await isRecipeLiked(recipeId);
+    console.log('isRecipeLiked response:', JSON.stringify(isLikedResponse, null, 2));
+
+    // Kiểm tra phản hồi theo cấu trúc thực tế
+    if (typeof isLikedResponse.result !== 'boolean') {
+      throw new Error(isLikedResponse.message || 'Phản hồi không hợp lệ từ isRecipeLiked');
+    }
+
+    const isLiked = isLikedResponse.result;
+
+    if (isLiked) {
+      try {
+        const response = await unlikeRecipe(recipeId);
+        console.log('unlikeRecipe response:', JSON.stringify(response, null, 2));
+        if (response.code === 1000 && response.result === 'Unliked thành công') {
+          setLikedRecipes(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(recipeId);
+            console.log('Sau khi unlike, likedRecipes:', Array.from(newSet));
+            return newSet;
+          });
+          updateRecipeLikeCount(recipeId, -1);
+          console.log('isRecipeLiked response:', JSON.stringify(isLikedResponse, null, 2));
+        } else {
+          throw new Error(response.message || 'Không thể bỏ like công thức');
+        }
+      } catch (error: any) {
+        if (error.message === 'Công thức chưa được thích') {
+          // Đồng bộ lại trạng thái likedRecipes
+          setLikedRecipes(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(recipeId);
+            return newSet;
+          });
+        } else {
+          throw error;
+        }
+      }
+    } else {
+      const response = await likeRecipe(recipeId);
+      console.log('likeRecipe response:', JSON.stringify(response, null, 2));
+      if (response.code === 1000 && response.result) {
+        setLikedRecipes(prev => {
+          const newSet = new Set(prev);
+          newSet.add(recipeId);
+          console.log('Sau khi like, likedRecipes:', Array.from(newSet));
+          return newSet;
+        });
+        updateRecipeLikeCount(recipeId, +1);
+      } else {
+        throw new Error(response.message || 'Không thể like công thức');
+      }
+    }
+  } catch (error: any) {
+    console.error('Lỗi khi xử lý like/unlike:', error);
+    if (error.message !== 'Công thức chưa được thích') {
+      Alert.alert('Lỗi', error.message || 'Không thể thực hiện hành động. Vui lòng thử lại.');
+    }
+  } finally {
+    setLikingRecipeId(null);
+  }
+};
+
+const updateRecipeLikeCount = (recipeId: string, delta: number) => {
+  // Cập nhật trendingRecipes
+  setTrendingRecipes(prev => prev.map(recipe => 
+    recipe.recipeId === recipeId 
+      ? { ...recipe, likeCount: recipe.likeCount + delta }
+      : recipe
+  ));
+  
+  // Cập nhật popularRecipes
+  setPopularRecipes(prev => prev.map(recipe => 
+    recipe.recipeId === recipeId 
+      ? { ...recipe, likeCount: recipe.likeCount + delta }
+      : recipe
+  ));
+  
+  // Cập nhật newestRecipes
+  setNewestRecipes(prev => prev.map(recipe => 
+    recipe.recipeId === recipeId 
+      ? { ...recipe, likeCount: recipe.likeCount + delta }
+      : recipe
+  ));
+  
+  // Cập nhật topRatedRecipes
+  setTopRatedRecipes(prev => prev.map(recipe => 
+    recipe.recipeId === recipeId 
+      ? { ...recipe, likeCount: recipe.likeCount + delta }
+      : recipe
+  ));
+};
 
   // Load more Newest
   const handleLoadMoreNewest = async () => {
@@ -145,7 +301,7 @@ export default function HomeScreen() {
     try {
       setIsLoadingMorePopular(true);
       const nextPage = popularPage + 1;
-      const response = await getPopularRecipes(nextPage, 20); // 20 items mỗi lần
+      const response = await getPopularRecipes(nextPage, 20);
       
       if (response.success && response.data) {
         const newRecipes = response.data.content || [];
@@ -181,7 +337,24 @@ export default function HomeScreen() {
       setIsLoadingMoreTopRated(false);
     }
   };
-
+  const handleLoadMoreLiked = async () => {
+if (isLoadingMoreLiked || !hasMoreLiked) return;
+try {
+setIsLoadingMoreLiked(true);
+const nextPage = likedPage + 1;
+const response = await getLikedRecipes(nextPage, 10);
+if (response.code === 1000 && response.result) {
+const newRecipes = response.result.content.map((item: any) => item.recipe); // Giả sử RecipeLikeResponse có trường recipe
+setLikedRecipesList(prev => [...prev, ...newRecipes]);
+setLikedPage(nextPage);
+setHasMoreLiked(!response.result.last);
+}
+} catch (err: any) {
+console.error('Error loading more liked recipes:', err);
+} finally {
+setIsLoadingMoreLiked(false);
+}
+};
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -193,7 +366,6 @@ export default function HomeScreen() {
     );
   }
 
-  // Hiển thị lỗi nếu có
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
@@ -213,42 +385,66 @@ export default function HomeScreen() {
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <FeaturedDish recipe={featuredRecipes[0]} onRecipePress={handleOpenDetail} />
-        
-        <TrendingRecipes 
-          recipes={trendingRecipes} 
-          onRecipePress={handleOpenDetail}
-          onLoadMore={handleLoadMoreTrending}
-          hasMore={hasMoreTrending}
-          isLoadingMore={isLoadingMoreTrending}
-        />
-        
-        <PopularRecipes 
-          recipes={popularRecipes} 
-          onRecipePress={handleOpenDetail}
-          onLoadMore={handleLoadMorePopular}
-          hasMore={hasMorePopular}
-          isLoadingMore={isLoadingMorePopular}
-        />
-        
-        <TopRatedRecipes 
-          recipes={topRatedRecipes} 
-          onRecipePress={handleOpenDetail}
-          onLoadMore={handleLoadMoreTopRated}
-          hasMore={hasMoreTopRated}
-          isLoadingMore={isLoadingMoreTopRated}
-        />
-        
-        <NewestRecipes 
-          recipes={newestRecipes} 
-          onRecipePress={handleOpenDetail}
-          onLoadMore={handleLoadMoreNewest}
-          hasMore={hasMoreNewest}
-          isLoadingMore={isLoadingMoreNewest}
-        />
-        
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+  {activeTab === 'Đề xuất' ? (
+    <>
+      <FeaturedDish recipe={featuredRecipes[0]} onRecipePress={handleOpenDetail} />
+      <TrendingRecipes 
+        recipes={trendingRecipes} 
+        onRecipePress={handleOpenDetail}
+        onLoadMore={handleLoadMoreTrending}
+        hasMore={hasMoreTrending}
+        isLoadingMore={isLoadingMoreTrending}
+        likedRecipes={likedRecipes}
+        likingRecipeId={likingRecipeId}
+        onToggleLike={toggleLike}
+      />
+      <PopularRecipes 
+        recipes={popularRecipes} 
+        onRecipePress={handleOpenDetail}
+        onLoadMore={handleLoadMorePopular}
+        hasMore={hasMorePopular}
+        isLoadingMore={isLoadingMorePopular}
+        likedRecipes={likedRecipes}
+        likingRecipeId={likingRecipeId}
+        onToggleLike={toggleLike}
+      />
+      <TopRatedRecipes 
+        recipes={topRatedRecipes} 
+        onRecipePress={handleOpenDetail}
+        onLoadMore={handleLoadMoreTopRated}
+        hasMore={hasMoreTopRated}
+        isLoadingMore={isLoadingMoreTopRated}
+        likedRecipes={likedRecipes}
+        likingRecipeId={likingRecipeId}
+        onToggleLike={toggleLike}
+      />
+      <NewestRecipes 
+        recipes={newestRecipes} 
+        onRecipePress={handleOpenDetail}
+        onLoadMore={handleLoadMoreNewest}
+        hasMore={hasMoreNewest}
+        isLoadingMore={isLoadingMoreNewest}
+        likedRecipes={likedRecipes}
+        likingRecipeId={likingRecipeId}
+        onToggleLike={toggleLike}
+      />
+    </>
+  ) : activeTab === 'Yêu thích' ? (
+    <LikedRecipes
+      recipes={likedRecipesList}
+      onRecipePress={handleOpenDetail}
+      onLoadMore={handleLoadMoreLiked}
+      hasMore={hasMoreLiked}
+      isLoadingMore={isLoadingMoreLiked}
+      likedRecipes={likedRecipes}
+      likingRecipeId={likingRecipeId}
+      onToggleLike={toggleLike}
+    />
+  ) : null}
+
+  <View style={styles.bottomPadding} />
+</ScrollView>
+
     </SafeAreaView>
   );
 }
@@ -264,7 +460,6 @@ const styles = StyleSheet.create({
   bottomPadding: {
     height: 80, 
   },
-  // Styles cho loading và error
   centerContainer: {
     flex: 1,
     justifyContent: 'center',

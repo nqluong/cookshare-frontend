@@ -34,14 +34,14 @@ export const getAllRecipes = async (page = 0, size = 10) => {
 export const getRecipeById = async (id: string, token?: string | null) => {
   try {
     const headers: any = { ...API_CONFIG.DEFAULT_HEADERS };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
       console.log('🔑 Sending request with token');
     } else {
       console.log('⚠️ No token provided');
     }
-    
+
     const res = await api.get(`/${id}`, { headers });
     return res.data;
   } catch (error) {

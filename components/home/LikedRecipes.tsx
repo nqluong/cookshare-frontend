@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getImageUrl } from '../../../config/api.config';
-import { Colors } from '../../../styles/colors';
-import { Recipe } from '../../../types/dish';
+import { getImageUrl } from '../../config/api.config';
+import { Colors } from '../../styles/colors';
+import { Recipe } from '../../types/dish';
 
-interface NewestRecipesProps {
-  recipes: Recipe[]; // Danh sách công thức mới nhất từ API
+interface LikedRecipesProps {
+  recipes: Recipe[]; // Danh sách công thức đã thích từ API
   onRecipePress?: (recipe: Recipe) => void; // Callback khi nhấn vào công thức
   onLoadMore?: () => void; // Callback khi cần load thêm
   hasMore?: boolean; // Còn data để load không
@@ -15,30 +15,25 @@ interface NewestRecipesProps {
   onToggleLike?: (recipeId: string) => Promise<void>;
 }
 
-// Component hiển thị danh sách công thức mới nhất (theo createdAt)
-export default function NewestRecipes({ 
-  recipes, 
-  onRecipePress, 
-  onLoadMore, 
-  hasMore = false, 
+// Component hiển thị danh sách công thức đã thích
+export default function LikedRecipes({
+  recipes,
+  onRecipePress,
+  onLoadMore,
+  hasMore = false,
   isLoadingMore = false,
-  likedRecipes = new Set<string>(), 
+  likedRecipes = new Set<string>(),
   likingRecipeId,
-  onToggleLike  
-}: NewestRecipesProps) {
-
-
+  onToggleLike,
+}: LikedRecipesProps) {
   const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
-    
     // ✅ Kiểm tra đang loading hoặc không có callback
     if (likingRecipeId === recipeId || !onToggleLike) {
       return;
     }
-
     await onToggleLike(recipeId); // ✅ Gọi callback từ parent
   };
-
 
   const getDifficultyText = (difficulty: string) => {
     switch (difficulty) {
@@ -55,12 +50,13 @@ export default function NewestRecipes({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mới nhất</Text>
+      <Text style={styles.title}>Công thức yêu thích</Text>
+
       {recipes.map((recipe) => {
-       const isLiked = likedRecipes.has(recipe.recipeId);
-          const isLoading = likingRecipeId === recipe.recipeId;
-          const currentLikes = recipe.likeCount;
-        
+        const isLiked = true;
+        const isLoading = likingRecipeId === recipe.recipeId;
+        const currentLikes = recipe.likeCount;
+
         return (
           <TouchableOpacity
             key={recipe.recipeId}
@@ -80,11 +76,15 @@ export default function NewestRecipes({
                 onPress={(e) => toggleLike(recipe.recipeId, e)}
                 activeOpacity={0.7}
               >
-                <Ionicons
-                  name={isLiked ? 'heart' : 'heart-outline'}
-                  size={20}
-                  color={isLiked ? Colors.primary : Colors.white}
-                />
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Ionicons
+                    name={isLiked ? 'heart' : 'heart-outline'}
+                    size={20}
+                    color={isLiked ? Colors.primary : Colors.white}
+                  />
+                )}
               </TouchableOpacity>
             </View>
 
@@ -121,13 +121,13 @@ export default function NewestRecipes({
                   <Text style={styles.statText}>{recipe.averageRating.toFixed(1)}</Text>
                   <Text style={styles.statSubText}>({recipe.ratingCount})</Text>
                 </View>
-                
+
                 {/* Views */}
                 <View style={styles.statItem}>
                   <Ionicons name="eye-outline" size={14} color={Colors.text.secondary} />
                   <Text style={styles.statText}>{recipe.viewCount}</Text>
                 </View>
-                
+
                 {/* Likes */}
                 <View style={styles.statItem}>
                   <Ionicons name="heart" size={14} color={Colors.primary} />
@@ -139,13 +139,13 @@ export default function NewestRecipes({
         );
       })}
 
-      {/* Chế độ load thêm */}
+      {/* Load More Section */}
       {hasMore && (
         <View style={styles.loadMoreContainer}>
           {isLoadingMore ? (
             <ActivityIndicator size="small" color={Colors.primary} />
           ) : (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.loadMoreButton}
               onPress={onLoadMore}
               activeOpacity={0.7}
@@ -282,4 +282,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

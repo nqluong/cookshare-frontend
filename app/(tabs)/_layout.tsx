@@ -6,7 +6,7 @@ import { Colors } from '../../styles/colors';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  
+
   return (
     <Tabs
       initialRouteName='home'
@@ -16,7 +16,7 @@ export default function TabLayout() {
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: Colors.border,
-          height: Platform.OS === 'android' ? 40 + insets.bottom : 60,
+          height: Platform.OS === 'android' ? 50 + insets.bottom : 60,
           paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 8,
           paddingTop: 8,
           elevation: 8, // Shadow cho Android
@@ -87,7 +87,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="_view-all"
         options={{
-          href: null, 
+          href: null,
         }}
       />
       <Tabs.Screen

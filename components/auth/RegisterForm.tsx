@@ -141,6 +141,7 @@ export default function AuthRegisterForm() {
                 value={formData.password}
                 onChangeText={(value) => updateFormData('password', value)}
                 secureTextEntry
+                showPasswordToggle
                 autoCapitalize="none"
                 autoCorrect={false}
             />
@@ -151,6 +152,7 @@ export default function AuthRegisterForm() {
                 value={formData.confirmPassword}
                 onChangeText={(value) => updateFormData('confirmPassword', value)}
                 secureTextEntry
+                showPasswordToggle
                 autoCapitalize="none"
                 autoCorrect={false}
             />

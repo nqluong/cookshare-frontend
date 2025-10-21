@@ -3,15 +3,16 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -20,10 +21,13 @@ import { Colors } from "../../styles/colors";
 import { UserProfile } from "../../types/user.types";
 
 export default function OwnProfileScreen() {
+
+  const canGoBack = router.canGoBack();
   const { user, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   useEffect(() => {
     if (user?.username) {
@@ -63,13 +67,27 @@ export default function OwnProfileScreen() {
         onPress: async () => {
           try {
             await logout();
-            router.replace("/auth/registerForm" as any);
+            router.replace("/auth/login" as any);
           } catch (error) {
             Alert.alert("Lỗi", "Đã có lỗi xảy ra khi đăng xuất");
           }
         },
       },
     ]);
+  };
+
+  const handleChangePassword = () => {
+    setShowSettingsMenu(false);
+    router.push('/changePassword' as any);
+  };
+
+  const handleAdminPanel = () => {
+    setShowSettingsMenu(false);
+    Alert.alert("Admin Panel", "Tính năng admin panel đang được phát triển!");
+  };
+
+  const toggleSettingsMenu = () => {
+    setShowSettingsMenu(!showSettingsMenu);
   };
 
   const formatNumber = (num: number): string => {
@@ -84,7 +102,7 @@ export default function OwnProfileScreen() {
       {/* Header (Title & Settings Icon) */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={handleLogout} // Đổi chức năng của nút Settings thành Đăng xuất
+          onPress={toggleSettingsMenu}
           style={styles.settingsButton}
         >
           <Ionicons
@@ -167,7 +185,7 @@ export default function OwnProfileScreen() {
 
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {formatNumber(userProfile?.totalLikes || 999900)}
+            {formatNumber(userProfile?.totalLikes || 0)}
           </Text>
           <Text style={styles.statLabel}>Thích</Text>
         </View>
@@ -210,6 +228,55 @@ export default function OwnProfileScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       />
+
+
+      {/* Settings Menu Modal */}
+      <Modal
+        visible={showSettingsMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSettingsMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSettingsMenu(false)}
+        >
+          <View style={styles.settingsMenu}>
+            {/* Change Password Option */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleChangePassword}
+            >
+              <Ionicons name="key-outline" size={20} color={Colors.text.primary} />
+              <Text style={styles.menuText}>Đổi mật khẩu</Text>
+            </TouchableOpacity>
+
+            {/* Admin Panel Option (only for ADMIN role) */}
+            {user?.role === 'ADMIN' && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handleAdminPanel}
+              >
+                <Ionicons name="shield-outline" size={20} color={Colors.primary} />
+                <Text style={[styles.menuText, { color: Colors.primary }]}>Admin Panel</Text>
+              </TouchableOpacity>
+            )}
+
+              {/* Logout Option */}
+              <TouchableOpacity
+                style={[styles.menuItem, styles.menuItemDanger]}
+                onPress={() => {
+                  setShowSettingsMenu(false);
+                  handleLogout();
+                }}
+              >
+                <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+                <Text style={[styles.menuText, { color: "#ef4444" }]}>Đăng xuất</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
     </SafeAreaView>
   );
 }
@@ -228,14 +295,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  safeArea: {
+    backgroundColor: Colors.white,
+  },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 0,
-    paddingBottom: 0,
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[100],
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
+  },
+  placeholder: {
+    width: 32,
   },
   settingsButton: {
     padding: 8,
@@ -345,5 +427,45 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.primary,
     fontWeight: "600",
+  },
+
+  // Settings Menu Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 60,
+    paddingRight: 16,
+  },
+  settingsMenu: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuItemDanger: {
+    borderBottomWidth: 0,
+  },
+  menuText: {
+    fontSize: 16,
+    color: Colors.text.primary,
+    marginLeft: 12,
+    fontWeight: '500',
   },
 });

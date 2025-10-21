@@ -1,4 +1,4 @@
-import ScreensAuthLogin from '../../screens/auth/Login';
+import ScreensAuthLogin from '../../screens/Auth/Login';
 
 export default function LoginRoute() {
   return <ScreensAuthLogin />;

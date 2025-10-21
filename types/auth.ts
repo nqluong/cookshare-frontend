@@ -10,6 +10,27 @@ export interface RegisterRequest {
   fullname: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface VerifyOtpRequest {
+  email: string;
+  otp: number;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface User {
   userId: string;
   username: string;
@@ -17,7 +38,7 @@ export interface User {
   fullName: string;
   avatarUrl?: string;
   bio?: string | null;
-  role: string;
+  role?: string;
   isActive: boolean;
   emailVerified: boolean;
   lastActive?: string;

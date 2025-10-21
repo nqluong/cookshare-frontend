@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../../styles/colors';
 import { Recipe } from '../../../types/dish';
@@ -12,6 +11,9 @@ interface PopularRecipesProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  likedRecipes?: Set<string>;
+  likingRecipeId?: string | null;
+  onToggleLike?: (recipeId: string) => Promise<void>;
 }
 
 // Component hiển thị danh sách công thức phổ biến (theo saveCount)
@@ -20,11 +22,12 @@ export default function PopularRecipes({
   onRecipePress, 
   onLoadMore, 
   hasMore = false, 
-  isLoadingMore = false 
+  isLoadingMore = false,
+  likedRecipes = new Set<string>(), 
+  likingRecipeId,
+  onToggleLike 
 }: PopularRecipesProps) {
   const router = useRouter();
-  const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
-
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const paddingToEnd = 20;
@@ -36,17 +39,14 @@ export default function PopularRecipes({
     }
   };
 
-  const toggleLike = (recipeId: string, event: any) => {
+  const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
-    setLikedRecipes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(recipeId)) {
-        newSet.delete(recipeId);
-      } else {
-        newSet.add(recipeId);
-      }
-      return newSet;
-    });
+  
+    if (likingRecipeId === recipeId || !onToggleLike) {
+      return;
+    }
+
+    await onToggleLike(recipeId); 
   };
 
   const getDifficultyText = (difficulty: string) => {
@@ -82,12 +82,13 @@ export default function PopularRecipes({
         contentContainerStyle={styles.scrollContent}
         onScroll={handleScroll}
         scrollEventThrottle={400}
+        
       >
         {recipes.map((recipe) => {
           const dish = recipeToDish(recipe);
           const isLiked = likedRecipes.has(recipe.recipeId);
-          const currentLikes = isLiked ? recipe.likeCount + 1 : recipe.likeCount;
-
+          const isLoading = likingRecipeId === recipe.recipeId;
+          const currentLikes = recipe.likeCount;
           return (
             <TouchableOpacity
               key={recipe.recipeId}
@@ -104,15 +105,23 @@ export default function PopularRecipes({
                   />
                 </View>
                 <TouchableOpacity
-                  style={styles.likeButton}
+                  style={[
+                    styles.likeButton,
+                    isLoading && styles.loadingLikeButton 
+                  ]}
                   onPress={(e) => toggleLike(recipe.recipeId, e)}
                   activeOpacity={0.7}
+                  disabled={isLoading}
                 >
-                  <Ionicons
-                    name={isLiked ? 'heart' : 'heart-outline'}
-                    size={16}
-                    color={isLiked ? Colors.primary : Colors.text.light}
-                  />
+                  {isLoading ? (
+                    <ActivityIndicator size={12} color={Colors.primary} />
+                  ) : (
+                    <Ionicons
+                      name={isLiked ? 'heart' : 'heart-outline'}
+                      size={16}
+                      color={isLiked ? Colors.primary : Colors.text.light}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
               <View style={styles.info}>
@@ -290,5 +299,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+   loadingLikeButton: {
+    opacity: 0.7,
+  },
 });
+
 

@@ -53,6 +53,10 @@ export default function AuthLoginForm() {
         router.push('/auth/registerForm' as any);
     };
 
+    const navigateToForgotPassword = () => {
+        router.push('/auth/verifyMail' as any);
+    };
+
     return (
         <View style={authStyles.container}>
             {/* Logo/Header */}
@@ -77,6 +81,7 @@ export default function AuthLoginForm() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
+                showPasswordToggle
                 autoCapitalize="none"
                 autoCorrect={false}
             />
@@ -89,6 +94,17 @@ export default function AuthLoginForm() {
                 loading={loading}
                 style={authStyles.primaryButton}
             />
+
+            {/* Forgot Password - Tạm thời ẩn khi backend chưa sẵn sàng */}
+            {
+                <View style={authStyles.navigationContainer}>
+                    <Text style={authStyles.navigationText}>
+                        <Text style={authStyles.navigationLink} onPress={navigateToForgotPassword}>
+                            Quên mật khẩu?
+                        </Text>
+                    </Text>
+                </View>
+            }
 
             {/* Navigate to register */}
             <View style={authStyles.navigationContainer}>
