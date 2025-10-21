@@ -52,7 +52,19 @@ export const isRecipeLiked = async (recipeId: string) => {
   });
   return response.data;
 };
-
+export const getLikedRecipes = async (page: number = 0, size: number = 10) => {
+try {
+const token = await AsyncStorage.getItem('authToken');
+const res = await api.get(`/likes-ratings/likedlist?page=${page}&size=${size}`, {
+headers: {
+Authorization: `Bearer ${token}`,
+},
+});
+return res.data;
+} catch (error) {
+handleError(error);
+}
+};
 export const getHomeSuggestions = async () => {
   try {
     const res = await api.get("/recommendations/home");

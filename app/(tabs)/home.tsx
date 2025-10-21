@@ -1,3 +1,4 @@
+import LikedRecipes from '@/components/home/LikedRecipes';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,6 +12,7 @@ import TopRatedRecipes from '../../components/home/sections/TopRatedRecipes';
 import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
 import {
   getHomeSuggestions,
+  getLikedRecipes,
   getNewestRecipes,
   getPopularRecipes,
   getTopRatedRecipes,
@@ -55,10 +57,45 @@ export default function HomeScreen() {
   // State cho tracking liked recipes
   const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
   const [likingRecipeId, setLikingRecipeId] = useState<string | null>(null);
+  const [likedRecipesList, setLikedRecipesList] = useState<Recipe[]>([]);
+const [likedPage, setLikedPage] = useState(0);
+const [hasMoreLiked, setHasMoreLiked] = useState(true);
+const [isLoadingMoreLiked, setIsLoadingMoreLiked] = useState(false);
+const [isLikedTabLoaded, setIsLikedTabLoaded] = useState(false);
 
   useEffect(() => {
     fetchHomeSuggestions();
   }, []);
+  useEffect(() => {
+  if (activeTab === 'Yêu thích' && !isLikedTabLoaded) {
+    fetchLikedRecipes();
+    setIsLikedTabLoaded(true);
+  }
+}, [activeTab]);
+const fetchLikedRecipes = async () => {
+  try {
+    setLoading(true);
+    const response = await getLikedRecipes(0, 10);
+    console.log("Liked Recipes response:", response);
+
+    if (response.code === 1000 && response.result) {
+      // 🩹 Lọc bỏ item null hoặc thiếu recipe
+      const liked = response.result.content
+        .map((item: any) => item?.recipe)
+        .filter((r: any) => r && r.recipeId);
+
+      setLikedRecipesList(liked);
+      setHasMoreLiked(!response.result.last);
+    } else {
+      console.warn("Không có dữ liệu công thức yêu thích.");
+    }
+  } catch (err: any) {
+    console.error("Lỗi khi tải danh sách yêu thích:", err);
+    setError("Không thể tải danh sách yêu thích");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchHomeSuggestions = async () => {
   try {
@@ -300,7 +337,24 @@ const updateRecipeLikeCount = (recipeId: string, delta: number) => {
       setIsLoadingMoreTopRated(false);
     }
   };
-
+  const handleLoadMoreLiked = async () => {
+if (isLoadingMoreLiked || !hasMoreLiked) return;
+try {
+setIsLoadingMoreLiked(true);
+const nextPage = likedPage + 1;
+const response = await getLikedRecipes(nextPage, 10);
+if (response.code === 1000 && response.result) {
+const newRecipes = response.result.content.map((item: any) => item.recipe); // Giả sử RecipeLikeResponse có trường recipe
+setLikedRecipesList(prev => [...prev, ...newRecipes]);
+setLikedPage(nextPage);
+setHasMoreLiked(!response.result.last);
+}
+} catch (err: any) {
+console.error('Error loading more liked recipes:', err);
+} finally {
+setIsLoadingMoreLiked(false);
+}
+};
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -331,54 +385,66 @@ const updateRecipeLikeCount = (recipeId: string, delta: number) => {
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <FeaturedDish recipe={featuredRecipes[0]} onRecipePress={handleOpenDetail} />
-        
-        <TrendingRecipes 
-          recipes={trendingRecipes} 
-          onRecipePress={handleOpenDetail}
-          onLoadMore={handleLoadMoreTrending}
-          hasMore={hasMoreTrending}
-          isLoadingMore={isLoadingMoreTrending}
-          likedRecipes={likedRecipes}
-          likingRecipeId={likingRecipeId}
-          onToggleLike={toggleLike}
-        />
-        
-        <PopularRecipes 
-          recipes={popularRecipes} 
-          onRecipePress={handleOpenDetail}
-          onLoadMore={handleLoadMorePopular}
-          hasMore={hasMorePopular}
-          isLoadingMore={isLoadingMorePopular}
-          likedRecipes={likedRecipes}
-          likingRecipeId={likingRecipeId}
-          onToggleLike={toggleLike}
-        />
-        
-        <TopRatedRecipes 
-          recipes={topRatedRecipes} 
-          onRecipePress={handleOpenDetail}
-          onLoadMore={handleLoadMoreTopRated}
-          hasMore={hasMoreTopRated}
-          isLoadingMore={isLoadingMoreTopRated}
-          likedRecipes={likedRecipes}
-          likingRecipeId={likingRecipeId}
-          onToggleLike={toggleLike}
-        />
-        
-        <NewestRecipes 
-          recipes={newestRecipes} 
-          onRecipePress={handleOpenDetail}
-          onLoadMore={handleLoadMoreNewest}
-          hasMore={hasMoreNewest}
-          isLoadingMore={isLoadingMoreNewest}
-          likedRecipes={likedRecipes}
-          likingRecipeId={likingRecipeId}
-          onToggleLike={toggleLike}
-        />
-        
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+  {activeTab === 'Đề xuất' ? (
+    <>
+      <FeaturedDish recipe={featuredRecipes[0]} onRecipePress={handleOpenDetail} />
+      <TrendingRecipes 
+        recipes={trendingRecipes} 
+        onRecipePress={handleOpenDetail}
+        onLoadMore={handleLoadMoreTrending}
+        hasMore={hasMoreTrending}
+        isLoadingMore={isLoadingMoreTrending}
+        likedRecipes={likedRecipes}
+        likingRecipeId={likingRecipeId}
+        onToggleLike={toggleLike}
+      />
+      <PopularRecipes 
+        recipes={popularRecipes} 
+        onRecipePress={handleOpenDetail}
+        onLoadMore={handleLoadMorePopular}
+        hasMore={hasMorePopular}
+        isLoadingMore={isLoadingMorePopular}
+        likedRecipes={likedRecipes}
+        likingRecipeId={likingRecipeId}
+        onToggleLike={toggleLike}
+      />
+      <TopRatedRecipes 
+        recipes={topRatedRecipes} 
+        onRecipePress={handleOpenDetail}
+        onLoadMore={handleLoadMoreTopRated}
+        hasMore={hasMoreTopRated}
+        isLoadingMore={isLoadingMoreTopRated}
+        likedRecipes={likedRecipes}
+        likingRecipeId={likingRecipeId}
+        onToggleLike={toggleLike}
+      />
+      <NewestRecipes 
+        recipes={newestRecipes} 
+        onRecipePress={handleOpenDetail}
+        onLoadMore={handleLoadMoreNewest}
+        hasMore={hasMoreNewest}
+        isLoadingMore={isLoadingMoreNewest}
+        likedRecipes={likedRecipes}
+        likingRecipeId={likingRecipeId}
+        onToggleLike={toggleLike}
+      />
+    </>
+  ) : activeTab === 'Yêu thích' ? (
+    <LikedRecipes
+      recipes={likedRecipesList}
+      onRecipePress={handleOpenDetail}
+      onLoadMore={handleLoadMoreLiked}
+      hasMore={hasMoreLiked}
+      isLoadingMore={isLoadingMoreLiked}
+      likedRecipes={likedRecipes}
+      likingRecipeId={likingRecipeId}
+      onToggleLike={toggleLike}
+    />
+  ) : null}
+
+  <View style={styles.bottomPadding} />
+</ScrollView>
+
     </SafeAreaView>
   );
 }
