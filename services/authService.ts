@@ -53,7 +53,7 @@ class AuthService {
         console.log('📝 Saving cookies manually for iOS:', setCookieHeader);
         await this.parseAndSaveCookies(setCookieHeader);
       }
-
+      await AsyncStorage.setItem('authToken', accessToken);
       return accessToken;
     } catch (error: any) {
       console.error('Login error:', error);
