@@ -2,12 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -30,6 +30,10 @@ type TabType = "Ngày" | "Tuần" | "Tháng";
 export default function AdminDashboardScreen() {
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState<TabType>("Tuần");
+
+  const handleExitAdmin = () => {
+    router.replace('/(tabs)/home' as any);
+  };
 
   // Mock data for the chart (weekly data for 4 weeks)
   const weeklyData = [
@@ -127,6 +131,9 @@ export default function AdminDashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.notificationButton}>
             <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.exitButton} onPress={handleExitAdmin}>
+            <Ionicons name="exit-outline" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -235,6 +242,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   notificationButton: {
+    padding: 4,
+  },
+  exitButton: {
     padding: 4,
   },
   scrollView: {
