@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -22,6 +23,11 @@ interface TopRecipe {
 
 export default function AdminHomeScreen() {
   const { user } = useAuth();
+  const router = useRouter();
+
+  const handleExitAdmin = () => {
+    router.replace('/(tabs)/home' as any);
+  };
 
   // Mock data cho biểu đồ tuần
   const weeklyData = [
@@ -87,9 +93,14 @@ export default function AdminHomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Chào, {user?.fullName || "Chung"}</Text>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.notificationButton}>
+            <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.exitButton} onPress={handleExitAdmin}>
+            <Ionicons name="exit-outline" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -191,7 +202,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.text.primary,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   notificationButton: {
+    padding: 4,
+  },
+  exitButton: {
     padding: 4,
   },
   scrollView: {

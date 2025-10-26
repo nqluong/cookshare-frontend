@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   RefreshControl,
   ScrollView,
@@ -14,11 +13,17 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CustomAlert from "../../components/ui/CustomAlert";
+import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { AdminUser, adminUserService } from "../../services/adminUserService";
 import { Colors } from "../../styles/colors";
 
 export default function AdminUsersScreen() {
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleExitAdmin = () => {
+    router.replace('/(tabs)/home' as any);
+  };
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -28,6 +33,8 @@ export default function AdminUsersScreen() {
   const [totalElements, setTotalElements] = useState(0);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  
+  const { alert, showSuccess, showError, showWarning, hideAlert } = useCustomAlert();
 
   const loadUsers = useCallback(async (page: number = 0, search: string = "", reset: boolean = true) => {
     try {
@@ -82,18 +89,20 @@ export default function AdminUsersScreen() {
 
   const handleEditUser = (userId: string) => {
     // Navigate to edit user screen or show edit modal
-    Alert.alert('Chỉnh sửa', 'Chức năng chỉnh sửa sẽ được phát triển');
+    showWarning('Chỉnh sửa', 'Chức năng chỉnh sửa sẽ được phát triển');
   };
 
   const handleBanUser = (user: AdminUser) => {
     const action = user.isActive ? 'cấm' : 'gỡ cấm';
-    Alert.alert(
-      `${action.charAt(0).toUpperCase() + action.slice(1)} người dùng`,
+    const capitalizedAction = action.charAt(0).toUpperCase() + action.slice(1);
+    
+    showWarning(
+      `${capitalizedAction} người dùng`,
       `Bạn có chắc chắn muốn ${action} người dùng "${user.fullName}"?`,
       [
         { text: 'Hủy', style: 'cancel' },
         {
-          text: action.charAt(0).toUpperCase() + action.slice(1),
+          text: capitalizedAction,
           style: user.isActive ? 'destructive' : 'default',
           onPress: async () => {
             try {
@@ -105,9 +114,9 @@ export default function AdminUsersScreen() {
               }
               // Refresh the list
               await loadUsers(0, searchQuery, true);
-              Alert.alert('Thành công', `Đã ${action} người dùng thành công`);
+              showSuccess('Thành công', `Đã ${action} người dùng thành công`);
             } catch (err: any) {
-              Alert.alert('Lỗi', err.message || `Không thể ${action} người dùng`);
+              showError('Lỗi', err.message || `Không thể ${action} người dùng`);
             } finally {
               setLoading(false);
             }
@@ -118,7 +127,7 @@ export default function AdminUsersScreen() {
   };
 
   const handleDeleteUser = (user: AdminUser) => {
-    Alert.alert(
+    showError(
       'Xóa người dùng',
       `Bạn có chắc chắn muốn xóa người dùng "${user.fullName}"? Hành động này không thể hoàn tác.`,
       [
@@ -132,9 +141,9 @@ export default function AdminUsersScreen() {
               await adminUserService.deleteUser(user.userId);
               // Refresh the list
               await loadUsers(0, searchQuery, true);
-              Alert.alert('Thành công', 'Đã xóa người dùng thành công');
+              showSuccess('Thành công', 'Đã xóa người dùng thành công');
             } catch (err: any) {
-              Alert.alert('Lỗi', err.message || 'Không thể xóa người dùng');
+              showError('Lỗi', err.message || 'Không thể xóa người dùng');
             } finally {
               setLoading(false);
             }
@@ -152,9 +161,14 @@ export default function AdminUsersScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Người Dùng</Text>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.notificationButton}>
+            <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.exitButton} onPress={handleExitAdmin}>
+            <Ionicons name="exit-outline" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -487,6 +501,16 @@ export default function AdminUsersScreen() {
           )}
         </SafeAreaView>
       </Modal>
+      
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        buttons={alert.buttons}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 }
@@ -512,7 +536,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.text.primary,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   notificationButton: {
+    padding: 4,
+  },
+  exitButton: {
     padding: 4,
   },
   searchContainer: {
