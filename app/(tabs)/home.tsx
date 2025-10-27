@@ -256,7 +256,7 @@ export default function HomeScreen() {
         // Xóa timer khỏi map
         likeTimersRef.current.delete(recipeId);
       }
-    }, 2000); // 2 giây
+    }, 1800); // 1.8 giây
 
     // Lưu timer vào ref
     likeTimersRef.current.set(recipeId, timer);
