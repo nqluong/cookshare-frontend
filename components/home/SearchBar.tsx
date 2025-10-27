@@ -1,17 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Colors } from '../../styles/colors';
-
-export default function SearchBar() {
+interface SearchBarProps {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  onSearch: () => void;
+}
+export default function SearchBar({ searchQuery, setSearchQuery, onSearch }: SearchBarProps) {
   return (
     <View style={styles.container}>
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={20} color={Colors.text.light} />
+        <Ionicons name="search-outline" size={20} color={Colors.text.light} onPress={onSearch} />
         <TextInput
           placeholder="Tìm kiếm"
           style={styles.input}
           placeholderTextColor={Colors.text.light}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={onSearch}
         />
       </View>
     </View>
