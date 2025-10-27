@@ -1,3 +1,4 @@
+import CollectionListTab from "@/components/profile/CollectionListTab";
 import RecipeGrid from "@/components/profile/RecipeGrid";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -7,12 +8,11 @@ import {
   Alert,
   FlatList,
   Image,
-  Modal,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -28,6 +28,10 @@ export default function OwnProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState<"recipes" | "collections">(
+    "recipes"
+  );
+  const isOwner = userProfile?.userId === user?.userId;
 
   useEffect(() => {
     if (user?.username) {
@@ -55,40 +59,10 @@ export default function OwnProfileScreen() {
     setRefreshing(false);
   };
 
-  const handleLogout = () => {
-    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
-      {
-        text: "Hủy",
-        style: "cancel",
-      },
-      {
-        text: "Đăng xuất",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logout();
-            router.replace("/auth/login" as any);
-          } catch (error) {
-            Alert.alert("Lỗi", "Đã có lỗi xảy ra khi đăng xuất");
-          }
-        },
-      },
-    ]);
+  const handleSettings = () => {
+    router.push('/settings' as any);
   };
 
-  const handleChangePassword = () => {
-    setShowSettingsMenu(false);
-    router.push('/changePassword' as any);
-  };
-
-  const handleAdminPanel = () => {
-    setShowSettingsMenu(false);
-    Alert.alert("Admin Panel", "Tính năng admin panel đang được phát triển!");
-  };
-
-  const toggleSettingsMenu = () => {
-    setShowSettingsMenu(!showSettingsMenu);
-  };
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -96,13 +70,12 @@ export default function OwnProfileScreen() {
     return num.toString();
   };
 
-  // Render header content
   const renderHeader = () => (
     <>
       {/* Header (Title & Settings Icon) */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={toggleSettingsMenu}
+          onPress={handleSettings}
           style={styles.settingsButton}
         >
           <Ionicons
@@ -113,9 +86,7 @@ export default function OwnProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Avatar & Basic Info */}
       <View style={styles.avatarSection}>
-        {/* Avatar */}
         <View style={styles.avatarContainer}>
           {userProfile?.avatarUrl ? (
             <Image
@@ -128,7 +99,6 @@ export default function OwnProfileScreen() {
               style={styles.avatar}
             />
           )}
-          {/* Edit Icon */}
           <TouchableOpacity style={styles.editAvatarButton}>
             <MaterialCommunityIcons
               name="account-edit-outline"
@@ -138,7 +108,6 @@ export default function OwnProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Name and Bio */}
         <Text style={styles.fullNameText}>
           {userProfile?.fullName || user?.fullName || "Tên người dùng"}
         </Text>
@@ -147,7 +116,6 @@ export default function OwnProfileScreen() {
         </Text>
       </View>
 
-      {/* Stats (Đã follow, Follower, Thích) */}
       <View style={styles.statsContainer}>
         <TouchableOpacity
           style={styles.statItem}
@@ -191,20 +159,50 @@ export default function OwnProfileScreen() {
         </View>
       </View>
 
-      {/* Recipe Tabs */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity style={styles.tabItemActive}>
-          <Text style={styles.tabTextActive}>Công thức đã đăng</Text>
+        <TouchableOpacity
+          style={
+            activeTab === "recipes" ? styles.tabItemActive : styles.tabItem
+          }
+          onPress={() => setActiveTab("recipes")}
+        >
+          <Text
+            style={
+              activeTab === "recipes" ? styles.tabTextActive : styles.tabText
+            }
+          >
+            Công thức đã đăng
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
-          <Text style={styles.tabText}>Công thức đã lưu</Text>
+        <TouchableOpacity
+          style={
+            activeTab === "collections" ? styles.tabItemActive : styles.tabItem
+          }
+          onPress={() => setActiveTab("collections")}
+        >
+          <Text
+            style={
+              activeTab === "collections"
+                ? styles.tabTextActive
+                : styles.tabText
+            }
+          >
+            Bộ sưu tập
+          </Text>
         </TouchableOpacity>
       </View>
     </>
   );
 
-  const data = [{}];
-  const renderItem = () => <RecipeGrid userId={userProfile?.userId || ""} />;
+  const renderTabContent = () => {
+    if (!userProfile?.userId) return null;
+
+    if (activeTab === "recipes") {
+      return <RecipeGrid userId={userProfile.userId} />;
+    } else {
+      return <CollectionListTab userId={userProfile.userId} />;
+    }
+  };
 
   if (loading) {
     return (
@@ -220,63 +218,16 @@ export default function OwnProfileScreen() {
     <SafeAreaView style={styles.container}>
       <FlatList
         ListHeaderComponent={renderHeader}
-        data={data}
-        renderItem={renderItem}
+        data={[{}]}
+        renderItem={() => renderTabContent()} // Chỉ render content theo tab
         keyExtractor={(item, index) => index.toString()}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         contentContainerStyle={styles.scrollContent}
+        ListEmptyComponent={null} // Không cần EmptyComponent vì CollectionListTab tự xử lý
       />
 
-
-      {/* Settings Menu Modal */}
-      <Modal
-        visible={showSettingsMenu}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowSettingsMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowSettingsMenu(false)}
-        >
-          <View style={styles.settingsMenu}>
-            {/* Change Password Option */}
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={handleChangePassword}
-            >
-              <Ionicons name="key-outline" size={20} color={Colors.text.primary} />
-              <Text style={styles.menuText}>Đổi mật khẩu</Text>
-            </TouchableOpacity>
-
-            {/* Admin Panel Option (only for ADMIN role) */}
-            {user?.role === 'ADMIN' && (
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={handleAdminPanel}
-              >
-                <Ionicons name="shield-outline" size={20} color={Colors.primary} />
-                <Text style={[styles.menuText, { color: Colors.primary }]}>Admin Panel</Text>
-              </TouchableOpacity>
-            )}
-
-              {/* Logout Option */}
-              <TouchableOpacity
-                style={[styles.menuItem, styles.menuItemDanger]}
-                onPress={() => {
-                  setShowSettingsMenu(false);
-                  handleLogout();
-                }}
-              >
-                <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-                <Text style={[styles.menuText, { color: "#ef4444" }]}>Đăng xuất</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
     </SafeAreaView>
   );
 }
@@ -318,15 +269,21 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 32,
+    // header: {
+    //   flexDirection: "row",
+    //   justifyContent: "flex-end",
+    //   alignItems: "center",
+    //   paddingHorizontal: 20,
+    //   paddingTop: 10,
+    //   paddingBottom: 10,
+    //   backgroundColor: "#fff",
   },
   settingsButton: {
     padding: 8,
-    marginLeft: "auto",
   },
-
   avatarSection: {
     alignItems: "center",
-    paddingVertical: 0,
+    paddingVertical: 20,
     backgroundColor: "#fff",
   },
   avatarContainer: {
@@ -367,7 +324,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingHorizontal: 40,
     lineHeight: 18,
-    marginBottom: 10,
   },
   statsContainer: {
     flexDirection: "row",
@@ -399,7 +355,6 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#e0e0e0",
   },
-
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -432,17 +387,17 @@ const styles = StyleSheet.create({
   // Settings Menu Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
     paddingTop: 60,
     paddingRight: 16,
   },
   settingsMenu: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     minWidth: 200,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -452,12 +407,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   menuItemDanger: {
     borderBottomWidth: 0,
@@ -466,6 +421,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text.primary,
     marginLeft: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
