@@ -60,6 +60,8 @@ export interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (credentials: LoginRequest) => Promise<boolean>;
+  // Method chung cho cả Google và Facebook (nhận token trực tiếp từ backend)
+  loginWithSocialTokens: (accessToken: string, refreshToken?: string, user?: any) => Promise<boolean>;
   register: (userData: RegisterRequest) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;

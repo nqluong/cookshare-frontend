@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthContextType, User, LoginRequest, RegisterRequest } from '../types/auth';
 import { authService } from '../services/authService';
-
-// Import API base URL (hoặc define ở đây)
-const API_BASE_URL = 'http://localhost:8080'; // Có thể cần cập nhật theo môi trường
+import { API_CONFIG } from '../config/api.config';
 
 interface AuthState {
   user: User | null;
@@ -50,9 +48,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         loading: false,
       };
     case 'UPDATE_USER':
-      if (!state.user) return state; // Không làm gì nếu user là null
-
-      // Cập nhật user object với các trường mới được truyền vào (payload)
+      if (!state.user) return state;
       return {
         ...state,
         user: { ...state.user, ...action.payload },
@@ -67,15 +63,13 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Khôi phục session từ cookies khi app khởi động
+  // Khôi phục session từ AsyncStorage khi app khởi động
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        // Kiểm tra xem có session hợp lệ không (cookies sẽ được tự động gửi)
         const hasValidSession = await authService.hasValidSession();
 
         if (hasValidSession) {
-          // Lấy user info từ AsyncStorage
           const userInfo = await authService.getUserInfo();
 
           if (userInfo) {
@@ -83,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             // Nếu không có user info trong AsyncStorage, thử lấy từ server
             try {
-              const response = await fetch(`${API_BASE_URL}/auth/account`, {
+              const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
                 credentials: 'include',
               });
 
@@ -123,12 +117,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         username: credentials.username,
         email: decodedToken?.email || '',
         fullName: decodedToken?.fullname || credentials.username,
-        role: decodedToken?.role || 'USER', // Lấy role từ token
+        role: decodedToken?.role || 'USER',
         isActive: true,
         emailVerified: false,
       };
 
-      // Lưu access token và user info (cookies được browser tự động quản lý)
+      // Lưu access token và user info
       await authService.saveAccessToken(token);
       await authService.saveUserInfo(user);
 
@@ -136,6 +130,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return true;
     } catch (error) {
       console.error('Login failed:', error);
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return false;
+    }
+  };
+
+  // Hàm dùng khi backend redirect về app với accessToken/refreshToken/user (social login)
+  const loginWithSocialTokens = async (
+    accessToken: string,
+    refreshToken?: string,
+    user?: any
+  ): Promise<boolean> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+
+      console.log('💾 Saving social login data...');
+
+      // Lưu tokens và user info
+      await authService.loginWithSocial(accessToken, refreshToken || '', user);
+
+      // Cập nhật state
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: {
+          user: {
+            userId: user?.userId || user?.id || '',
+            username: user?.username || user?.name || '',
+            email: user?.email || '',
+            fullName: user?.fullName || user?.name || '',
+            avatarUrl: user?.avatarUrl,
+            role: user?.role || 'USER',
+            isActive: user?.isActive !== undefined ? user.isActive : true,
+            emailVerified: user?.emailVerified !== undefined ? user.emailVerified : true,
+          },
+          token: accessToken,
+        },
+      });
+
+      console.log('✅ Social login successful!');
+      return true;
+    } catch (error: any) {
+      console.error('❌ Social login failed:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       return false;
     }
@@ -163,12 +198,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      // Gọi logout service để invalidate cookies trên server và xóa user info local
       await authService.logout();
       dispatch({ type: 'LOGOUT' });
     } catch (error) {
       console.error('Logout error:', error);
-      // Vẫn logout local dù API call thất bại
       dispatch({ type: 'LOGOUT' });
     }
   };
@@ -181,6 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: state.user,
     token: state.token,
     login,
+    loginWithSocialTokens, // Renamed from loginWithServerTokens
     register,
     logout,
     updateAuthUser,
