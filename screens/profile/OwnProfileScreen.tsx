@@ -8,12 +8,11 @@ import {
   Alert,
   FlatList,
   Image,
-  Modal,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -60,40 +59,10 @@ export default function OwnProfileScreen() {
     setRefreshing(false);
   };
 
-  const handleLogout = () => {
-    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
-      {
-        text: "Hủy",
-        style: "cancel",
-      },
-      {
-        text: "Đăng xuất",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logout();
-            router.replace("/auth/login" as any);
-          } catch (error) {
-            Alert.alert("Lỗi", "Đã có lỗi xảy ra khi đăng xuất");
-          }
-        },
-      },
-    ]);
+  const handleSettings = () => {
+    router.push('/settings' as any);
   };
 
-  const handleChangePassword = () => {
-    setShowSettingsMenu(false);
-    router.push("/changePassword" as any);
-  };
-
-  const handleAdminPanel = () => {
-    setShowSettingsMenu(false);
-    Alert.alert("Admin Panel", "Tính năng admin panel đang được phát triển!");
-  };
-
-  const toggleSettingsMenu = () => {
-    setShowSettingsMenu(!showSettingsMenu);
-  };
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -103,9 +72,10 @@ export default function OwnProfileScreen() {
 
   const renderHeader = () => (
     <>
+      {/* Header (Title & Settings Icon) */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={toggleSettingsMenu}
+          onPress={handleSettings}
           style={styles.settingsButton}
         >
           <Ionicons
@@ -258,62 +228,6 @@ export default function OwnProfileScreen() {
         ListEmptyComponent={null} // Không cần EmptyComponent vì CollectionListTab tự xử lý
       />
 
-
-      {/* Settings Menu Modal */}
-      <Modal
-        visible={showSettingsMenu}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowSettingsMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowSettingsMenu(false)}
-        >
-          <View style={styles.settingsMenu}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={handleChangePassword}
-            >
-              <Ionicons
-                name="key-outline"
-                size={20}
-                color={Colors.text.primary}
-              />
-              <Text style={styles.menuText}>Đổi mật khẩu</Text>
-            </TouchableOpacity>
-
-            {user?.role === "ADMIN" && (
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={handleAdminPanel}
-              >
-                <Ionicons
-                  name="shield-outline"
-                  size={20}
-                  color={Colors.primary}
-                />
-                <Text style={[styles.menuText, { color: Colors.primary }]}>
-                  Admin Panel
-                </Text>
-              </TouchableOpacity>
-            )}
-
-              {/* Logout Option */}
-              <TouchableOpacity
-                style={[styles.menuItem, styles.menuItemDanger]}
-                onPress={() => {
-                  setShowSettingsMenu(false);
-                  handleLogout();
-                }}
-              >
-                <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-                <Text style={[styles.menuText, { color: "#ef4444" }]}>Đăng xuất</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
     </SafeAreaView>
   );
 }
@@ -355,14 +269,14 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 32,
-  // header: {
-  //   flexDirection: "row",
-  //   justifyContent: "flex-end",
-  //   alignItems: "center",
-  //   paddingHorizontal: 20,
-  //   paddingTop: 10,
-  //   paddingBottom: 10,
-  //   backgroundColor: "#fff",
+    // header: {
+    //   flexDirection: "row",
+    //   justifyContent: "flex-end",
+    //   alignItems: "center",
+    //   paddingHorizontal: 20,
+    //   paddingTop: 10,
+    //   paddingBottom: 10,
+    //   backgroundColor: "#fff",
   },
   settingsButton: {
     padding: 8,

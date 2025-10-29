@@ -5,6 +5,7 @@ import { Colors } from '../../styles/colors';
 interface TabBarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onPress?: () => void;
 }
 
 const tabs = ['Đề xuất', 'Yêu thích', 'Lịch sử', 'Theo dõi'];
@@ -24,7 +25,7 @@ const getTabIcon = (tab: string) => {
   }
 };
 
-export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
+export default function TabBar({ activeTab, onTabChange, onPress }: TabBarProps) {
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -39,7 +40,10 @@ export default function TabBar({ activeTab, onTabChange }: TabBarProps) {
               styles.tab,
               activeTab === tab && styles.activeTab,
             ]}
-            onPress={() => onTabChange(tab)}
+            onPress={() => {
+              onTabChange(tab);
+              onPress?.(); // gọi callback từ cha (nếu có)
+            }}
           >
             <Ionicons
               name={getTabIcon(tab) as any}

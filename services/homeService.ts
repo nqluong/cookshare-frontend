@@ -8,6 +8,7 @@ const api = axios.create({
   headers: API_CONFIG.DEFAULT_HEADERS,
 });
 
+const BASE_URL = API_CONFIG.BASE_URL;
 //  Hàm xử lý lỗi chung
 const handleError = (error: any) => {
   if (error.code === "ECONNABORTED") {
@@ -113,4 +114,21 @@ export const getTopRatedRecipes = async (page: number = 0, size: number = 10) =>
     handleError(error);
   }
 };
-
+export const searchRecipeByUser = async (searchQuery: string, page: number = 0, size: number = 10) => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    const res = await axios.get(
+  `${BASE_URL}/searchs/user?name=${encodeURIComponent(searchQuery)}&page=${page}&size=${size}&sortBy=title&direction=ASC`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...API_CONFIG.DEFAULT_HEADERS,
+    },
+    timeout: API_CONFIG.TIMEOUT,
+  }
+);
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
