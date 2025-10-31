@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AuthContextType, User, LoginRequest, RegisterRequest } from '../types/auth';
-import { authService } from '../services/authService';
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import { API_CONFIG } from '../config/api.config';
+import { authService } from '../services/authService';
+import { AuthContextType, LoginRequest, RegisterRequest, User } from '../types/auth';
 
 interface AuthState {
   user: User | null;
@@ -109,21 +109,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_LOADING', payload: true });
 
       const token = await authService.login(credentials);
-
-      // Giải mã token để lấy thông tin user
-      const decodedToken = authService.decodeToken(token);
-      const user: User = {
-        userId: decodedToken?.sub || '',
-        username: credentials.username,
-        email: decodedToken?.email || '',
-        fullName: decodedToken?.fullname || credentials.username,
-        role: decodedToken?.role || 'USER',
-        isActive: true,
-        emailVerified: false,
-      };
-
-      // Lưu access token và user info
       await authService.saveAccessToken(token);
+
+      // Lấy thông tin user từ API
+      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể lấy thông tin người dùng');
+      }
+
+      const user = await response.json();
       await authService.saveUserInfo(user);
 
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token: 'cookie-based' } });
@@ -149,20 +149,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Lưu tokens và user info
       await authService.loginWithSocial(accessToken, refreshToken || '', user);
 
-      // Cập nhật state
+      // Lấy thông tin user từ API
+      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể lấy thông tin người dùng');
+      }
+
+      const userProfile = await response.json();
+      await authService.saveUserInfo(userProfile);
+
+      // Cập nhật state với thông tin user từ API
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: {
-          user: {
-            userId: user?.userId || user?.id || '',
-            username: user?.username || user?.name || '',
-            email: user?.email || '',
-            fullName: user?.fullName || user?.name || '',
-            avatarUrl: user?.avatarUrl,
-            role: user?.role || 'USER',
-            isActive: user?.isActive !== undefined ? user.isActive : true,
-            emailVerified: user?.emailVerified !== undefined ? user.emailVerified : true,
-          },
+          user: userProfile,
           token: accessToken,
         },
       });
