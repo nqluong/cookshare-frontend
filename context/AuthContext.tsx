@@ -108,18 +108,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
 
-      const token = await authService.login(credentials);
+      const response = await authService.login(credentials);
 
-      // Giải mã token để lấy thông tin user
-      const decodedToken = authService.decodeToken(token);
+      // response now contains both token and user object
+      const token = response.accessToken;
+      const userData = response.user;
+
+      // Use user data from backend response instead of decoding token
       const user: User = {
-        userId: decodedToken?.sub || '',
-        username: credentials.username,
-        email: decodedToken?.email || '',
-        fullName: decodedToken?.fullname || credentials.username,
-        role: decodedToken?.role || 'USER',
-        isActive: true,
-        emailVerified: false,
+        userId: userData.userId,
+        username: userData.username,
+        email: userData.email,
+        fullName: userData.fullName || userData.username,
+        avatarUrl: userData.avatarUrl,
+        bio: userData.bio,
+        role: userData.role || 'USER',
+        isActive: userData.isActive !== undefined ? userData.isActive : true,
+        emailVerified: userData.emailVerified !== undefined ? userData.emailVerified : false,
+        followerCount: userData.followerCount,
+        followingCount: userData.followingCount,
+        recipeCount: userData.recipeCount,
+        totalLikes: userData.totalLikes,
+        createdAt: userData.createdAt,
       };
 
       // Lưu access token và user info

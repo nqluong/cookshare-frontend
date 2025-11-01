@@ -11,7 +11,7 @@ class AuthService {
     console.log(`API Base URL: ${API_BASE_URL}`);
   }
 
-  async login(credentials: LoginRequest): Promise<string> {
+  async login(credentials: LoginRequest): Promise<{ accessToken: string; user: any }> {
     try {
       console.log('Attempting login to:', `${API_BASE_URL}/auth/login`);
 
@@ -38,7 +38,7 @@ class AuthService {
       }
 
       const responseData = await response.json();
-      console.log('Login successful');
+      console.log('Login successful, user:', responseData.user?.username);
 
       const accessToken = responseData.accessToken || responseData.access_token;
       await AsyncStorage.setItem('authToken', accessToken);
@@ -49,7 +49,10 @@ class AuthService {
         await this.parseAndSaveCookies(setCookieHeader);
       }
 
-      return accessToken;
+      return {
+        accessToken,
+        user: responseData.user,
+      };
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.name === 'AbortError') {

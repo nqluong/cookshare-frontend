@@ -2,13 +2,13 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
@@ -65,8 +65,8 @@ export default function SettingsScreen() {
     router.push("/admin/home" as any);
   };
 
-  const handleEditProfile = () => {
-    Alert.alert("Chỉnh sửa hồ sơ", "Tính năng đang được phát triển!");
+  const handleProfileDetails = () => {
+    router.push("/profile/details" as any);
   };
 
   const handlePrivacy = () => {
@@ -90,16 +90,16 @@ export default function SettingsScreen() {
       title: "Tài khoản",
       items: [
         {
-          id: "edit-profile",
-          title: "Chỉnh sửa hồ sơ",
-          subtitle: "Cập nhật ảnh đại diện, tên, bio",
-          icon: "person-outline",
+          id: "profile-details",
+          title: "Thông tin chi tiết",
+          subtitle: "Xem và chỉnh sửa thông tin cá nhân",
+          icon: "person-circle-outline",
           iconLibrary: "Ionicons",
           iconColor: "#3b82f6",
           iconBgColor: "#dbeafe",
           type: "navigation",
           showArrow: true,
-          action: handleEditProfile,
+          action: handleProfileDetails,
         },
         {
           id: "change-password",
