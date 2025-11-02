@@ -1,8 +1,9 @@
 import LikedRecipes from '@/components/home/LikedRecipes';
+import RecipeFollowing from '@/components/home/RecipeFollowing';
 import { SearchHistoryItem } from '@/types/search';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FeaturedDish from '../../components/home/FeaturedDish';
 import SearchBar from '../../components/home/SearchBar';
@@ -17,6 +18,7 @@ import {
   getLikedRecipes,
   getNewestRecipes,
   getPopularRecipes,
+  getRecipebyFollowing,
   getTopRatedRecipes,
   getTrendingRecipes,
   isRecipeLiked,
@@ -76,9 +78,14 @@ export default function HomeScreen() {
   const [hasSearched, setHasSearched] = useState(false);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
 
-  // Ref để lưu debounce timers cho like
+  // Ref để lưu debounce timers và trạng thái ban đầu cho like
   const likeTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-
+  const likeStatesRef = useRef<Map<string, { initialState: boolean; clickCount: number }>>(new Map());
+  const [followingRecipesList, setFollowingRecipesList] = useState<DishRecipe[]>([]);
+const [followingPage, setFollowingPage] = useState(0);
+const [hasMoreFollowing, setHasMoreFollowing] = useState(true);
+const [isLoadingMoreFollowing, setIsLoadingMoreFollowing] = useState(false);
+const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
   useEffect(() => {
     fetchHomeSuggestions();
   }, []);
@@ -87,7 +94,10 @@ export default function HomeScreen() {
     if (activeTab === 'Yêu thích' && !isLikedTabLoaded) {
       fetchLikedRecipes();
       setIsLikedTabLoaded(true);
-    }
+    } else if (activeTab === 'Theo dõi' && !isFollowingTabLoaded) {
+    fetchFollowingRecipes();
+    setIsFollowingTabLoaded(true);
+  }
   }, [activeTab]);
 
   // Cleanup timers khi component unmount
@@ -95,6 +105,7 @@ export default function HomeScreen() {
     return () => {
       likeTimersRef.current.forEach(timer => clearTimeout(timer));
       likeTimersRef.current.clear();
+      likeStatesRef.current.clear();
     };
   }, []);
 
@@ -121,6 +132,29 @@ export default function HomeScreen() {
       setLoading(false);
     }
   };
+ const fetchFollowingRecipes = async () => {
+  try {
+    setLoading(true);
+    const response = await getRecipebyFollowing(0, 10);
+    // ✅ Sửa lại điều kiện kiểm tra
+    if (response.success && response.data && response.data.content) {
+      const following = response.data.content
+        .map((item: any) => item?.recipe || item)
+        .filter((r: any) => r && r.recipeId);
+
+      setFollowingRecipesList(following);
+      setHasMoreFollowing(!response.data.last);
+    } else {
+      console.warn("Không có dữ liệu công thức từ người theo dõi.");
+      console.warn("Response:", response);
+    }
+  } catch (err: any) {
+    console.error("Lỗi khi tải danh sách công thức theo dõi:", err);
+    setError("Không thể tải danh sách công thức từ người theo dõi");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchHomeSuggestions = async () => {
     try {
@@ -192,10 +226,22 @@ export default function HomeScreen() {
     updateRecipeLikeCount(recipeId, isCurrentlyLiked ? -1 : +1);
   };
 
-  // Hàm toggle like mới với debounce 2 giây
+  // Hàm toggle like mới với debounce và theo dõi số lần click
   const toggleLike = async (recipeId: string) => {
-    // Lưu trạng thái ban đầu TRƯỚC khi optimistic update
-    const wasLiked = likedRecipes.has(recipeId);
+    // Lấy hoặc khởi tạo trạng thái cho recipe này
+    let likeState = likeStatesRef.current.get(recipeId);
+    
+    if (!likeState) {
+      // Lần đầu click, lưu trạng thái ban đầu
+      likeState = {
+        initialState: likedRecipes.has(recipeId),
+        clickCount: 0
+      };
+      likeStatesRef.current.set(recipeId, likeState);
+    }
+    
+    // Tăng số lần click
+    likeState.clickCount++;
     
     // Hủy timer cũ nếu có
     const existingTimer = likeTimersRef.current.get(recipeId);
@@ -206,12 +252,29 @@ export default function HomeScreen() {
     // Cập nhật UI ngay lập tức (optimistic update)
     optimisticToggleLike(recipeId);
 
-    // Tạo timer mới để gọi backend sau 2 giây
+    // Tạo timer mới để gọi backend sau 1.8 giây
     const timer = setTimeout(async () => {
       try {
-        // Sử dụng trạng thái ban đầu để quyết định gọi API nào
-        if (!wasLiked) {
-          // Trước đây chưa like → Gọi API like
+        const state = likeStatesRef.current.get(recipeId);
+        if (!state) return;
+
+        // Tính toán trạng thái cuối cùng dựa trên số lần click
+        // Click lẻ (1, 3, 5...) = đổi trạng thái
+        // Click chẵn (2, 4, 6...) = giữ nguyên trạng thái ban đầu
+        const shouldToggle = state.clickCount % 2 === 1;
+        
+        if (!shouldToggle) {
+          // Số lần click chẵn = không cần gọi API, đã về trạng thái ban đầu
+          console.log(`Recipe ${recipeId}: Clicked ${state.clickCount} times, no API call needed`);
+          likeStatesRef.current.delete(recipeId);
+          return;
+        }
+
+        // Số lần click lẻ = cần gọi API
+        const finalState = !state.initialState;
+        
+        if (finalState) {
+          // Cần like
           const response = await likeRecipe(recipeId);
           if (response.code !== 1000 || !response.result) {
             // Rollback nếu API thất bại
@@ -221,10 +284,10 @@ export default function HomeScreen() {
               return newSet;
             });
             updateRecipeLikeCount(recipeId, -1);
-            Alert.alert('Lỗi', 'Không thể like công thức');
+            console.warn('Không thể like công thức, đã rollback');
           }
         } else {
-          // Trước đây đã like → Gọi API unlike
+          // Cần unlike
           try {
             const response = await unlikeRecipe(recipeId);
             if (response.code !== 1000) {
@@ -235,28 +298,47 @@ export default function HomeScreen() {
                 return newSet;
               });
               updateRecipeLikeCount(recipeId, +1);
-              Alert.alert('Lỗi', 'Không thể bỏ like công thức');
+              console.warn('Không thể bỏ like công thức, đã rollback');
             }
           } catch (error: any) {
             if (error.message !== 'Công thức chưa được thích') {
-              // Rollback nếu API thất bại (trừ trường hợp đã unlike rồi)
+              // Rollback nếu API thất bại
               setLikedRecipes(prev => {
                 const newSet = new Set(prev);
                 newSet.add(recipeId);
                 return newSet;
               });
               updateRecipeLikeCount(recipeId, +1);
-              Alert.alert('Lỗi', 'Không thể bỏ like công thức');
+              console.warn('Không thể bỏ like công thức, đã rollback');
             }
           }
         }
       } catch (error: any) {
-        console.error('Lỗi khi xử lý like/unlike:', error);
+        console.error('Lỗi khi xử lý like/unlike:', error.message || error);
+        
+        // Rollback về trạng thái ban đầu
+        const state = likeStatesRef.current.get(recipeId);
+        if (state) {
+          const currentState = likedRecipes.has(recipeId);
+          if (currentState !== state.initialState) {
+            setLikedRecipes(prev => {
+              const newSet = new Set(prev);
+              if (state.initialState) {
+                newSet.add(recipeId);
+              } else {
+                newSet.delete(recipeId);
+              }
+              return newSet;
+            });
+            updateRecipeLikeCount(recipeId, state.initialState ? 1 : -1);
+          }
+        }
       } finally {
-        // Xóa timer khỏi map
+        // Xóa timer và state khỏi map
         likeTimersRef.current.delete(recipeId);
+        likeStatesRef.current.delete(recipeId);
       }
-    }, 1800); // 1.8 giây
+    }, 1800);
 
     // Lưu timer vào ref
     likeTimersRef.current.set(recipeId, timer);
@@ -360,6 +442,11 @@ export default function HomeScreen() {
         ? { ...recipe, likeCount: recipe.likeCount + delta }
         : recipe
     ));
+    setFollowingRecipesList(prev => prev.map(recipe => 
+    recipe.recipeId === recipeId 
+      ? { ...recipe, likeCount: recipe.likeCount + delta }
+      : recipe
+  ));
   };
 
   const handleLoadMoreNewest = async () => {
@@ -466,6 +553,28 @@ export default function HomeScreen() {
       setIsLoadingMoreLiked(false);
     }
   };
+  const handleLoadMoreFollowing = async () => {
+  if (isLoadingMoreFollowing || !hasMoreFollowing) return;
+  
+  try {
+    setIsLoadingMoreFollowing(true);
+    const nextPage = followingPage + 1;
+    const response = await getRecipebyFollowing(nextPage, 10);
+    
+    if (response.code === 1000 && response.result) {
+      const newRecipes = response.result.content
+        .map((item: any) => item?.recipe || item)
+        .filter((r: any) => r && r.recipeId);
+      setFollowingRecipesList(prev => [...prev, ...newRecipes]);
+      setFollowingPage(nextPage);
+      setHasMoreFollowing(!response.result.last);
+    }
+  } catch (err: any) {
+    console.error('Error loading more following recipes:', err);
+  } finally {
+    setIsLoadingMoreFollowing(false);
+  }
+};
 
   if (loading) {
     return (
@@ -630,6 +739,17 @@ export default function HomeScreen() {
               onLoadMore={handleLoadMoreLiked}
               hasMore={hasMoreLiked}
               isLoadingMore={isLoadingMoreLiked}
+              likedRecipes={likedRecipes}
+              likingRecipeId={likingRecipeId}
+              onToggleLike={toggleLike}
+            />
+          ) : activeTab === 'Theo dõi' ? (
+            <RecipeFollowing
+              recipes={followingRecipesList}  // ✅ Dùng state riêng
+              onRecipePress={handleOpenDetail}
+              onLoadMore={handleLoadMoreFollowing}  // ✅ Handler riêng
+              hasMore={hasMoreFollowing}  // ✅ State riêng
+              isLoadingMore={isLoadingMoreFollowing}  // ✅ State riêng
               likedRecipes={likedRecipes}
               likingRecipeId={likingRecipeId}
               onToggleLike={toggleLike}

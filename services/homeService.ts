@@ -132,3 +132,21 @@ export const searchRecipeByUser = async (searchQuery: string, page: number = 0, 
     handleError(error);
   }
 };
+export const getRecipebyFollowing = async (page: number = 0, size: number = 10) => {
+try {
+const token = await AsyncStorage.getItem('authToken');
+const res = await axios.get(
+  `${BASE_URL}/users/following/recipes?page=${page}&size=${size}`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...API_CONFIG.DEFAULT_HEADERS,
+    },
+    timeout: API_CONFIG.TIMEOUT,
+  }
+);
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

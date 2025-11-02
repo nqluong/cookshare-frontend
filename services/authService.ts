@@ -176,6 +176,7 @@ class AuthService {
   async saveAccessToken(token: string): Promise<void> {
     try {
       await AsyncStorage.setItem('access_token', token);
+      await AsyncStorage.setItem('authToken', token);
     } catch (error) {
       console.error('Error saving access token:', error);
     }
@@ -195,6 +196,7 @@ class AuthService {
   async clearAccessToken(): Promise<void> {
     try {
       await AsyncStorage.removeItem('access_token');
+      await AsyncStorage.removeItem('authToken');
     } catch (error) {
       console.error('Error clearing access token:', error);
     }
