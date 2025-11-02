@@ -8,6 +8,12 @@ const api = axios.create({
   timeout: API_CONFIG.TIMEOUT,
   headers: API_CONFIG.DEFAULT_HEADERS,
 });
+// ✅ Thêm token tự động
+api.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem("access_token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
 // Hàm xử lý lỗi chung
 const handleError = (error: any) => {
@@ -50,9 +56,21 @@ export const getRecipeById = async (id: string, token?: string | null) => {
 };
 
 // Tạo mới công thức
-export const createRecipe = async (data: any) => {
+export const createRecipe = async (formData: FormData) => {
   try {
-    const res = await api.post("", data);
+    // Log formData để debug
+    console.log("FormData being sent:", formData);
+    // Log dữ liệu chi tiết
+    const jsonData = JSON.parse(formData.get('data') as string);
+    console.log("Recipe data:", jsonData);
+
+    const res = await api.post("", formData, {
+      headers: { 
+        "Content-Type": "multipart/form-data",
+        "Accept": "application/json"
+      },
+      transformRequest: (data) => data, // Prevent axios from trying to transform FormData
+    });
     return res.data;
   } catch (error) {
     handleError(error);
@@ -92,7 +110,15 @@ export const getAllRecipesByUserId = async (userId: string) => {
     handleError(error);
   }
 };
-
+// ✅ Gom lại export
+export const RecipeService = {
+  getAllRecipes,
+  getRecipeById,
+  createRecipe,
+  updateRecipe,
+  deleteRecipe,
+  getAllRecipesByUserId,
+};
 // Lấy danh sách công thức nổi bật (featured)
 // export const getFeaturedRecipes = async (page = 0, size = 10) => {
 //   try {

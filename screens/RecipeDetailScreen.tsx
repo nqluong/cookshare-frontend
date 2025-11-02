@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RecipeDetailView from "../components/Recipe/RecipeDetailView";
+import { useAuth } from "../context/AuthContext";
 import { getRecipeById } from "../services/recipeService";
 import { Colors } from '../styles/colors';
 
@@ -53,13 +54,19 @@ export default function RecipeDetailScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const recipeId = id || "";
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const token = await AsyncStorage.getItem('authToken');
-        const data = await fetchWithTimeout(getRecipeById(recipeId, token), 7000);
+        const data = await fetchWithTimeout(getRecipeById(recipeId), 7000);
+        // Debug: log recipe payload so we can see which author field is present
+        try {
+          // eslint-disable-next-line no-console
+          console.log('Recipe detail payload:', data);
+        } catch (e) {}
         setRecipe(data);
       } catch (err: any) {
         console.error("Lỗi API:", err.message);
@@ -129,7 +136,8 @@ export default function RecipeDetailScreen() {
           title: recipe.title,
           description: recipe.description,
           image: recipe.featuredImage,
-          author: recipe.createdBy || "Ẩn danh",
+          // Prefer full name from recipe details, then createdBy, then logged-in username, then fallback
+          author: recipe.fullName || recipe.createdBy || user?.username || "",
           prepTime: recipe.prepTime ?? 0,
           cookTime: recipe.cookTime ?? 0,
           ingredients,

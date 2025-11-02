@@ -1,15 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { API_CONFIG } from '../config/api.config';
-import { ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, RegisterRequest } from '../types/auth';
+import { ChangePasswordRequest, LoginRequest, RegisterRequest } from '../types/auth';
 
 export const API_BASE_URL = API_CONFIG.BASE_URL;
-
 
 class AuthService {
   constructor() {
     console.log(`AuthService initialized for ${Platform.OS}`);
-    console.log(` API Base URL: ${API_BASE_URL}`);
+    console.log(`API Base URL: ${API_BASE_URL}`);
   }
 
   async login(credentials: LoginRequest): Promise<string> {
@@ -17,7 +16,7 @@ class AuthService {
       console.log('Attempting login to:', `${API_BASE_URL}/auth/login`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
@@ -25,7 +24,7 @@ class AuthService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(credentials),
-        credentials: 'include', // Quan trọng: để nhận cookies từ server
+        credentials: 'include',
         signal: controller.signal,
       });
 
@@ -38,18 +37,15 @@ class AuthService {
         throw new Error(errorText || 'Đăng nhập thất bại');
       }
 
-      // Lấy response data thay vì chỉ text
       const responseData = await response.json();
-      console.log('Login successful, received data:', responseData);
+      console.log('Login successful');
 
-      // Log access token
       const accessToken = responseData.accessToken || responseData.access_token;
-      console.log('🔑 Access Token:', accessToken);
       await AsyncStorage.setItem('authToken', accessToken);
-      // Trích xuất cookies từ response headers và lưu manually cho iOS
+
+      // Trích xuất cookies từ response headers và lưu manually
       const setCookieHeader = response.headers.get('set-cookie');
       if (setCookieHeader) {
-        console.log('📝 Saving cookies manually for iOS:', setCookieHeader);
         await this.parseAndSaveCookies(setCookieHeader);
       }
 
@@ -68,7 +64,7 @@ class AuthService {
       console.log('Attempting register to:', `${API_BASE_URL}/auth/register`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -76,7 +72,7 @@ class AuthService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(userData),
-        credentials: 'include', // Để nhận cookies nếu cần
+        credentials: 'include',
         signal: controller.signal,
       });
 
@@ -101,42 +97,7 @@ class AuthService {
     }
   }
 
-  // Test kết nối đến server với nhiều IP khác nhau
-  async testConnection(): Promise<{ success: boolean; workingUrl?: string }> {
-    try {
-      console.log('Testing connection to:', API_BASE_URL);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
-
-      // Thử gọi login với thông tin test để kiểm tra server
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: 'test', password: 'test' }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      console.log(`${API_BASE_URL} response status:`, response.status);
-
-      // Server phản hồi (dù là lỗi) nghĩa là kết nối thành công
-      if (response.status === 400 || response.status === 401 || response.status === 200) {
-        console.log('✅ Connection successful to:', API_BASE_URL);
-        return { success: true, workingUrl: API_BASE_URL };
-      } else {
-        console.log('❌ Unexpected response status:', response.status);
-        return { success: false };
-      }
-    } catch (error: any) {
-      console.log(`❌ ${API_BASE_URL} failed:`, error.message);
-      return { success: false };
-    }
-  }
-
-  // Giải mã JWT token để lấy thông tin user (optional)
+  // Giải mã JWT token để lấy thông tin user
   decodeToken(token: string) {
     try {
       const payload = token.split('.')[1];
@@ -151,12 +112,9 @@ class AuthService {
   // Parse và lưu refresh token từ Set-Cookie header vào AsyncStorage
   async parseAndSaveCookies(setCookieHeader: string): Promise<void> {
     try {
-      // Parse refresh_token từ Set-Cookie header
       const refreshTokenMatch = setCookieHeader.match(/refresh_token=([^;]+)/);
       if (refreshTokenMatch) {
         const refreshToken = refreshTokenMatch[1];
-        console.log('🍪 Saving refresh_token to AsyncStorage:', refreshToken.substring(0, 20) + '...');
-
         await AsyncStorage.setItem('refresh_token', refreshToken);
       }
     } catch (error) {
@@ -173,6 +131,7 @@ class AuthService {
       return null;
     }
   }
+
   async saveAccessToken(token: string): Promise<void> {
     try {
       await AsyncStorage.setItem('access_token', token);
@@ -182,7 +141,6 @@ class AuthService {
     }
   }
 
-  // Lấy access token từ AsyncStorage
   async getAccessToken(): Promise<string | null> {
     try {
       return await AsyncStorage.getItem('access_token');
@@ -192,7 +150,6 @@ class AuthService {
     }
   }
 
-  // Xóa access token
   async clearAccessToken(): Promise<void> {
     try {
       await AsyncStorage.removeItem('access_token');
@@ -201,7 +158,7 @@ class AuthService {
       console.error('Error clearing access token:', error);
     }
   }
-  // Lưu user info vào AsyncStorage (cookies sẽ được browser tự động quản lý)
+
   async saveUserInfo(user: any): Promise<void> {
     try {
       await AsyncStorage.setItem('user_data', JSON.stringify(user));
@@ -211,7 +168,6 @@ class AuthService {
     }
   }
 
-  // Lấy user info từ AsyncStorage
   async getUserInfo(): Promise<any | null> {
     try {
       const userData = await AsyncStorage.getItem('user_data');
@@ -222,14 +178,11 @@ class AuthService {
     }
   }
 
-  // Kiểm tra xem có session không (gọi API /auth/refresh với refresh token)
+  // Kiểm tra xem có session không
   async hasValidSession(): Promise<boolean> {
     try {
-      console.log('🔍 Checking session with refresh token...');
-
       const refreshToken = await this.getRefreshToken();
       if (!refreshToken) {
-        console.log('❌ No refresh token found');
         return false;
       }
 
@@ -241,30 +194,21 @@ class AuthService {
         credentials: 'include',
       });
 
-      console.log('📡 Refresh token check response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Valid session found, refreshed tokens');
-        console.log('🔑 New Access Token:', data.accessToken);
-
-        // Lưu access token mới
         await this.saveAccessToken(data.accessToken);
 
-        // Lưu refresh token mới nếu có
         const setCookieHeader = response.headers.get('set-cookie');
         if (setCookieHeader) {
           await this.parseAndSaveCookies(setCookieHeader);
         }
 
         return true;
-      } else {
-        const errorText = await response.text();
-        console.log('❌ Invalid session. Status:', response.status, 'Error:', errorText);
-        return false;
       }
+
+      return false;
     } catch (error) {
-      console.error('💥 Error checking session:', error);
+      console.error('Error checking session:', error);
       return false;
     }
   }
@@ -273,22 +217,19 @@ class AuthService {
   async clearUserInfo(): Promise<void> {
     try {
       await AsyncStorage.removeItem('user_data');
-      await AsyncStorage.removeItem('refresh_token'); // Xóa refresh token
-      await this.clearAccessToken(); // Xóa access token
-      console.log('User info, refresh token and access token cleared');
+      await AsyncStorage.removeItem('refresh_token');
+      await this.clearAccessToken();
+      console.log('User info cleared');
     } catch (error) {
       console.error('Error clearing user info:', error);
     }
   }
 
-  // Gọi API logout để invalidate cookies trên server
   async logout(): Promise<void> {
     try {
-      // Lấy access token để gửi trong header
       const accessToken = await this.getAccessToken();
 
       if (!accessToken) {
-        console.warn('No access token found, still clearing local data');
         await this.clearUserInfo();
         return;
       }
@@ -298,62 +239,102 @@ class AuthService {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
         },
-        credentials: 'include', // Gửi cookies để server có thể invalidate
+        credentials: 'include',
       });
 
       await this.clearUserInfo();
       console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
-      // Vẫn xóa user info local dù API call thất bại
       await this.clearUserInfo();
     }
   }
 
-  // Quên mật khẩu
-  async forgotPassword(data: ForgotPasswordRequest): Promise<string> {
+  // Social login (Google, Facebook) - method chung
+  async loginWithSocial(
+    accessToken: string,
+    refreshToken: string,
+    user: any,
+    provider: 'google' | 'facebook' = 'google'
+  ): Promise<void> {
     try {
-      console.log('Attempting forgot password to:', `${API_BASE_URL}/auth/forgot-password`);
+      console.log(`💾 Saving ${provider} login data...`);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      // Lưu tokens
+      await AsyncStorage.setItem('access_token', accessToken);
+      await AsyncStorage.setItem('refresh_token', refreshToken);
+      await AsyncStorage.setItem('authToken', accessToken);
+      // Lưu user info
+      await this.saveUserInfo(user);
 
-      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-        credentials: 'include',
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log('Forgot password response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Gửi yêu cầu quên mật khẩu thất bại');
-      }
-
-      const message = await response.text();
-      console.log('Forgot password successful');
-      return message;
-    } catch (error: any) {
-      console.error('Forgot password error:', error);
-      if (error.name === 'AbortError') {
-        throw new Error('Timeout - Không thể kết nối đến server');
-      }
+      console.log(`✅ ${provider} login data saved successfully`);
+    } catch (error) {
+      console.error(`❌ Error saving ${provider} login data:`, error);
       throw error;
     }
   }
 
-  // Đổi mật khẩu
+  // Forgot Password APIs
+  async verifyEmail(email: string): Promise<string> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forgotPassword/verifyMail/${email}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Gửi email thất bại');
+      }
+
+      return await response.text();
+    } catch (error: any) {
+      console.error('Verify email error:', error);
+      throw error;
+    }
+  }
+
+  async verifyOtp(email: string, otp: number): Promise<string> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forgotPassword/verifyOtp/${email}/${otp}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Xác thực OTP thất bại');
+      }
+
+      return await response.text();
+    } catch (error: any) {
+      console.error('Verify OTP error:', error);
+      throw error;
+    }
+  }
+
+  async resetPassword(email: string, newPassword: string, confirmPassword: string): Promise<string> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forgotPassword/resetPassword/${email}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword, confirmPassword }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Đặt lại mật khẩu thất bại');
+      }
+
+      return await response.text();
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      throw error;
+    }
+  }
+
   async changePassword(data: ChangePasswordRequest): Promise<string> {
     try {
-      console.log('Attempting change password to:', `${API_BASE_URL}/auth/change-password`);
-
       const accessToken = await this.getAccessToken();
       if (!accessToken) {
         throw new Error('Không tìm thấy token xác thực');
@@ -368,118 +349,24 @@ class AuthService {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword,
-          confirmPassword: data.confirmPassword,
-        }),
+        body: JSON.stringify(data),
         credentials: 'include',
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      console.log('Change password response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || 'Đổi mật khẩu thất bại');
       }
 
-      const message = await response.text();
-      console.log('Change password successful');
-      return message;
+      return await response.text();
     } catch (error: any) {
       console.error('Change password error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
-      throw error;
-    }
-  }
-
-  // Forgot Password APIs
-  async verifyEmail(email: string): Promise<string> {
-    try {
-      console.log('Verifying email:', email);
-
-      const response = await fetch(`${API_BASE_URL}/forgotPassword/verifyMail/${email}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('Verify email response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Gửi email thất bại');
-      }
-
-      const message = await response.text();
-      console.log('Email verification sent successfully');
-      return message;
-    } catch (error: any) {
-      console.error('Verify email error:', error);
-      throw error;
-    }
-  }
-
-  async verifyOtp(email: string, otp: number): Promise<string> {
-    try {
-      console.log('Verifying OTP for email:', email, 'OTP:', otp);
-
-      const response = await fetch(`${API_BASE_URL}/forgotPassword/verifyOtp/${email}/${otp}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('Verify OTP response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Xác thực OTP thất bại');
-      }
-
-      const message = await response.text();
-      console.log('OTP verification successful');
-      return message;
-    } catch (error: any) {
-      console.error('Verify OTP error:', error);
-      throw error;
-    }
-  }
-
-  async resetPassword(email: string, newPassword: string, confirmPassword: string): Promise<string> {
-    try {
-      console.log('Resetting password for email:', email);
-
-      const response = await fetch(`${API_BASE_URL}/forgotPassword/resetPassword/${email}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          newPassword,
-          confirmPassword,
-        }),
-      });
-
-      console.log('Reset password response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Đặt lại mật khẩu thất bại');
-      }
-
-      const message = await response.text();
-      console.log('Password reset successful');
-      return message;
-    } catch (error: any) {
-      console.error('Reset password error:', error);
       throw error;
     }
   }
