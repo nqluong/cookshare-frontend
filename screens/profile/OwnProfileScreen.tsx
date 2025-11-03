@@ -1,8 +1,8 @@
 import CollectionListTab from "@/components/profile/CollectionListTab";
 import RecipeGrid from "@/components/profile/RecipeGrid";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -33,6 +33,15 @@ export default function OwnProfileScreen() {
   );
   const isOwner = userProfile?.userId === user?.userId;
 
+  // Load profile khi screen được focus (quay lại từ màn hình khác)
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.username) {
+        loadProfile();
+      }
+    }, [user?.username])
+  );
+
   useEffect(() => {
     if (user?.username) {
       loadProfile();
@@ -44,6 +53,8 @@ export default function OwnProfileScreen() {
 
     try {
       const profile = await userService.getUserByUsername(user.username);
+      console.log('🔍 Profile loaded:', JSON.stringify(profile, null, 2));
+      console.log('🖼️ Avatar URL:', profile.avatarUrl);
       setUserProfile(profile);
     } catch (error: any) {
       console.error("Error loading profile:", error);
@@ -89,10 +100,19 @@ export default function OwnProfileScreen() {
       <View style={styles.avatarSection}>
         <View style={styles.avatarContainer}>
           {userProfile?.avatarUrl ? (
-            <Image
-              source={{ uri: userProfile.avatarUrl }}
-              style={styles.avatar}
-            />
+            <>
+              <Image
+                source={{ uri: userProfile.avatarUrl }}
+                style={styles.avatar}
+                onError={(error) => {
+                  console.error('❌ Lỗi load avatar:', error.nativeEvent.error);
+                  console.log('URL gây lỗi:', userProfile.avatarUrl);
+                }}
+                onLoad={() => {
+                  console.log('✅ Avatar loaded successfully');
+                }}
+              />
+            </>
           ) : (
             <Image
               source={require("../../assets/images/default-avatar.png")}

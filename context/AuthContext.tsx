@@ -67,36 +67,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const restoreSession = async () => {
       try {
+        console.log('🔄 App starting - attempting to restore session...');
         const hasValidSession = await authService.hasValidSession();
+        console.log('✅ Has valid session:', hasValidSession);
 
         if (hasValidSession) {
           const userInfo = await authService.getUserInfo();
+          console.log('👤 User info from storage:', userInfo ? userInfo.username : 'null');
 
           if (userInfo) {
+            console.log('✅ Restoring session with stored user info');
             dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: 'cookie-based' } });
           } else {
             // Nếu không có user info trong AsyncStorage, thử lấy từ server
+            console.log('📡 No stored user info, fetching from /auth/account...');
             try {
               const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
                 credentials: 'include',
               });
 
+              console.log('📡 /auth/account response:', response.status);
+
               if (response.ok) {
                 const userProfile = await response.json();
+                console.log('✅ Got user from server:', userProfile.username);
                 await authService.saveUserInfo(userProfile);
                 dispatch({ type: 'RESTORE_TOKEN', payload: { user: userProfile, token: 'cookie-based' } });
               } else {
+                console.log('❌ Failed to get user from server');
                 dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
               }
             } catch (error) {
+              console.error('❌ Error fetching user from server:', error);
               dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
             }
           }
         } else {
+          console.log('❌ No valid session found');
           dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
         }
       } catch (error) {
-        console.error('Error restoring session:', error);
+        console.error('❌ Error restoring session:', error);
         dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
       }
     };

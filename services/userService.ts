@@ -288,6 +288,55 @@ class UserService {
       throw error;
     }
   }
+
+  // Yêu cầu URL upload cho avatar từ backend
+  async requestAvatarUploadUrl(userId: string, fileName: string, contentType: string): Promise<{
+    uploadUrl: string;
+    publicUrl: string;
+  }> {
+    try {
+      console.log('🔐 Yêu cầu URL upload avatar cho user:', userId);
+      const token = await this.getAuthToken();
+
+      if (!token) {
+        throw new Error('Không tìm thấy token xác thực');
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${BASE_URL}/users/${userId}/avatar/upload-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fileName,
+          contentType,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      console.log('📡 Response yêu cầu URL upload:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Không thể tạo URL upload');
+      }
+
+      const result = await response.json();
+      console.log('✅ Tạo URL upload thành công');
+      return result;
+    } catch (error: any) {
+      console.error('❌ Lỗi yêu cầu URL upload:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout - Không thể kết nối đến server');
+      }
+      throw error;
+    }
+  }
 }
 
 export const userService = new UserService();

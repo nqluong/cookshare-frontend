@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import React from "react";
 import {
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Switch,
@@ -322,7 +323,17 @@ export default function SettingsScreen() {
         {/* User Info Card */}
         <View style={styles.userCard}>
           <View style={styles.userAvatar}>
-            <Ionicons name="person" size={32} color={Colors.primary} />
+            {user?.avatarUrl ? (
+              <Image
+                source={{ uri: user.avatarUrl }}
+                style={styles.userAvatarImage}
+                onError={(error) => {
+                  console.error('❌ Lỗi load avatar trong Settings:', error.nativeEvent.error);
+                }}
+              />
+            ) : (
+              <Ionicons name="person" size={32} color={Colors.primary} />
+            )}
           </View>
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{user?.fullName || "Người dùng"}</Text>
@@ -426,6 +437,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
+    overflow: "hidden",
+  },
+  userAvatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   userInfo: {
     flex: 1,

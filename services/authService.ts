@@ -39,14 +39,19 @@ class AuthService {
 
       const responseData = await response.json();
       console.log('Login successful, user:', responseData.user?.username);
+      console.log('🔍 Full user object from backend:', JSON.stringify(responseData.user, null, 2));
+      console.log('🖼️ Avatar URL from backend:', responseData.user?.avatarUrl);
 
       const accessToken = responseData.accessToken || responseData.access_token;
       await AsyncStorage.setItem('authToken', accessToken);
 
       // Trích xuất cookies từ response headers và lưu manually
       const setCookieHeader = response.headers.get('set-cookie');
+      console.log('🍪 Set-Cookie header:', setCookieHeader ? 'Present' : 'Not present');
       if (setCookieHeader) {
         await this.parseAndSaveCookies(setCookieHeader);
+      } else {
+        console.log('⚠️ No Set-Cookie header in login response!');
       }
 
       return {
@@ -115,13 +120,18 @@ class AuthService {
   // Parse và lưu refresh token từ Set-Cookie header vào AsyncStorage
   async parseAndSaveCookies(setCookieHeader: string): Promise<void> {
     try {
+      console.log('🍪 Parsing cookies from header:', setCookieHeader);
       const refreshTokenMatch = setCookieHeader.match(/refresh_token=([^;]+)/);
       if (refreshTokenMatch) {
         const refreshToken = refreshTokenMatch[1];
+        console.log('✅ Found refresh token, saving to storage');
         await AsyncStorage.setItem('refresh_token', refreshToken);
+        console.log('✅ Refresh token saved successfully');
+      } else {
+        console.log('⚠️ No refresh_token found in Set-Cookie header');
       }
     } catch (error) {
-      console.error('Error saving refresh token:', error);
+      console.error('❌ Error saving refresh token:', error);
     }
   }
 
@@ -182,21 +192,30 @@ class AuthService {
   // Kiểm tra xem có session không
   async hasValidSession(): Promise<boolean> {
     try {
+      console.log('🔍 Checking for valid session...');
       const refreshToken = await this.getRefreshToken();
+      console.log('🍪 Refresh token:', refreshToken ? 'Found' : 'Not found');
+
       if (!refreshToken) {
+        console.log('❌ No refresh token, session invalid');
         return false;
       }
 
+      console.log('📡 Calling /auth/refresh endpoint...');
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'GET',
         headers: {
-          'Cookie': `refresh_token=${refreshToken}`,
+          'X-Refresh-Token': refreshToken,
         },
         credentials: 'include',
       });
 
+      console.log('📡 Refresh response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Session refreshed successfully');
+        console.log('👤 User from refresh:', data.user?.username);
         await this.saveAccessToken(data.accessToken);
 
         const setCookieHeader = response.headers.get('set-cookie');
@@ -205,11 +224,16 @@ class AuthService {
         }
 
         return true;
+      } else {
+        // Log error details
+        const errorText = await response.text();
+        console.log('❌ Refresh error response:', errorText);
       }
 
+      console.log('❌ Refresh failed, session invalid');
       return false;
     } catch (error) {
-      console.error('Error checking session:', error);
+      console.error('❌ Error checking session:', error);
       return false;
     }
   }

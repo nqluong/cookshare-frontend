@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -13,14 +13,18 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from "../../context/AuthContext";
 import { userService } from "../../services/userService";
+import { imageUploadService } from "../../services/imageUploadService";
 import { Colors } from "../../styles/colors";
 
 export default function ProfileDetailsScreen() {
     const { user, updateAuthUser } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     const [formData, setFormData] = useState({
         fullName: user?.fullName || "",
@@ -29,6 +33,23 @@ export default function ProfileDetailsScreen() {
         bio: user?.bio || "",
         avatarUrl: user?.avatarUrl || "",
     });
+
+    // Sync formData với user khi màn hình được focus
+    useFocusEffect(
+        useCallback(() => {
+            console.log('🔄 ProfileDetailsScreen focused - syncing with user data');
+            console.log('👤 User avatar URL:', user?.avatarUrl);
+            if (user) {
+                setFormData({
+                    fullName: user.fullName || "",
+                    username: user.username || "",
+                    email: user.email || "",
+                    bio: user.bio || "",
+                    avatarUrl: user.avatarUrl || "",
+                });
+            }
+        }, [user])
+    );
 
     const handleSave = async () => {
         if (!user?.userId) {
@@ -120,7 +141,7 @@ export default function ProfileDetailsScreen() {
     };
 
     const handleCancel = () => {
-        // Reset form to original user data
+        // Reset form về dữ liệu user ban đầu
         setFormData({
             fullName: user?.fullName || "",
             username: user?.username || "",
@@ -131,26 +152,173 @@ export default function ProfileDetailsScreen() {
         setIsEditing(false);
     };
 
-    const handleChangeAvatar = () => {
-        Alert.alert(
-            "Thay đổi ảnh đại diện",
-            "Chọn phương thức",
-            [
-                {
-                    text: "Chọn từ thư viện",
-                    onPress: () => Alert.alert("Thông báo", "Tính năng đang phát triển"),
-                },
-                {
-                    text: "Chụp ảnh mới",
-                    onPress: () => Alert.alert("Thông báo", "Tính năng đang phát triển"),
-                },
-                {
-                    text: "Hủy",
-                    style: "cancel",
-                },
-            ]
-        );
+    const handleChangeAvatar = async () => {
+        try {
+            // Yêu cầu quyền truy cập
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Cần quyền truy cập',
+                    'Vui lòng cấp quyền truy cập thư viện ảnh để chọn ảnh đại diện.'
+                );
+                return;
+            }
+
+            // Hiển thị tùy chọn
+            Alert.alert(
+                "Thay đổi ảnh đại diện",
+                "Chọn phương thức",
+                [
+                    {
+                        text: "Chọn từ thư viện",
+                        onPress: () => pickImageFromLibrary(),
+                    },
+                    {
+                        text: "Chụp ảnh mới",
+                        onPress: () => pickImageFromCamera(),
+                    },
+                    {
+                        text: "Hủy",
+                        style: "cancel",
+                    },
+                ]
+            );
+        } catch (error) {
+            console.error('❌ Lỗi yêu cầu quyền truy cập:', error);
+            Alert.alert("Lỗi", "Không thể truy cập thư viện ảnh");
+        }
     };
+
+    const pickImageFromLibrary = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                await uploadAvatar(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('❌ Lỗi chọn ảnh:', error);
+            Alert.alert("Lỗi", "Không thể chọn ảnh");
+        }
+    };
+
+    const pickImageFromCamera = async () => {
+        try {
+            // Yêu cầu quyền camera
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Cần quyền truy cập',
+                    'Vui lòng cấp quyền truy cập camera để chụp ảnh.'
+                );
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                await uploadAvatar(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('❌ Lỗi camera:', error);
+            Alert.alert("Lỗi", "Không thể mở camera");
+        }
+    };
+
+    const uploadAvatar = async (imageUri: string) => {
+        if (!user?.userId) {
+            Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng");
+            return;
+        }
+
+        try {
+            setIsUploadingImage(true);
+            setUploadProgress(0);
+
+            // Bước 1: Tạo tên file duy nhất
+            const fileName = imageUploadService.generateFileName(imageUri);
+            const contentType = imageUploadService.getContentType(imageUri);
+
+            console.log('📤 Bắt đầu quy trình upload...');
+            console.log('📝 Tên file:', fileName);
+            console.log('🎨 Content type:', contentType);
+
+            // Bước 2: Yêu cầu signed URL từ backend
+            console.log('🔐 Yêu cầu signed URL từ backend...');
+            const { uploadUrl, publicUrl } = await userService.requestAvatarUploadUrl(
+                user.userId,
+                fileName,
+                contentType
+            );
+
+            console.log('✅ Đã nhận signed URL');
+            console.log('📤 URL upload:', uploadUrl.substring(0, 50) + '...');
+            console.log('🌐 URL công khai:', publicUrl);
+
+            // Bước 3: Upload ảnh lên Firebase sử dụng signed URL
+            console.log('☁️ Đang upload lên Firebase...');
+            await imageUploadService.uploadImage(
+                uploadUrl,
+                imageUri,
+                contentType,
+                (progress) => {
+                    setUploadProgress(progress.percentage);
+                }
+            );
+
+            console.log('✅ Upload hoàn tất');
+
+            // Bước 4: Cập nhật form data với avatar URL mới
+            setFormData({ ...formData, avatarUrl: publicUrl });
+
+            // Bước 5: Tự động lưu nếu đang ở chế độ chỉnh sửa
+            if (isEditing) {
+                Alert.alert(
+                    "Thành công",
+                    "Ảnh đại diện đã được tải lên. Nhấn 'Lưu thay đổi' để hoàn tất."
+                );
+            } else {
+                // Nếu không ở chế độ chỉnh sửa, lưu ngay lập tức
+                await updateAvatarOnly(publicUrl);
+            }
+
+        } catch (error: any) {
+            console.error('❌ Lỗi upload avatar:', error);
+            Alert.alert("Lỗi", error.message || "Không thể upload ảnh");
+        } finally {
+            setIsUploadingImage(false);
+            setUploadProgress(0);
+        }
+    };
+
+    const updateAvatarOnly = async (avatarUrl: string) => {
+        if (!user?.userId) return;
+
+        try {
+            setIsSaving(true);
+            const updatedUser = await userService.updateUserProfile(user.userId, { avatarUrl });
+            updateAuthUser(updatedUser);
+            Alert.alert("Thành công", "Ảnh đại diện đã được cập nhật");
+        } catch (error: any) {
+            console.error('❌ Lỗi cập nhật avatar:', error);
+            Alert.alert("Lỗi", error.message || "Không thể cập nhật ảnh đại diện");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Đã xóa handleChangeAvatar cũ - giờ sử dụng full upload flow
 
     return (
         <SafeAreaView style={styles.container}>
@@ -188,6 +356,13 @@ export default function ProfileDetailsScreen() {
                             <Image
                                 source={{ uri: formData.avatarUrl }}
                                 style={styles.avatar}
+                                onError={(error) => {
+                                    console.error('❌ Lỗi load avatar trong ProfileDetails:', error.nativeEvent.error);
+                                    console.log('URL gây lỗi:', formData.avatarUrl);
+                                }}
+                                onLoad={() => {
+                                    console.log('✅ Avatar loaded trong ProfileDetails');
+                                }}
                             />
                         ) : (
                             <View style={[styles.avatar, styles.avatarPlaceholder]}>
@@ -203,6 +378,14 @@ export default function ProfileDetailsScreen() {
                             </TouchableOpacity>
                         )}
                     </View>
+                    {isUploadingImage && (
+                        <View style={styles.uploadProgressContainer}>
+                            <ActivityIndicator size="small" color={Colors.primary} />
+                            <Text style={styles.uploadProgressText}>
+                                Đang tải lên... {uploadProgress}%
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Form Fields */}
@@ -536,5 +719,17 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "600",
+    },
+    uploadProgressContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 12,
+        gap: 8,
+    },
+    uploadProgressText: {
+        fontSize: 14,
+        color: Colors.text.secondary,
+        fontWeight: "500",
     },
 });
