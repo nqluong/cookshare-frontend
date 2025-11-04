@@ -28,7 +28,7 @@ const getPlatformSpecificHost = (): string | null => {
   }
 
   if (Platform.OS === 'android') {
-    return 'http://192.168.21.100:8080';
+    return 'http://192.168.0.101:8080';
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật
