@@ -1,7 +1,15 @@
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
+
 import { API_CONFIG } from '../config/api.config';
+// contexts/AuthContext.tsx - FIXED VERSION
+import { userService } from '@/services/userService';
+import websocketService from '@/services/websocketService';
+import { UserProfile } from '@/types/user.types';
+import React, { createContext, useContext, useEffect, useReducer, useState } from 'react';
+import { Alert } from 'react-native';
 import { authService } from '../services/authService';
 import { AuthContextType, LoginRequest, RegisterRequest, User } from '../types/auth';
+
+const API_BASE_URL = 'http://192.168.0.101:8080';
 
 interface AuthState {
   user: User | null;
@@ -62,6 +70,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   // Khôi phục session từ AsyncStorage khi app khởi động
   useEffect(() => {
@@ -71,11 +81,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (hasValidSession) {
           const userInfo = await authService.getUserInfo();
+          const accessToken = await authService.getAccessToken();
 
-          if (userInfo) {
-            dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: 'cookie-based' } });
+          if (userInfo && accessToken) {
+            console.log("✅ Restored session for:", userInfo.userId);
+            dispatch({ 
+              type: 'RESTORE_TOKEN', 
+              payload: { user: userInfo, token: accessToken } 
+            });
           } else {
-            // Nếu không có user info trong AsyncStorage, thử lấy từ server
             try {
               const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
                 credentials: 'include',
@@ -84,11 +98,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (response.ok) {
                 const userProfile = await response.json();
                 await authService.saveUserInfo(userProfile);
-                dispatch({ type: 'RESTORE_TOKEN', payload: { user: userProfile, token: 'cookie-based' } });
+                
+                const token = await authService.getAccessToken();
+                dispatch({ 
+                  type: 'RESTORE_TOKEN', 
+                  payload: { user: userProfile, token } 
+                });
               } else {
                 dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
               }
             } catch (error) {
+              console.error("Failed to fetch account:", error);
               dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
             }
           }
@@ -103,6 +123,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     restoreSession();
   }, []);
+
+  // ✅ BƯỚC 2: Load profile khi có user
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!state.user?.userId) {
+        setUserProfile(null);
+        return;
+      }
+
+      try {
+        console.log("📥 Loading profile for:", state.user.userId);
+        const profile = await userService.getUserByUsername(state.user.userId);
+        setUserProfile(profile);
+        console.log("✅ Profile loaded:", profile.userId);
+      } catch (error: any) {
+        console.error("❌ Error loading profile:", error);
+        Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
+      }
+    };
+
+    loadProfile();
+  }, [state.user?.userId]);
+
+  // ✅ BƯỚC 3: Connect WebSocket KHI ĐÃ CÓ ĐỦ: user + token + profile
+  useEffect(() => {
+    // ✅ Chỉ connect khi có đủ 3 thứ
+    if (!state.user?.userId || !state.token || !userProfile?.userId) {
+      console.log("⏸️ Waiting for complete auth data...", {
+        hasUser: !!state.user?.userId,
+        hasToken: !!state.token,
+        hasProfile: !!userProfile?.userId
+      });
+      return;
+    }
+
+    console.log("🔌 Attempting WebSocket connection...");
+
+    // Connect
+    websocketService.connect(userProfile.userId, state.token)
+      .then(() => {
+        console.log("✅ WebSocket connected successfully");
+        setWsConnected(true);
+      })
+      .catch(err => {
+        console.error("❌ WebSocket connection failed:", err);
+        setWsConnected(false);
+      });
+
+    // Setup event listeners
+    const handleTokenExpired = () => {
+      console.warn("🔐 Token expired");
+      Alert.alert("Phiên hết hạn", "Vui lòng đăng nhập lại");
+      logout();
+    };
+
+    const handleConnectionChange = (connected: boolean) => {
+      console.log("🔌 WebSocket status changed:", connected);
+      setWsConnected(connected);
+    };
+
+    websocketService.on("TOKEN_EXPIRED", handleTokenExpired);
+    websocketService.on("connectionStatusChange", handleConnectionChange);
+
+    // Cleanup
+    return () => {
+      console.log("🧹 Cleaning up WebSocket listeners");
+      websocketService.off("TOKEN_EXPIRED", handleTokenExpired);
+      websocketService.off("connectionStatusChange", handleConnectionChange);
+      
+      // ❌ KHÔNG disconnect ở đây vì có thể component re-render
+      // Chỉ disconnect khi logout
+    };
+  }, [state.user?.userId, state.token, userProfile?.userId]);
 
   const login = async (credentials: LoginRequest): Promise<boolean> => {
     try {
@@ -126,10 +219,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = await response.json();
       await authService.saveUserInfo(user);
 
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token: 'cookie-based' } });
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
       return true;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('❌ Login failed:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       return false;
     }
@@ -188,7 +281,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await authService.register(userData);
 
-      // Tự động đăng nhập sau khi đăng ký thành công
       const loginSuccess = await login({
         username: userData.username,
         password: userData.password,
@@ -196,7 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return loginSuccess;
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error('❌ Registration failed:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       return false;
     }
@@ -204,10 +296,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log("🚪 Logging out...");
+      
+      // ✅ Disconnect WebSocket TRƯỚC
+      websocketService.disconnect();
+      setWsConnected(false);
+      
       await authService.logout();
+      
+      // Clear profile
+      setUserProfile(null);
+      
       dispatch({ type: 'LOGOUT' });
+      
+      console.log("✅ Logout complete");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout error:', error);
+      
+      // Force cleanup ngay cả khi có lỗi
+      websocketService.disconnect();
+      setWsConnected(false);
+      setUserProfile(null);
       dispatch({ type: 'LOGOUT' });
     }
   };
