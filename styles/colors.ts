@@ -3,6 +3,7 @@ export const Colors = {
   secondary: '#F97316',
   background: '#F9FAFB',
   white: '#FFFFFF',
+  warning: '#FFC107',
   text: {
     primary: '#111827',
     secondary: '#6B7280',

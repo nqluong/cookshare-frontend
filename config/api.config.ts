@@ -12,7 +12,7 @@ const DEV_CONFIG = {
 
   // Fallback IP nếu auto-detect fail ( điền ip thật ở đây )
 
-  FALLBACK_IP: 'http://192.168.0.104:8080',
+  FALLBACK_IP: 'http://192.168.0.102:8080',
   
   // Port của backend
   PORT: 8080,
@@ -28,7 +28,7 @@ const getPlatformSpecificHost = (): string | null => {
   }
 
   if (Platform.OS === 'android') {
-    return 'http://192.168.0.102:8080';
+    return 'http://192.168.0.101:8080';
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật
@@ -102,5 +102,8 @@ if (__DEV__) {
   console.log(`📍 API V1: ${API_CONFIG.API_V1_URL}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
+
+// WebSocket URL sẽ tự động được tạo từ API_BASE_URL
+export const WS_BASE_URL = API_CONFIG.BASE_URL.replace('http', 'ws').replace('/api', '');
 
 

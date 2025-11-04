@@ -1,3 +1,6 @@
+import { useAuth } from '@/context/AuthContext';
+import { userService } from '@/services/userService';
+import { UserProfile } from '@/types/user.types';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -51,8 +54,30 @@ export default function RecipeDetailScreen() {
   const [recipe, setRecipe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const recipeId = id || "";
+
+useEffect(() => {
+    if (user?.username) {
+      loadProfile();
+    }
+  }, [user]);
+
+  const loadProfile = async () => {
+    if (!user?.username) return;
+
+    try {
+      const profile = await userService.getUserByUsername(user.username);
+      setUserProfile(profile);
+    } catch (error: any) {
+      console.error("Error loading profile:", error);
+      Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,7 +140,7 @@ export default function RecipeDetailScreen() {
         instruction: s.instruction,
       }))
     : [];
-  const comments: Comment[] = recipe.comments || [];
+  //const comments: Promise<CommentResponse[]> = commentService.getCommentsByRecipe(recipe.recipeId);
 
   return (
     <View style={styles.container}>
@@ -135,10 +160,11 @@ export default function RecipeDetailScreen() {
           ingredients,
           steps,
           video: recipe.videoUrl || "",
-          comments,
           likes: recipe.likeCount ?? 0,
           views: recipe.viewCount ?? 0,
         }}
+        currentUserId={userProfile ? userProfile.userId : ""}
+        currentUserAvatar={userProfile ? userProfile.avatarUrl : undefined}
         onBack={() => router.back()}
         onSearch={() => router.push('/(tabs)/search')}
       />

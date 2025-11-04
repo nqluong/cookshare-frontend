@@ -60,6 +60,36 @@ const styles = StyleSheet.create({
     margin: 12,
     borderRadius: 8,
   },
+  commentSection: {
+    marginTop: 16,
+    borderTopWidth: 8,
+    borderTopColor: '#F5F5F5',
+    minHeight: 400,
+  },
+  infoButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  commentButton: {
+    backgroundColor: '#F0F2F5',
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  commentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
 });
 
 export default styles;

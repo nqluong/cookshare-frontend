@@ -1,6 +1,9 @@
+import { commentService } from "@/services/commentService";
+import { useEffect, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { getImageUrl } from "../../config/api.config";
 import styles from "../../styles/RecipeDetailView.styles";
+import CommentModal from "./CommentSection";
 
 type Ingredient = {
   ingredientId?: string;
@@ -37,18 +40,40 @@ type Recipe = {
   ingredients: Ingredient[];
   steps: Step[];
   video?: string;
-  comments: Comment[];
   likes?: number;
   views?: number;
 };
 
 type Props = {
   recipe: Recipe;
+  currentUserId: string; 
+  currentUserAvatar?: string;
   onBack: () => void;
   onSearch: () => void;
 };
 
-export default function RecipeDetailView({ recipe }: Props) {
+export default function RecipeDetailView({ recipe, currentUserId, currentUserAvatar }: Props) {
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
+
+  useEffect(() => {
+    if (!recipe?.id) return;
+  
+    const loadCommentCount = async () => {
+      try {
+        const data = await commentService.getCommentsByRecipe(recipe.id);
+        const total = data.reduce((sum: number, c: any) => sum + 1 + (c.replies?.length || 0), 0);
+        console.log('Tổng số bình luận đã tải:', total);
+        setCommentCount(total);
+      } catch (error) {
+        console.error('Lỗi tải số bình luận:', error);
+      }
+    };
+  
+    loadCommentCount();
+    console.log('Tổng số bình luận đã tải:', commentCount);
+  }, [recipe?.id]);
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -63,9 +88,20 @@ export default function RecipeDetailView({ recipe }: Props) {
 
         {/* Thông tin lượt thích / xem */}
         <View style={styles.infoRow}>
-          <Text>❤️ {recipe.likes ?? 0}</Text>
-          <Text>💬 {recipe.comments?.length ?? 0}</Text>
-          <Text>👁️ {recipe.views ?? 0}</Text>
+          <TouchableOpacity style={styles.infoButton}>
+            <Text style={styles.infoText}>❤️ {recipe.likes ?? 0}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.infoButton}
+            onPress={() => setCommentModalVisible(true)}
+          >
+            <Text style={styles.infoText}>💬 {commentCount}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.infoButton}>
+            <Text style={styles.infoText}>👁️ {recipe.views ?? 0}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Tác giả */}
@@ -129,7 +165,27 @@ export default function RecipeDetailView({ recipe }: Props) {
             <Text>🎥 Xem video hướng dẫn</Text>
           </TouchableOpacity>
         ) : null}
+
+        {/* Comment button */}
+        <TouchableOpacity
+          style={styles.commentButton}
+          onPress={() => setCommentModalVisible(true)}
+        >
+          <Text style={styles.commentButtonText}>
+            💬 Xem tất cả {commentCount} bình luận
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Comment Modal */}
+      <CommentModal
+        visible={commentModalVisible}
+        onClose={() => setCommentModalVisible(false)}
+        recipeId={recipe.id}
+        currentUserId={currentUserId}
+        currentUserAvatar={currentUserAvatar}
+        onCommentCountChange={setCommentCount}
+      />
     </View>
   );
 }
