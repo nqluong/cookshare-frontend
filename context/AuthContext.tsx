@@ -77,46 +77,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const restoreSession = async () => {
       try {
+        console.log('🔄 App starting - attempting to restore session...');
         const hasValidSession = await authService.hasValidSession();
+        console.log('✅ Has valid session:', hasValidSession);
 
         if (hasValidSession) {
           const userInfo = await authService.getUserInfo();
-          const accessToken = await authService.getAccessToken();
+          console.log('👤 User info from storage:', userInfo ? userInfo.username : 'null');
 
-          if (userInfo && accessToken) {
-            console.log("✅ Restored session for:", userInfo.userId);
-            dispatch({ 
-              type: 'RESTORE_TOKEN', 
-              payload: { user: userInfo, token: accessToken } 
-            });
+          if (userInfo) {
+            console.log('✅ Restoring session with stored user info');
+            dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: 'cookie-based' } });
           } else {
+            // Nếu không có user info trong AsyncStorage, thử lấy từ server
+            console.log('📡 No stored user info, fetching from /auth/account...');
             try {
               const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
                 credentials: 'include',
               });
 
+              console.log('📡 /auth/account response:', response.status);
+
               if (response.ok) {
                 const userProfile = await response.json();
+                console.log('✅ Got user from server:', userProfile.username);
                 await authService.saveUserInfo(userProfile);
-                
+
                 const token = await authService.getAccessToken();
-                dispatch({ 
-                  type: 'RESTORE_TOKEN', 
-                  payload: { user: userProfile, token } 
+                dispatch({
+                  type: 'RESTORE_TOKEN',
+                  payload: { user: userProfile, token }
                 });
               } else {
+                console.log('❌ Failed to get user from server');
                 dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
               }
             } catch (error) {
-              console.error("Failed to fetch account:", error);
+              console.error('❌ Error fetching user from server:', error);
               dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
             }
           }
         } else {
+          console.log('❌ No valid session found');
           dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
         }
       } catch (error) {
-        console.error('Error restoring session:', error);
+        console.error('❌ Error restoring session:', error);
         dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
       }
     };
@@ -127,16 +133,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ✅ BƯỚC 2: Load profile khi có user
   useEffect(() => {
     const loadProfile = async () => {
-      if (!state.user?.userId) {
+      if (!state.user?.username) {
         setUserProfile(null);
         return;
       }
 
       try {
-        console.log("📥 Loading profile for:", state.user.userId);
-        const profile = await userService.getUserByUsername(state.user.userId);
+        console.log("📥 Loading profile for username:", state.user.username);
+        const profile = await userService.getUserByUsername(state.user.username);
         setUserProfile(profile);
-        console.log("✅ Profile loaded:", profile.userId);
+        console.log("✅ Profile loaded:", profile.username);
       } catch (error: any) {
         console.error("❌ Error loading profile:", error);
         Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
@@ -191,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("🧹 Cleaning up WebSocket listeners");
       websocketService.off("TOKEN_EXPIRED", handleTokenExpired);
       websocketService.off("connectionStatusChange", handleConnectionChange);
-      
+
       // ❌ KHÔNG disconnect ở đây vì có thể component re-render
       // Chỉ disconnect khi logout
     };
@@ -201,22 +207,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
 
-      const token = await authService.login(credentials);
+      const response = await authService.login(credentials);
+
+      // response now contains both token and user object
+      const token = response.accessToken;
+      const userData = response.user;
+
+      // Use user data from backend response instead of decoding token
+      const user: User = {
+        userId: userData.userId,
+        username: userData.username,
+        email: userData.email,
+        fullName: userData.fullName || userData.username,
+        avatarUrl: userData.avatarUrl,
+        bio: userData.bio,
+        role: userData.role || 'USER',
+        isActive: userData.isActive !== undefined ? userData.isActive : true,
+        emailVerified: userData.emailVerified !== undefined ? userData.emailVerified : false,
+        followerCount: userData.followerCount,
+        followingCount: userData.followingCount,
+        recipeCount: userData.recipeCount,
+        totalLikes: userData.totalLikes,
+        createdAt: userData.createdAt,
+      };
+
+      // Lưu access token và user info
       await authService.saveAccessToken(token);
-
-      // Lấy thông tin user từ API
-      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Không thể lấy thông tin người dùng');
-      }
-
-      const user = await response.json();
       await authService.saveUserInfo(user);
 
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
@@ -297,22 +313,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       console.log("🚪 Logging out...");
-      
+
       // ✅ Disconnect WebSocket TRƯỚC
       websocketService.disconnect();
       setWsConnected(false);
-      
+
       await authService.logout();
-      
+
       // Clear profile
       setUserProfile(null);
-      
+
       dispatch({ type: 'LOGOUT' });
-      
+
       console.log("✅ Logout complete");
     } catch (error) {
       console.error('❌ Logout error:', error);
-      
+
       // Force cleanup ngay cả khi có lỗi
       websocketService.disconnect();
       setWsConnected(false);

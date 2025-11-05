@@ -1,15 +1,16 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { Image } from 'expo-image';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { Colors } from "../../styles/colors";
@@ -35,6 +36,9 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
+
+  // Memoize avatar URL để tránh re-render không cần thiết
+  const avatarUrl = useMemo(() => user?.avatarUrl, [user?.avatarUrl]);
 
   const handleLogout = () => {
     Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
@@ -65,8 +69,8 @@ export default function SettingsScreen() {
     router.push("/admin/home" as any);
   };
 
-  const handleEditProfile = () => {
-    Alert.alert("Chỉnh sửa hồ sơ", "Tính năng đang được phát triển!");
+  const handleProfileDetails = () => {
+    router.push("/profile/details" as any);
   };
 
   const handlePrivacy = () => {
@@ -90,16 +94,16 @@ export default function SettingsScreen() {
       title: "Tài khoản",
       items: [
         {
-          id: "edit-profile",
-          title: "Chỉnh sửa hồ sơ",
-          subtitle: "Cập nhật ảnh đại diện, tên, bio",
-          icon: "person-outline",
+          id: "profile-details",
+          title: "Thông tin chi tiết",
+          subtitle: "Xem và chỉnh sửa thông tin cá nhân",
+          icon: "person-circle-outline",
           iconLibrary: "Ionicons",
           iconColor: "#3b82f6",
           iconBgColor: "#dbeafe",
           type: "navigation",
           showArrow: true,
-          action: handleEditProfile,
+          action: handleProfileDetails,
         },
         {
           id: "change-password",
@@ -322,7 +326,24 @@ export default function SettingsScreen() {
         {/* User Info Card */}
         <View style={styles.userCard}>
           <View style={styles.userAvatar}>
-            <Ionicons name="person" size={32} color={Colors.primary} />
+            {avatarUrl ? (
+              <Image
+                key={avatarUrl}
+                source={{ uri: avatarUrl }}
+                style={styles.userAvatarImage}
+                cachePolicy="memory-disk" // Cache aggressively
+                contentFit="cover"
+                transition={200}
+                onError={(error) => {
+                  console.error('❌ Lỗi load avatar trong Settings:', error);
+                }}
+                onLoad={() => {
+                  console.log('✅ Avatar loaded trong Settings (from cache or network)');
+                }}
+              />
+            ) : (
+              <Ionicons name="person" size={32} color={Colors.primary} />
+            )}
           </View>
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{user?.fullName || "Người dùng"}</Text>
@@ -426,6 +447,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
+    overflow: "hidden",
+  },
+  userAvatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   userInfo: {
     flex: 1,
