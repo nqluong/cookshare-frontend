@@ -31,22 +31,26 @@ export default function OwnProfileScreen() {
   const [activeTab, setActiveTab] = useState<"recipes" | "collections">(
     "recipes"
   );
+  const [lastLoadedAvatarUrl, setLastLoadedAvatarUrl] = useState<string | null>(null);
   const isOwner = userProfile?.userId === user?.userId;
 
-  // Load profile khi screen được focus (quay lại từ màn hình khác)
-  useFocusEffect(
-    useCallback(() => {
-      if (user?.username) {
-        loadProfile();
-      }
-    }, [user?.username])
-  );
-
+  // Load profile lần đầu
   useEffect(() => {
     if (user?.username) {
       loadProfile();
     }
-  }, [user]);
+  }, [user?.username]);
+
+  // Chỉ reload khi avatar thay đổi (detect từ AuthContext)
+  useFocusEffect(
+    useCallback(() => {
+      // Kiểm tra nếu avatar trong context khác với avatar đã load
+      if (user?.avatarUrl && user.avatarUrl !== lastLoadedAvatarUrl) {
+        console.log('🔄 Avatar changed, reloading profile...');
+        loadProfile();
+      }
+    }, [user?.avatarUrl, lastLoadedAvatarUrl])
+  );
 
   const loadProfile = async () => {
     if (!user?.username) return;
@@ -56,6 +60,7 @@ export default function OwnProfileScreen() {
       console.log('🔍 Profile loaded:', JSON.stringify(profile, null, 2));
       console.log('🖼️ Avatar URL:', profile.avatarUrl);
       setUserProfile(profile);
+      setLastLoadedAvatarUrl(profile.avatarUrl || null); // Lưu avatar URL đã load
     } catch (error: any) {
       console.error("Error loading profile:", error);
       Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
@@ -272,7 +277,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.white,
@@ -289,14 +294,6 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 32,
-    // header: {
-    //   flexDirection: "row",
-    //   justifyContent: "flex-end",
-    //   alignItems: "center",
-    //   paddingHorizontal: 20,
-    //   paddingTop: 10,
-    //   paddingBottom: 10,
-    //   backgroundColor: "#fff",
   },
   settingsButton: {
     padding: 8,

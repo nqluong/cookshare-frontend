@@ -25,6 +25,7 @@ export default function ProfileDetailsScreen() {
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [lastSyncedAvatarUrl, setLastSyncedAvatarUrl] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         fullName: user?.fullName || "",
@@ -34,21 +35,25 @@ export default function ProfileDetailsScreen() {
         avatarUrl: user?.avatarUrl || "",
     });
 
-    // Sync formData với user khi màn hình được focus
+    // Chỉ sync formData khi avatar thực sự thay đổi
     useFocusEffect(
         useCallback(() => {
-            console.log('🔄 ProfileDetailsScreen focused - syncing with user data');
-            console.log('👤 User avatar URL:', user?.avatarUrl);
-            if (user) {
-                setFormData({
-                    fullName: user.fullName || "",
-                    username: user.username || "",
-                    email: user.email || "",
-                    bio: user.bio || "",
-                    avatarUrl: user.avatarUrl || "",
-                });
+            // Kiểm tra nếu avatar trong context khác với lần sync trước
+            if (user?.avatarUrl !== lastSyncedAvatarUrl) {
+                console.log('🔄 ProfileDetailsScreen - avatar changed, syncing data');
+                console.log('👤 User avatar URL:', user?.avatarUrl);
+                if (user) {
+                    setFormData({
+                        fullName: user.fullName || "",
+                        username: user.username || "",
+                        email: user.email || "",
+                        bio: user.bio || "",
+                        avatarUrl: user.avatarUrl || "",
+                    });
+                    setLastSyncedAvatarUrl(user.avatarUrl || null);
+                }
             }
-        }, [user])
+        }, [user?.avatarUrl, lastSyncedAvatarUrl])
     );
 
     const handleSave = async () => {
