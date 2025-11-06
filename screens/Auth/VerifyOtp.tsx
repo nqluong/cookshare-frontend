@@ -10,6 +10,7 @@ import { authService } from '../../services/authService';
 export default function VerifyOtpScreen() {
     const { email } = useLocalSearchParams();
     const [otp, setOtp] = useState('');
+    const [otpError, setOtpError] = useState('');
     const [loading, setLoading] = useState(false);
     const [countdown, setCountdown] = useState(0);
 
@@ -38,17 +39,17 @@ export default function VerifyOtpScreen() {
 
     const handleVerifyOtp = async () => {
         if (!otp.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập mã OTP');
+            setOtpError('Vui lòng nhập mã OTP');
             return;
         }
 
         if (otp.trim().length !== 6) {
-            Alert.alert('Lỗi', 'Mã OTP phải có 6 chữ số');
+            setOtpError('Mã OTP phải có 6 chữ số');
             return;
         }
 
         if (!email) {
-            Alert.alert('Lỗi', 'Không tìm thấy thông tin email');
+            setOtpError('Không tìm thấy thông tin email');
             return;
         }
 
@@ -73,7 +74,7 @@ export default function VerifyOtpScreen() {
                 ]
             );
         } catch (error) {
-            Alert.alert('Lỗi', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
+            setOtpError(error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
         } finally {
             setLoading(false);
         }
@@ -81,7 +82,7 @@ export default function VerifyOtpScreen() {
 
     const handleResendOtp = async () => {
         if (!email) {
-            Alert.alert('Lỗi', 'Không tìm thấy thông tin email');
+            setOtpError('Không tìm thấy thông tin email');
             return;
         }
 
@@ -91,8 +92,9 @@ export default function VerifyOtpScreen() {
             Alert.alert('Thành công', 'Đã gửi lại mã OTP đến email của bạn');
             setCountdown(300); // Reset countdown
             setOtp(''); // Clear current OTP
+            setOtpError(''); // Clear error
         } catch (error) {
-            Alert.alert('Lỗi', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
+            setOtpError(error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
         } finally {
             setLoading(false);
         }
@@ -134,10 +136,14 @@ export default function VerifyOtpScreen() {
                         <Input
                             placeholder="Nhập mã OTP (6 chữ số)"
                             value={otp}
-                            onChangeText={setOtp}
+                            onChangeText={(text) => {
+                                setOtp(text);
+                                if (otpError) setOtpError('');
+                            }}
                             keyboardType="numeric"
                             maxLength={6}
                             autoCorrect={false}
+                            error={otpError}
                         />
 
                         {/* Verify OTP Button */}

@@ -19,6 +19,15 @@ export default function AuthRegisterForm() {
     });
     const [loading, setLoading] = useState(false);
 
+    // Error states
+    const [errors, setErrors] = useState({
+        username: '',
+        email: '',
+        password: '',
+        fullname: '',
+        confirmPassword: '',
+    });
+
     const { register } = useAuth();
 
     // Pre-fill email from navigation params
@@ -30,38 +39,70 @@ export default function AuthRegisterForm() {
 
     const updateFormData = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        // Clear error when user types
+        if (errors[field as keyof typeof errors]) {
+            setErrors(prev => ({ ...prev, [field]: '' }));
+        }
     };
 
     const validateForm = () => {
         const { username, email, password, fullname, confirmPassword } = formData;
+        const newErrors = {
+            username: '',
+            email: '',
+            password: '',
+            fullname: '',
+            confirmPassword: '',
+        };
+        let hasError = false;
 
-        if (!username.trim() || !email.trim() || !password.trim() || !fullname.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
-            return false;
+        // Fullname validation
+        if (!fullname.trim()) {
+            newErrors.fullname = 'Vui lòng nhập họ và tên';
+            hasError = true;
         }
 
-        if (username.trim().length < 3) {
-            Alert.alert('Lỗi', 'Tên đăng nhập phải có ít nhất 3 ký tự');
-            return false;
+        // Username validation
+        if (!username.trim()) {
+            newErrors.username = 'Vui lòng nhập tên đăng nhập';
+            hasError = true;
+        } else if (username.trim().length < 3) {
+            newErrors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự';
+            hasError = true;
         }
 
-        if (password.length < 6) {
-            Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
-            return false;
+        // Email validation
+        if (!email.trim()) {
+            newErrors.email = 'Vui lòng nhập email';
+            hasError = true;
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                newErrors.email = 'Email không đúng định dạng';
+                hasError = true;
+            }
         }
 
-        if (password !== confirmPassword) {
-            Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
-            return false;
+        // Password validation
+        if (!password.trim()) {
+            newErrors.password = 'Vui lòng nhập mật khẩu';
+            hasError = true;
+        } else if (password.length < 6) {
+            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+            hasError = true;
         }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            Alert.alert('Lỗi', 'Email không đúng định dạng');
-            return false;
+        // Confirm password validation
+        if (!confirmPassword.trim()) {
+            newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
+            hasError = true;
+        } else if (password !== confirmPassword) {
+            newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
+            hasError = true;
         }
 
-        return true;
+        setErrors(newErrors);
+        return !hasError;
     };
 
     const handleRegister = async () => {
@@ -114,6 +155,7 @@ export default function AuthRegisterForm() {
                 onChangeText={(value) => updateFormData('fullname', value)}
                 autoCapitalize="words"
                 autoCorrect={false}
+                error={errors.fullname}
             />
 
             {/* Username Input */}
@@ -123,6 +165,7 @@ export default function AuthRegisterForm() {
                 onChangeText={(value) => updateFormData('username', value)}
                 autoCapitalize="none"
                 autoCorrect={false}
+                error={errors.username}
             />
 
             {/* Email Input */}
@@ -133,6 +176,7 @@ export default function AuthRegisterForm() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                error={errors.email}
             />
 
             {/* Password Input */}
@@ -144,6 +188,7 @@ export default function AuthRegisterForm() {
                 showPasswordToggle
                 autoCapitalize="none"
                 autoCorrect={false}
+                error={errors.password}
             />
 
             {/* Confirm Password Input */}
@@ -155,6 +200,7 @@ export default function AuthRegisterForm() {
                 showPasswordToggle
                 autoCapitalize="none"
                 autoCorrect={false}
+                error={errors.confirmPassword}
             />
 
             {/* Register Button */}

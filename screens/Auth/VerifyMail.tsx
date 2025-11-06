@@ -10,6 +10,7 @@ import { authService } from '../../services/authService';
 export default function VerifyMailScreen() {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
+    const [emailError, setEmailError] = useState('');
 
     const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,13 +18,16 @@ export default function VerifyMailScreen() {
     };
 
     const handleVerifyEmail = async () => {
+        // Reset error
+        setEmailError('');
+
         if (!email.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email');
+            setEmailError('Vui lòng nhập email');
             return;
         }
 
         if (!validateEmail(email.trim())) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ');
+            setEmailError('Vui lòng nhập email hợp lệ');
             return;
         }
 
@@ -48,7 +52,7 @@ export default function VerifyMailScreen() {
                 ]
             );
         } catch (error) {
-            Alert.alert('Lỗi', error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
+            setEmailError(error instanceof Error ? error.message : 'Đã có lỗi xảy ra');
         } finally {
             setLoading(false);
         }
@@ -83,10 +87,14 @@ export default function VerifyMailScreen() {
                         <Input
                             placeholder="Email của bạn"
                             value={email}
-                            onChangeText={setEmail}
+                            onChangeText={(text) => {
+                                setEmail(text);
+                                if (emailError) setEmailError('');
+                            }}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             autoCorrect={false}
+                            error={emailError}
                         />
 
                         {/* Send OTP Button */}

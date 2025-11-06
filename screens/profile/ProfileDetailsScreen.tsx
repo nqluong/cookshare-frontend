@@ -133,6 +133,12 @@ export default function ProfileDetailsScreen() {
             // Call API to update profile using the new endpoint
             const updatedUser = await userService.updateUserProfile(user.userId, updateData);
 
+            // Nếu có cập nhật avatar, đợi Firebase generate public URL
+            if (updateData.avatarUrl) {
+                console.log('⏳ Waiting for Firebase to process avatar URL...');
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
+            }
+
             // Update local auth context
             updateAuthUser(updatedUser);
 

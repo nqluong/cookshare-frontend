@@ -82,38 +82,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('✅ Has valid session:', hasValidSession);
 
         if (hasValidSession) {
-          const userInfo = await authService.getUserInfo();
-          console.log('👤 User info from storage:', userInfo ? userInfo.username : 'null');
+          // LUÔN fetch user info mới từ server để đảm bảo data mới nhất
+          console.log('📡 Fetching fresh user info from server...');
+          try {
+            const token = await authService.getAccessToken();
+            console.log('🔑 Access token exists:', !!token);
 
-          if (userInfo) {
-            console.log('✅ Restoring session with stored user info');
-            dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: 'cookie-based' } });
-          } else {
-            // Nếu không có user info trong AsyncStorage, thử lấy từ server
-            console.log('📡 No stored user info, fetching from /auth/account...');
-            try {
-              const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
-                credentials: 'include',
+            const response = await fetch(`${API_CONFIG.BASE_URL}/auth/account`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            });
+
+            console.log('📡 /auth/account response:', response.status);
+
+            if (response.ok) {
+              const userProfile = await response.json();
+              console.log('✅ Got fresh user from server:', userProfile.username);
+              console.log('🖼️ Avatar URL:', userProfile.avatarUrl);
+
+              // Cập nhật vào AsyncStorage
+              await authService.saveUserInfo(userProfile);
+
+              dispatch({
+                type: 'RESTORE_TOKEN',
+                payload: { user: userProfile, token }
               });
-
-              console.log('📡 /auth/account response:', response.status);
-
-              if (response.ok) {
-                const userProfile = await response.json();
-                console.log('✅ Got user from server:', userProfile.username);
-                await authService.saveUserInfo(userProfile);
-
-                const token = await authService.getAccessToken();
-                dispatch({
-                  type: 'RESTORE_TOKEN',
-                  payload: { user: userProfile, token }
-                });
+            } else {
+              // Fallback: Dùng user info từ storage nếu API fails
+              console.log('⚠️ Failed to get fresh user (status:', response.status, '), using cached data');
+              const userInfo = await authService.getUserInfo();
+              if (userInfo) {
+                dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: token || 'cookie-based' } });
               } else {
-                console.log('❌ Failed to get user from server');
                 dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
               }
-            } catch (error) {
-              console.error('❌ Error fetching user from server:', error);
+            }
+          } catch (error) {
+            console.error('❌ Error fetching fresh user from server:', error);
+            // Fallback: Dùng user info từ storage
+            const userInfo = await authService.getUserInfo();
+            const token = await authService.getAccessToken();
+            if (userInfo) {
+              console.log('⚠️ Using cached user info as fallback');
+              dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: token || 'cookie-based' } });
+            } else {
               dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
             }
           }

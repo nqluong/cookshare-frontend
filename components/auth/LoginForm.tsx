@@ -12,6 +12,10 @@ export default function AuthLoginForm() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Error states
+    const [usernameError, setUsernameError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+
     const { login } = useAuth();
 
     // Sử dụng custom hook cho social login
@@ -24,20 +28,30 @@ export default function AuthLoginForm() {
     } = useSocialLogin();
 
     const handleLogin = async () => {
-        if (!username.trim() || !password.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
-            return;
+        // Reset errors
+        setUsernameError('');
+        setPasswordError('');
+
+        // Validation
+        let hasError = false;
+
+        if (!username.trim()) {
+            setUsernameError('Vui lòng nhập tên đăng nhập');
+            hasError = true;
+        } else if (username.trim().length < 3) {
+            setUsernameError('Tên đăng nhập phải có ít nhất 3 ký tự');
+            hasError = true;
         }
 
-        if (username.trim().length < 3) {
-            Alert.alert('Lỗi', 'Tên đăng nhập phải có ít nhất 3 ký tự');
-            return;
+        if (!password.trim()) {
+            setPasswordError('Vui lòng nhập mật khẩu');
+            hasError = true;
+        } else if (password.length < 6) {
+            setPasswordError('Mật khẩu phải có ít nhất 6 ký tự');
+            hasError = true;
         }
 
-        if (password.length < 6) {
-            Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
-            return;
-        }
+        if (hasError) return;
 
         setLoading(true);
         try {
@@ -49,10 +63,10 @@ export default function AuthLoginForm() {
             if (success) {
                 router.replace('/(tabs)/home' as any);
             } else {
-                Alert.alert('Lỗi', 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin');
+                setPasswordError('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin');
             }
         } catch (error) {
-            Alert.alert('Lỗi', 'Đã có lỗi xảy ra. Vui lòng thử lại');
+            setPasswordError('Đã có lỗi xảy ra. Vui lòng thử lại');
         } finally {
             setLoading(false);
         }
@@ -79,20 +93,28 @@ export default function AuthLoginForm() {
             <Input
                 placeholder="Tên đăng nhập"
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={(text) => {
+                    setUsername(text);
+                    if (usernameError) setUsernameError(''); // Clear error on change
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
+                error={usernameError}
             />
 
             {/* Password Input */}
             <Input
                 placeholder="Mật khẩu"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                    setPassword(text);
+                    if (passwordError) setPasswordError(''); // Clear error on change
+                }}
                 secureTextEntry
                 showPasswordToggle
                 autoCapitalize="none"
                 autoCorrect={false}
+                error={passwordError}
             />
 
             {/* Login Button */}

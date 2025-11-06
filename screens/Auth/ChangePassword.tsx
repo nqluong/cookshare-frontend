@@ -13,33 +13,47 @@ export default function ChangePasswordScreen() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Error states
+    const [errors, setErrors] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+    });
+
     const validateForm = () => {
+        const newErrors = {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+        };
+        let hasError = false;
+
         if (!currentPassword.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu hiện tại');
-            return false;
+            newErrors.currentPassword = 'Vui lòng nhập mật khẩu hiện tại';
+            hasError = true;
         }
 
         if (!newPassword.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu mới');
-            return false;
+            newErrors.newPassword = 'Vui lòng nhập mật khẩu mới';
+            hasError = true;
+        } else if (newPassword.length < 6) {
+            newErrors.newPassword = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+            hasError = true;
+        } else if (currentPassword === newPassword) {
+            newErrors.newPassword = 'Mật khẩu mới phải khác mật khẩu hiện tại';
+            hasError = true;
         }
 
-        if (newPassword.length < 6) {
-            Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự');
-            return false;
+        if (!confirmPassword.trim()) {
+            newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu mới';
+            hasError = true;
+        } else if (newPassword !== confirmPassword) {
+            newErrors.confirmPassword = 'Xác nhận mật khẩu không khớp';
+            hasError = true;
         }
 
-        if (newPassword !== confirmPassword) {
-            Alert.alert('Lỗi', 'Xác nhận mật khẩu không khớp');
-            return false;
-        }
-
-        if (currentPassword === newPassword) {
-            Alert.alert('Lỗi', 'Mật khẩu mới phải khác mật khẩu hiện tại');
-            return false;
-        }
-
-        return true;
+        setErrors(newErrors);
+        return !hasError;
     };
 
     const handleChangePassword = async () => {
@@ -104,33 +118,45 @@ export default function ChangePasswordScreen() {
                         <Input
                             placeholder="Mật khẩu hiện tại"
                             value={currentPassword}
-                            onChangeText={setCurrentPassword}
+                            onChangeText={(text) => {
+                                setCurrentPassword(text);
+                                if (errors.currentPassword) setErrors(prev => ({ ...prev, currentPassword: '' }));
+                            }}
                             secureTextEntry
                             showPasswordToggle
                             autoCapitalize="none"
                             autoCorrect={false}
+                            error={errors.currentPassword}
                         />
 
                         {/* New Password Input */}
                         <Input
                             placeholder="Mật khẩu mới"
                             value={newPassword}
-                            onChangeText={setNewPassword}
+                            onChangeText={(text) => {
+                                setNewPassword(text);
+                                if (errors.newPassword) setErrors(prev => ({ ...prev, newPassword: '' }));
+                            }}
                             secureTextEntry
                             showPasswordToggle
                             autoCapitalize="none"
                             autoCorrect={false}
+                            error={errors.newPassword}
                         />
 
                         {/* Confirm Password Input */}
                         <Input
                             placeholder="Xác nhận mật khẩu mới"
                             value={confirmPassword}
-                            onChangeText={setConfirmPassword}
+                            onChangeText={(text) => {
+                                setConfirmPassword(text);
+                                if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: '' }));
+                            }}
                             secureTextEntry
                             showPasswordToggle
                             autoCapitalize="none"
                             autoCorrect={false}
+                            error={errors.confirmPassword}
                         />
 
                         {/* Change Password Button */}

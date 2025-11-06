@@ -1,5 +1,3 @@
-import CollectionListTab from "@/components/profile/CollectionListTab";
-import RecipeGrid from "@/components/profile/RecipeGrid";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -7,18 +5,20 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
+import { Image } from 'expo-image';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { userService } from "../../services/userService";
 import { Colors } from "../../styles/colors";
 import { UserProfile } from "../../types/user.types";
+import CollectionListTab from "@/components/profile/CollectionListTab";
+import RecipeGrid from "@/components/profile/RecipeGrid";
 
 export default function OwnProfileScreen() {
 
@@ -132,10 +132,15 @@ export default function OwnProfileScreen() {
           {userProfile?.avatarUrl ? (
             <>
               <Image
+                key={userProfile.avatarUrl} // Force re-mount when URL changes
                 source={{ uri: userProfile.avatarUrl }}
                 style={styles.avatar}
+                cachePolicy="memory-disk"
+                contentFit="cover"
+                transition={200}
+                recyclingKey={userProfile.avatarUrl} // Help with cache
                 onError={(error) => {
-                  console.error('❌ Lỗi load avatar:', error.nativeEvent.error);
+                  console.error('❌ Lỗi load avatar:', error);
                   console.log('URL gây lỗi:', userProfile.avatarUrl);
                 }}
                 onLoad={() => {
@@ -147,6 +152,7 @@ export default function OwnProfileScreen() {
             <Image
               source={require("../../assets/images/default-avatar.png")}
               style={styles.avatar}
+              contentFit="cover"
             />
           )}
           <TouchableOpacity style={styles.editAvatarButton}>
