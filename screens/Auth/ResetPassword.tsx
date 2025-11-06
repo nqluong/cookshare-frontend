@@ -13,28 +13,33 @@ export default function ResetPasswordScreen() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const validateForm = () => {
-        if (!newPassword.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu mới');
-            return false;
-        }
+    // Error states
+    const [newPasswordError, setNewPasswordError] = useState('');
+    const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
-        if (newPassword.length < 6) {
-            Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự');
-            return false;
+    const validateForm = () => {
+        // Reset errors
+        setNewPasswordError('');
+        setConfirmPasswordError('');
+        let hasError = false;
+
+        if (!newPassword.trim()) {
+            setNewPasswordError('Vui lòng nhập mật khẩu mới');
+            hasError = true;
+        } else if (newPassword.length < 6) {
+            setNewPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự');
+            hasError = true;
         }
 
         if (!confirmPassword.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng xác nhận mật khẩu');
-            return false;
+            setConfirmPasswordError('Vui lòng xác nhận mật khẩu');
+            hasError = true;
+        } else if (newPassword !== confirmPassword) {
+            setConfirmPasswordError('Xác nhận mật khẩu không khớp');
+            hasError = true;
         }
 
-        if (newPassword !== confirmPassword) {
-            Alert.alert('Lỗi', 'Xác nhận mật khẩu không khớp');
-            return false;
-        }
-
-        return true;
+        return !hasError;
     };
 
     const handleResetPassword = async () => {
@@ -106,22 +111,30 @@ export default function ResetPasswordScreen() {
                         <Input
                             placeholder="Mật khẩu mới"
                             value={newPassword}
-                            onChangeText={setNewPassword}
+                            onChangeText={(text) => {
+                                setNewPassword(text);
+                                if (newPasswordError) setNewPasswordError('');
+                            }}
                             secureTextEntry
                             showPasswordToggle
                             autoCapitalize="none"
                             autoCorrect={false}
+                            error={newPasswordError}
                         />
 
                         {/* Confirm Password Input */}
                         <Input
                             placeholder="Xác nhận mật khẩu mới"
                             value={confirmPassword}
-                            onChangeText={setConfirmPassword}
+                            onChangeText={(text) => {
+                                setConfirmPassword(text);
+                                if (confirmPasswordError) setConfirmPasswordError('');
+                            }}
                             secureTextEntry
                             showPasswordToggle
                             autoCapitalize="none"
                             autoCorrect={false}
+                            error={confirmPasswordError}
                         />
 
                         {/* Reset Password Button */}

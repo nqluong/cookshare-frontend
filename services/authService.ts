@@ -11,17 +11,17 @@ class AuthService {
     console.log(`API Base URL: ${API_BASE_URL}`);
   }
 
-  async login(credentials: LoginRequest): Promise<string> {
+  async login(credentials: LoginRequest): Promise<{ accessToken: string; user: any }> {
     try {
-      console.log('Attempting login to:', `${API_BASE_URL}/auth/login`);
+      console.log("Attempting login to:", `${API_BASE_URL}/auth/login`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
         credentials: 'include',
@@ -30,30 +30,40 @@ class AuthService {
 
       clearTimeout(timeoutId);
 
-      console.log('Login response status:', response.status);
+      console.log("Login response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || 'Đăng nhập thất bại');
+        throw new Error(errorText || "Đăng nhập thất bại");
       }
 
       const responseData = await response.json();
-      console.log('Login successful');
+      console.log('Login successful, user:', responseData.user?.username);
+      console.log('🔍 Full user object from backend:', JSON.stringify(responseData.user, null, 2));
+      console.log('🖼️ Avatar URL from backend:', responseData.user?.avatarUrl);
 
       const accessToken = responseData.accessToken || responseData.access_token;
-      await AsyncStorage.setItem('authToken', accessToken);
+      console.log("🔑 Access Token:", accessToken);
+      await AsyncStorage.setItem("authToken", accessToken);
 
       // Trích xuất cookies từ response headers và lưu manually
       const setCookieHeader = response.headers.get('set-cookie');
+      console.log('🍪 Set-Cookie header:', setCookieHeader ? 'Present' : 'Not present');
       if (setCookieHeader) {
+        console.log("📝 Saving cookies manually for iOS:", setCookieHeader);
         await this.parseAndSaveCookies(setCookieHeader);
+      } else {
+        console.log('⚠️ No Set-Cookie header in login response!');
       }
 
-      return accessToken;
+      return {
+        accessToken,
+        user: responseData.user,
+      };
     } catch (error: any) {
-      console.error('Login error:', error);
-      if (error.name === 'AbortError') {
-        throw new Error('Timeout - Không thể kết nối đến server');
+      console.error("Login error:", error);
+      if (error.name === "AbortError") {
+        throw new Error("Timeout - Không thể kết nối đến server");
       }
       throw error;
     }
@@ -61,15 +71,15 @@ class AuthService {
 
   async register(userData: RegisterRequest): Promise<string> {
     try {
-      console.log('Attempting register to:', `${API_BASE_URL}/auth/register`);
+      console.log("Attempting register to:", `${API_BASE_URL}/auth/register`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(userData),
         credentials: 'include',
@@ -78,20 +88,20 @@ class AuthService {
 
       clearTimeout(timeoutId);
 
-      console.log('Register response status:', response.status);
+      console.log("Register response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || 'Đăng ký thất bại');
+        throw new Error(errorText || "Đăng ký thất bại");
       }
 
       const message = await response.text();
-      console.log('Register successful');
+      console.log("Register successful");
       return message;
     } catch (error: any) {
-      console.error('Register error:', error);
-      if (error.name === 'AbortError') {
-        throw new Error('Timeout - Không thể kết nối đến server');
+      console.error("Register error:", error);
+      if (error.name === "AbortError") {
+        throw new Error("Timeout - Không thể kết nối đến server");
       }
       throw error;
     }
@@ -100,11 +110,11 @@ class AuthService {
   // Giải mã JWT token để lấy thông tin user
   decodeToken(token: string) {
     try {
-      const payload = token.split('.')[1];
+      const payload = token.split(".")[1];
       const decodedPayload = JSON.parse(atob(payload));
       return decodedPayload;
     } catch (error) {
-      console.error('Token decode error:', error);
+      console.error("Token decode error:", error);
       return null;
     }
   }
@@ -112,22 +122,27 @@ class AuthService {
   // Parse và lưu refresh token từ Set-Cookie header vào AsyncStorage
   async parseAndSaveCookies(setCookieHeader: string): Promise<void> {
     try {
+      console.log('🍪 Parsing cookies from header:', setCookieHeader);
       const refreshTokenMatch = setCookieHeader.match(/refresh_token=([^;]+)/);
       if (refreshTokenMatch) {
         const refreshToken = refreshTokenMatch[1];
+        console.log('✅ Found refresh token, saving to storage');
         await AsyncStorage.setItem('refresh_token', refreshToken);
+        console.log('✅ Refresh token saved successfully');
+      } else {
+        console.log('⚠️ No refresh_token found in Set-Cookie header');
       }
     } catch (error) {
-      console.error('Error saving refresh token:', error);
+      console.error('❌ Error saving refresh token:', error);
     }
   }
 
   // Lấy refresh token từ AsyncStorage
   async getRefreshToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('refresh_token');
+      return await AsyncStorage.getItem("refresh_token");
     } catch (error) {
-      console.error('Error getting refresh token:', error);
+      console.error("Error getting refresh token:", error);
       return null;
     }
   }
@@ -137,15 +152,15 @@ class AuthService {
       await AsyncStorage.setItem('access_token', token);
       await AsyncStorage.setItem('authToken', token);
     } catch (error) {
-      console.error('Error saving access token:', error);
+      console.error("Error saving access token:", error);
     }
   }
 
   async getAccessToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('access_token');
+      return await AsyncStorage.getItem("access_token");
     } catch (error) {
-      console.error('Error getting access token:', error);
+      console.error("Error getting access token:", error);
       return null;
     }
   }
@@ -155,25 +170,25 @@ class AuthService {
       await AsyncStorage.removeItem('access_token');
       await AsyncStorage.removeItem('authToken');
     } catch (error) {
-      console.error('Error clearing access token:', error);
+      console.error("Error clearing access token:", error);
     }
   }
 
   async saveUserInfo(user: any): Promise<void> {
     try {
-      await AsyncStorage.setItem('user_data', JSON.stringify(user));
-      console.log('User info saved to AsyncStorage');
+      await AsyncStorage.setItem("user_data", JSON.stringify(user));
+      console.log("User info saved to AsyncStorage");
     } catch (error) {
-      console.error('Error saving user info:', error);
+      console.error("Error saving user info:", error);
     }
   }
 
   async getUserInfo(): Promise<any | null> {
     try {
-      const userData = await AsyncStorage.getItem('user_data');
+      const userData = await AsyncStorage.getItem("user_data");
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
-      console.error('Error getting user info:', error);
+      console.error("Error getting user info:", error);
       return null;
     }
   }
@@ -181,21 +196,30 @@ class AuthService {
   // Kiểm tra xem có session không
   async hasValidSession(): Promise<boolean> {
     try {
+      console.log('🔍 Checking for valid session...');
       const refreshToken = await this.getRefreshToken();
+      console.log('🍪 Refresh token:', refreshToken ? 'Found' : 'Not found');
+
       if (!refreshToken) {
+        console.log('❌ No refresh token, session invalid');
         return false;
       }
 
+      console.log('📡 Calling /auth/refresh endpoint...');
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Cookie': `refresh_token=${refreshToken}`,
+          'X-Refresh-Token': refreshToken,
         },
-        credentials: 'include',
+        credentials: "include",
       });
+
+      console.log('📡 Refresh response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Session refreshed successfully');
+        console.log('👤 User from refresh:', data.user?.username);
         await this.saveAccessToken(data.accessToken);
 
         const setCookieHeader = response.headers.get('set-cookie');
@@ -204,11 +228,16 @@ class AuthService {
         }
 
         return true;
+      } else {
+        // Log error details
+        const errorText = await response.text();
+        console.log('❌ Refresh error response:', errorText);
       }
 
+      console.log('❌ Refresh failed, session invalid');
       return false;
     } catch (error) {
-      console.error('Error checking session:', error);
+      console.error('❌ Error checking session:', error);
       return false;
     }
   }
@@ -221,7 +250,7 @@ class AuthService {
       await this.clearAccessToken();
       console.log('User info cleared');
     } catch (error) {
-      console.error('Error clearing user info:', error);
+      console.error("Error clearing user info:", error);
     }
   }
 
@@ -235,15 +264,15 @@ class AuthService {
       }
 
       await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         credentials: 'include',
       });
 
       await this.clearUserInfo();
-      console.log('Logout successful');
+      console.log("Logout successful");
     } catch (error) {
       console.error('Logout error:', error);
       await this.clearUserInfo();
@@ -337,17 +366,17 @@ class AuthService {
     try {
       const accessToken = await this.getAccessToken();
       if (!accessToken) {
-        throw new Error('Không tìm thấy token xác thực');
+        throw new Error("Không tìm thấy token xác thực");
       }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(data),
         credentials: 'include',
@@ -358,14 +387,14 @@ class AuthService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || 'Đổi mật khẩu thất bại');
+        throw new Error(errorText || "Đổi mật khẩu thất bại");
       }
 
       return await response.text();
     } catch (error: any) {
-      console.error('Change password error:', error);
-      if (error.name === 'AbortError') {
-        throw new Error('Timeout - Không thể kết nối đến server');
+      console.error("Change password error:", error);
+      if (error.name === "AbortError") {
+        throw new Error("Timeout - Không thể kết nối đến server");
       }
       throw error;
     }

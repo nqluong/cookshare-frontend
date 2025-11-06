@@ -103,4 +103,7 @@ if (__DEV__) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 
+// WebSocket URL sẽ tự động được tạo từ API_BASE_URL
+export const WS_BASE_URL = API_CONFIG.BASE_URL.replace('http', 'ws').replace('/api', '');
+
 

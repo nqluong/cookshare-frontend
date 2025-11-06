@@ -1,24 +1,24 @@
-import CollectionListTab from "@/components/profile/CollectionListTab";
-import RecipeGrid from "@/components/profile/RecipeGrid";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
+import { Image } from 'expo-image';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { userService } from "../../services/userService";
 import { Colors } from "../../styles/colors";
 import { UserProfile } from "../../types/user.types";
+import CollectionListTab from "@/components/profile/CollectionListTab";
+import RecipeGrid from "@/components/profile/RecipeGrid";
 
 export default function OwnProfileScreen() {
 
@@ -31,23 +31,64 @@ export default function OwnProfileScreen() {
   const [activeTab, setActiveTab] = useState<"recipes" | "collections">(
     "recipes"
   );
+  const [lastLoadedAvatarUrl, setLastLoadedAvatarUrl] = useState<string | null>(null);
   const isOwner = userProfile?.userId === user?.userId;
 
+  // Load profile lần đầu
   useEffect(() => {
     if (user?.username) {
       loadProfile();
     }
-  }, [user]);
+  }, [user?.username]);
+
+  // Chỉ reload khi avatar thay đổi (detect từ AuthContext)
+  useFocusEffect(
+    useCallback(() => {
+      // Kiểm tra nếu avatar trong context khác với avatar đã load
+      if (user?.avatarUrl && user.avatarUrl !== lastLoadedAvatarUrl) {
+        console.log('🔄 Avatar changed, reloading profile...');
+        loadProfile();
+      }
+    }, [user?.avatarUrl, lastLoadedAvatarUrl])
+  );
 
   const loadProfile = async () => {
-    if (!user?.username) return;
+    if (!user?.username) {
+      console.log('⚠️ [OwnProfile] No username available, skipping load');
+      setLoading(false);
+      return;
+    }
 
     try {
+      console.log('📥 [OwnProfile] Loading profile for username:', user.username);
       const profile = await userService.getUserByUsername(user.username);
+      console.log('🔍 [OwnProfile] Profile loaded successfully');
+      console.log('🖼️ [OwnProfile] Avatar URL:', profile.avatarUrl);
       setUserProfile(profile);
+      setLastLoadedAvatarUrl(profile.avatarUrl || null);
     } catch (error: any) {
-      console.error("Error loading profile:", error);
-      Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
+      console.error("❌ [OwnProfile] Error loading profile:", error.message);
+
+      // Fallback: Use user from context nếu có
+      if (user) {
+        console.log('💡 [OwnProfile] Using user data from context as fallback');
+        setUserProfile({
+          userId: user.userId,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          bio: user.bio,
+          followerCount: user.followerCount || 0,
+          followingCount: user.followingCount || 0,
+          recipeCount: user.recipeCount || 0,
+        } as UserProfile);
+      }
+
+      // Chỉ show alert nếu không có fallback data
+      if (!user) {
+        Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
+      }
     } finally {
       setLoading(false);
     }
@@ -89,14 +130,29 @@ export default function OwnProfileScreen() {
       <View style={styles.avatarSection}>
         <View style={styles.avatarContainer}>
           {userProfile?.avatarUrl ? (
-            <Image
-              source={{ uri: userProfile.avatarUrl }}
-              style={styles.avatar}
-            />
+            <>
+              <Image
+                key={userProfile.avatarUrl} // Force re-mount when URL changes
+                source={{ uri: userProfile.avatarUrl }}
+                style={styles.avatar}
+                cachePolicy="memory-disk"
+                contentFit="cover"
+                transition={200}
+                recyclingKey={userProfile.avatarUrl} // Help with cache
+                onError={(error) => {
+                  console.error('❌ Lỗi load avatar:', error);
+                  console.log('URL gây lỗi:', userProfile.avatarUrl);
+                }}
+                onLoad={() => {
+                  console.log('✅ Avatar loaded successfully');
+                }}
+              />
+            </>
           ) : (
             <Image
               source={require("../../assets/images/default-avatar.png")}
               style={styles.avatar}
+              contentFit="cover"
             />
           )}
           <TouchableOpacity style={styles.editAvatarButton}>
@@ -252,7 +308,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.white,
@@ -269,14 +325,6 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 32,
-    // header: {
-    //   flexDirection: "row",
-    //   justifyContent: "flex-end",
-    //   alignItems: "center",
-    //   paddingHorizontal: 20,
-    //   paddingTop: 10,
-    //   paddingBottom: 10,
-    //   backgroundColor: "#fff",
   },
   settingsButton: {
     padding: 8,

@@ -8,6 +8,7 @@ import { authStyles } from '../../styles/AuthStyle';
 
 export default function AuthRegisterFormInitial() {
     const [email, setEmail] = useState('');
+    const [emailError, setEmailError] = useState('');
 
     // Sử dụng custom hook cho social login
     const {
@@ -19,15 +20,19 @@ export default function AuthRegisterFormInitial() {
     } = useSocialLogin();
 
     const handleContinue = () => {
+        // Reset error
+        setEmailError('');
+
+        // Validation
         if (!email.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email');
+            setEmailError('Vui lòng nhập email');
             return;
         }
 
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.trim())) {
-            Alert.alert('Lỗi', 'Email không hợp lệ');
+            setEmailError('Email không hợp lệ');
             return;
         }
 
@@ -61,11 +66,15 @@ export default function AuthRegisterFormInitial() {
             <Input
                 placeholder="Email"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                    setEmail(text);
+                    if (emailError) setEmailError('');
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!socialLoading}
+                error={emailError}
             />
 
             {/* Continue Button */}
