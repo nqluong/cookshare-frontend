@@ -34,7 +34,7 @@ import { Recipe as SearchRecipe } from '../../types/search';
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState('Đề xuất');
   const router = useRouter();
-
+  const [dailyRecommendations, setDailyRecommendations] = useState<DishRecipe[]>([]);
   const [featuredRecipes, setFeaturedRecipes] = useState<DishRecipe[]>([]);
   const [popularRecipes, setPopularRecipes] = useState<DishRecipe[]>([]);
   const [newestRecipes, setNewestRecipes] = useState<DishRecipe[]>([]);
@@ -164,7 +164,7 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
       const response = await getHomeSuggestions();
       
       if (response.success && response.data) {
-        const { trendingRecipes, popularRecipes, newestRecipes, topRatedRecipes, featuredRecipes } = response.data;
+        const { trendingRecipes, popularRecipes, newestRecipes, topRatedRecipes, featuredRecipes, dailyRecommendations } = response.data;
         
         const allRecipeIds = [
           ...(trendingRecipes || []).map((r: DishRecipe) => r.recipeId),
@@ -172,6 +172,7 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
           ...(newestRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(topRatedRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(featuredRecipes || []).map((r: DishRecipe) => r.recipeId),
+          ...(dailyRecommendations || []).map((r: DishRecipe) => r.recipeId),
         ];
 
         const likePromises = allRecipeIds.map(async (recipeId: string) => {
@@ -194,6 +195,7 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
         setNewestRecipes(newestRecipes || []);
         setTopRatedRecipes(topRatedRecipes || []);
         setTrendingRecipes(trendingRecipes || []);
+        setDailyRecommendations(dailyRecommendations || []);
       }
     } catch (err: any) {
       console.error('Error fetching home suggestions:', err);
@@ -228,121 +230,109 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
 
   // Hàm toggle like mới với debounce và theo dõi số lần click
   const toggleLike = async (recipeId: string) => {
-    // Lấy hoặc khởi tạo trạng thái cho recipe này
-    let likeState = likeStatesRef.current.get(recipeId);
-    
-    if (!likeState) {
-      // Lần đầu click, lưu trạng thái ban đầu
-      likeState = {
-        initialState: likedRecipes.has(recipeId),
-        clickCount: 0
-      };
-      likeStatesRef.current.set(recipeId, likeState);
-    }
-    
-    // Tăng số lần click
-    likeState.clickCount++;
-    
-    // Hủy timer cũ nếu có
-    const existingTimer = likeTimersRef.current.get(recipeId);
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-    }
+  let likeState = likeStatesRef.current.get(recipeId);
+  
+  if (!likeState) {
+    likeState = {
+      initialState: likedRecipes.has(recipeId),
+      clickCount: 0
+    };
+    likeStatesRef.current.set(recipeId, likeState);
+  }
 
-    // Cập nhật UI ngay lập tức (optimistic update)
-    optimisticToggleLike(recipeId);
+  likeState.clickCount++;
 
-    // Tạo timer mới để gọi backend sau 1.8 giây
-    const timer = setTimeout(async () => {
-      try {
-        const state = likeStatesRef.current.get(recipeId);
-        if (!state) return;
+  const existingTimer = likeTimersRef.current.get(recipeId);
+  if (existingTimer) clearTimeout(existingTimer);
 
-        // Tính toán trạng thái cuối cùng dựa trên số lần click
-        // Click lẻ (1, 3, 5...) = đổi trạng thái
-        // Click chẵn (2, 4, 6...) = giữ nguyên trạng thái ban đầu
-        const shouldToggle = state.clickCount % 2 === 1;
-        
-        if (!shouldToggle) {
-          // Số lần click chẵn = không cần gọi API, đã về trạng thái ban đầu
-          console.log(`Recipe ${recipeId}: Clicked ${state.clickCount} times, no API call needed`);
-          likeStatesRef.current.delete(recipeId);
-          return;
-        }
+  optimisticToggleLike(recipeId);
 
-        // Số lần click lẻ = cần gọi API
-        const finalState = !state.initialState;
-        
-        if (finalState) {
-          // Cần like
-          const response = await likeRecipe(recipeId);
-          if (response.code !== 1000 || !response.result) {
-            // Rollback nếu API thất bại
-            setLikedRecipes(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(recipeId);
-              return newSet;
-            });
-            updateRecipeLikeCount(recipeId, -1);
-            console.warn('Không thể like công thức, đã rollback');
-          }
-        } else {
-          // Cần unlike
-          try {
-            const response = await unlikeRecipe(recipeId);
-            if (response.code !== 1000) {
-              // Rollback nếu API thất bại
-              setLikedRecipes(prev => {
-                const newSet = new Set(prev);
-                newSet.add(recipeId);
-                return newSet;
-              });
-              updateRecipeLikeCount(recipeId, +1);
-              console.warn('Không thể bỏ like công thức, đã rollback');
-            }
-          } catch (error: any) {
-            if (error.message !== 'Công thức chưa được thích') {
-              // Rollback nếu API thất bại
-              setLikedRecipes(prev => {
-                const newSet = new Set(prev);
-                newSet.add(recipeId);
-                return newSet;
-              });
-              updateRecipeLikeCount(recipeId, +1);
-              console.warn('Không thể bỏ like công thức, đã rollback');
-            }
-          }
-        }
-      } catch (error: any) {
-        console.error('Lỗi khi xử lý like/unlike:', error.message || error);
-        
-        // Rollback về trạng thái ban đầu
-        const state = likeStatesRef.current.get(recipeId);
-        if (state) {
-          const currentState = likedRecipes.has(recipeId);
-          if (currentState !== state.initialState) {
-            setLikedRecipes(prev => {
-              const newSet = new Set(prev);
-              if (state.initialState) {
-                newSet.add(recipeId);
-              } else {
-                newSet.delete(recipeId);
-              }
-              return newSet;
-            });
-            updateRecipeLikeCount(recipeId, state.initialState ? 1 : -1);
-          }
-        }
-      } finally {
-        // Xóa timer và state khỏi map
-        likeTimersRef.current.delete(recipeId);
+  const timer = setTimeout(async () => {
+    try {
+      const state = likeStatesRef.current.get(recipeId);
+      if (!state) return;
+
+      const shouldToggle = state.clickCount % 2 === 1;
+      if (!shouldToggle) {
         likeStatesRef.current.delete(recipeId);
+        return;
       }
-    }, 1800);
 
-    // Lưu timer vào ref
-    likeTimersRef.current.set(recipeId, timer);
-  };
+      const finalState = !state.initialState;
+
+      if (finalState) {
+        // Cần like
+        const response = await likeRecipe(recipeId);
+        if (response.code !== 1000 || !response.result) {
+          setLikedRecipes(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(recipeId);
+            return newSet;
+          });
+          updateRecipeLikeCount(recipeId, -1);
+          console.warn('Không thể like công thức, đã rollback');
+        } else {
+          // ✅ Nếu không ở tab Yêu thích -> thêm ngay vào danh sách local
+          if (activeTab !== 'Yêu thích') {
+            setLikedRecipesList(prev => {
+              // tránh trùng nếu đã có
+              const exists = prev.some(r => r.recipeId === recipeId);
+              if (exists) return prev;
+              // tìm recipe trong các list khác để thêm
+              const allRecipes = [
+                ...dailyRecommendations,
+                ...featuredRecipes,
+                ...popularRecipes,
+                ...newestRecipes,
+                ...topRatedRecipes,
+                ...trendingRecipes,
+                ...followingRecipesList
+              ];
+              const found = allRecipes.find(r => r.recipeId === recipeId);
+              return found ? [found, ...prev] : prev;
+            });
+          } else {
+            // Nếu đang ở tab "Yêu thích" → gọi lại API để sync server
+            fetchLikedRecipes();
+          }
+        }
+      } else {
+        // Cần unlike
+        try {
+          const response = await unlikeRecipe(recipeId);
+          if (response.code !== 1000) {
+            setLikedRecipes(prev => {
+              const newSet = new Set(prev);
+              newSet.add(recipeId);
+              return newSet;
+            });
+            updateRecipeLikeCount(recipeId, +1);
+            console.warn('Không thể bỏ like công thức, đã rollback');
+          } else {
+            // ✅ Nếu đang ở tab "Yêu thích" → cập nhật local, không reload toàn trang
+            setLikedRecipesList(prev => prev.filter(r => r.recipeId !== recipeId));
+          }
+        } catch (error: any) {
+          if (error.message !== 'Công thức chưa được thích') {
+            setLikedRecipes(prev => {
+              const newSet = new Set(prev);
+              newSet.add(recipeId);
+              return newSet;
+            });
+            updateRecipeLikeCount(recipeId, +1);
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Lỗi khi xử lý like/unlike:', error.message || error);
+    } finally {
+      likeTimersRef.current.delete(recipeId);
+      likeStatesRef.current.delete(recipeId);
+    }
+  }, 1800);
+
+  likeTimersRef.current.set(recipeId, timer);
+};
 
   const handleSearch = async (reset = true, requestedPage?: number) => {
     if (reset && !searchQuery.trim()) {
@@ -450,88 +440,115 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
   };
 
   const handleLoadMoreNewest = async () => {
-    if (isLoadingMoreNewest || !hasMoreNewest) return;
+  if (isLoadingMoreNewest || !hasMoreNewest) return;
 
-    try {
-      setIsLoadingMoreNewest(true);
-      const nextPage = newestPage + 1;
-      const response = await getNewestRecipes(nextPage, 10);
-      
-      if (response.success && response.data) {
-        const newRecipes = response.data.content || [];
-        setNewestRecipes(prev => [...prev, ...newRecipes]);
-        setNewestPage(nextPage);
-        setHasMoreNewest(!response.data.last);
-      }
-    } catch (err: any) {
-      console.error('Error loading more newest recipes:', err);
-    } finally {
-      setIsLoadingMoreNewest(false);
+  try {
+    setIsLoadingMoreNewest(true);
+    const nextPage = newestPage + 1;
+    const response = await getNewestRecipes(nextPage, 10);
+    
+    if (response.success && response.data) {
+      const newRecipes = response.data.content || [];
+      setNewestRecipes(prev => {
+        const merged = [...prev, ...newRecipes];
+        const unique = merged.filter(
+          (r, i, self) => i === self.findIndex(x => x.recipeId === r.recipeId)
+        );
+        return unique;
+      });
+      setNewestPage(nextPage);
+      setHasMoreNewest(!response.data.last);
     }
-  };
+  } catch (err: any) {
+    console.error('Error loading more newest recipes:', err);
+  } finally {
+    setIsLoadingMoreNewest(false);
+  }
+};
+
 
   const handleLoadMoreTrending = async () => {
-    if (isLoadingMoreTrending || !hasMoreTrending) return;
+  if (isLoadingMoreTrending || !hasMoreTrending) return;
 
-    try {
-      setIsLoadingMoreTrending(true);
-      const nextPage = trendingPage + 1;
-      const response = await getTrendingRecipes(nextPage, 10);
-      
-      if (response.success && response.data) {
-        const newRecipes = response.data.content || [];
-        setTrendingRecipes(prev => [...prev, ...newRecipes]);
-        setTrendingPage(nextPage);
-        setHasMoreTrending(!response.data.last);
-      }
-    } catch (err: any) {
-      console.error('Error loading more trending recipes:', err);
-    } finally {
-      setIsLoadingMoreTrending(false);
+  try {
+    setIsLoadingMoreTrending(true);
+    const nextPage = trendingPage + 1;
+    const response = await getTrendingRecipes(nextPage, 10);
+    
+    if (response.success && response.data) {
+      const newRecipes = response.data.content || [];
+      setTrendingRecipes(prev => {
+        const merged = [...prev, ...newRecipes];
+        const unique = merged.filter(
+          (r, i, self) => i === self.findIndex(x => x.recipeId === r.recipeId)
+        );
+        return unique;
+      });
+      setTrendingPage(nextPage);
+      setHasMoreTrending(!response.data.last);
     }
-  };
+  } catch (err: any) {
+    console.error('Error loading more trending recipes:', err);
+  } finally {
+    setIsLoadingMoreTrending(false);
+  }
+};
+
 
   const handleLoadMorePopular = async () => {
-    if (isLoadingMorePopular || !hasMorePopular) return;
+  if (isLoadingMorePopular || !hasMorePopular) return;
 
-    try {
-      setIsLoadingMorePopular(true);
-      const nextPage = popularPage + 1;
-      const response = await getPopularRecipes(nextPage, 20);
-      
-      if (response.success && response.data) {
-        const newRecipes = response.data.content || [];
-        setPopularRecipes(prev => [...prev, ...newRecipes]);
-        setPopularPage(nextPage);
-        setHasMorePopular(!response.data.last);
-      }
-    } catch (err: any) {
-      console.error('Error loading more popular recipes:', err);
-    } finally {
-      setIsLoadingMorePopular(false);
+  try {
+    setIsLoadingMorePopular(true);
+    const nextPage = popularPage + 1;
+    const response = await getPopularRecipes(nextPage, 20);
+    
+    if (response.success && response.data) {
+      const newRecipes = response.data.content || [];
+      setPopularRecipes(prev => {
+        const merged = [...prev, ...newRecipes];
+        const unique = merged.filter(
+          (r, i, self) => i === self.findIndex(x => x.recipeId === r.recipeId)
+        );
+        return unique;
+      });
+      setPopularPage(nextPage);
+      setHasMorePopular(!response.data.last);
     }
-  };
+  } catch (err: any) {
+    console.error('Error loading more popular recipes:', err);
+  } finally {
+    setIsLoadingMorePopular(false);
+  }
+};
+
 
   const handleLoadMoreTopRated = async () => {
-    if (isLoadingMoreTopRated || !hasMoreTopRated) return;
+  if (isLoadingMoreTopRated || !hasMoreTopRated) return;
 
-    try {
-      setIsLoadingMoreTopRated(true);
-      const nextPage = topRatedPage + 1;
-      const response = await getTopRatedRecipes(nextPage, 10);
-      
-      if (response.success && response.data) {
-        const newRecipes = response.data.content || [];
-        setTopRatedRecipes(prev => [...prev, ...newRecipes]);
-        setTopRatedPage(nextPage);
-        setHasMoreTopRated(!response.data.last);
-      }
-    } catch (err: any) {
-      console.error('Error loading more topRated recipes:', err);
-    } finally {
-      setIsLoadingMoreTopRated(false);
+  try {
+    setIsLoadingMoreTopRated(true);
+    const nextPage = topRatedPage + 1;
+    const response = await getTopRatedRecipes(nextPage, 10);
+    
+    if (response.success && response.data) {
+      const newRecipes = response.data.content || [];
+      setTopRatedRecipes(prev => {
+        const merged = [...prev, ...newRecipes];
+        const unique = merged.filter(
+          (r, i, self) => i === self.findIndex(x => x.recipeId === r.recipeId)
+        );
+        return unique;
+      });
+      setTopRatedPage(nextPage);
+      setHasMoreTopRated(!response.data.last);
     }
-  };
+  } catch (err: any) {
+    console.error('Error loading more topRated recipes:', err);
+  } finally {
+    setIsLoadingMoreTopRated(false);
+  }
+};
 
   const handleLoadMoreLiked = async () => {
     if (isLoadingMoreLiked || !hasMoreLiked) return;
@@ -690,7 +707,7 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {activeTab === 'Đề xuất' ? (
             <>
-              <FeaturedDish recipe={featuredRecipes[0]} onRecipePress={handleOpenDetail} />
+              <FeaturedDish recipes={dailyRecommendations} onRecipePress={handleOpenDetail} />
               <TrendingRecipes 
                 recipes={trendingRecipes} 
                 onRecipePress={handleOpenDetail}

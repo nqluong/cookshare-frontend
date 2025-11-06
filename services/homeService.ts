@@ -68,13 +68,17 @@ handleError(error);
 };
 export const getHomeSuggestions = async () => {
   try {
-    const res = await api.get("/recommendations/home");
+    const token = await AsyncStorage.getItem('authToken');
+    const res = await api.get("/recommendations/home", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return res.data;
   } catch (error) {
     handleError(error);
   }
 };
-
 // Lấy danh sách công thức mới nhất với pagination
 export const getNewestRecipes = async (page: number = 0, size: number = 10) => {
   try {
