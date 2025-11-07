@@ -9,7 +9,7 @@ export interface AdminRecipe {
   prepTime: number;
   cookTime: number;
   servings: number;
-  difficulty: string;
+  difficulty: string | null;
   featuredImage: string | null;
   viewCount: number;
   saveCount: number;
@@ -97,6 +97,7 @@ export interface AdminRecipeDetailResponse {
   userAvatarUrl: string | null;
   
   // Thông tin cơ bản (legacy)
+  featuredImage?: string | null;
   prepTime?: number;
   cookTime?: number;
   servings?: number;

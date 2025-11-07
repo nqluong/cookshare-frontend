@@ -9,15 +9,24 @@ interface RecipeCardProps {
   showStats?: ("views" | "likes" | "saves" | "comments" | "rating" | "trending")[];
   style?: ViewStyle;
   onPress?: (recipe: RecipePerformanceDTO | TrendingRecipeDTO) => void;
+  navigateToDetail?: boolean;
 }
 
-export default function RecipeCard({ recipe, rank, showStats, style, onPress }: RecipeCardProps) {
+export default function RecipeCard({ 
+  recipe, 
+  rank, 
+  showStats, 
+  style, 
+  onPress,
+  navigateToDetail = true 
+}: RecipeCardProps) {
   const handlePress = () => {
-    // Kiểm tra xem có onPress được truyền vào không
     if (onPress) {
       onPress(recipe);
-    } else {
-      // Lấy recipeId từ các trường có thể có
+      return;
+    }
+
+    if (navigateToDetail) {
       let recipeId: string | undefined;
       if ('recipeId' in recipe) {
         recipeId = recipe.recipeId;
@@ -88,7 +97,11 @@ export default function RecipeCard({ recipe, rank, showStats, style, onPress }: 
   };
 
   return (
-    <TouchableOpacity style={[styles.recipeCard, style]} onPress={handlePress}>
+    <TouchableOpacity 
+      style={[styles.recipeCard, style]} 
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       {rank !== undefined && (
         <View style={styles.recipeRank}>
           <Text style={styles.recipeRankText}>#{rank}</Text>
@@ -106,6 +119,11 @@ export default function RecipeCard({ recipe, rank, showStats, style, onPress }: 
           </View>
         )}
       </View>
+      
+      {/* Thêm icon chỉ định có thể nhấn vào */}
+      {navigateToDetail && (
+        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+      )}
     </TouchableOpacity>
   );
 }
@@ -119,6 +137,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: "#e5e7eb",
+    alignItems: "center",
   },
   recipeRank: {
     width: 32,
