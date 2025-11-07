@@ -15,20 +15,54 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
   const [loading, setLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [sortOption, setSortOption] = useState<string>('newest');
   const router = useRouter();
 
   useEffect(() => {
     fetchRecipes();
   }, [userId, refreshKey]);
 
+  // Re-sort current list when sort option changes
+  useEffect(() => {
+    setRecipes(prev => sortRecipes(prev, sortOption));
+  }, [sortOption]);
+
   const fetchRecipes = async () => {
     try {
       const data = await RecipeService.getAllRecipesByUserId(userId);
-      setRecipes(data || []);
+      const list: Recipe[] = data || [];
+      setRecipes(sortRecipes(list, sortOption));
     } catch (error) {
       console.error("Failed to fetch recipes:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sortRecipes = (items: Recipe[], option: string) => {
+    if (!items || items.length === 0) return items;
+    const arr = [...items];
+    switch (option) {
+      case 'newest':
+        // assuming recipeId contains time-order or server returns newest first — fallback to original order
+        return arr;
+      case 'oldest':
+        return arr.reverse();
+      case 'like_desc':
+        return arr.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
+      case 'like_asc':
+        return arr.sort((a, b) => (a.likeCount || 0) - (b.likeCount || 0));
+      case 'save_desc':
+        return arr.sort((a, b) => (b.saveCount || 0) - (a.saveCount || 0));
+      case 'save_asc':
+        return arr.sort((a, b) => (a.saveCount || 0) - (b.saveCount || 0));
+      case 'view_desc':
+        return arr.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+      case 'view_asc':
+        return arr.sort((a, b) => (a.viewCount || 0) - (b.viewCount || 0));
+      default:
+        return arr;
     }
   };
 
@@ -96,6 +130,13 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
 
   return (
     <View style={styles.container}>
+      {/* Sort controls */}
+      <View style={styles.sortBar}>
+        <Text style={styles.sortLabel}>Sắp xếp:</Text>
+        <TouchableOpacity style={styles.sortButton} onPress={() => setSortModalVisible(true)}>
+          <Text style={styles.sortButtonText}>{friendlySortLabel(sortOption)}</Text>
+        </TouchableOpacity>
+      </View>
       {recipes.length === 0 ? (
         <Text style={styles.emptyText}>Chưa có công thức nào</Text>
       ) : (
@@ -148,8 +189,56 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Sort options modal */}
+      <Modal
+        visible={sortModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSortModalVisible(false)}
+      >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setSortModalVisible(false)}>
+          <View style={[styles.menu, { width: 260 }]}>
+            {[
+              { key: 'newest', label: 'Mới nhất' },
+              { key: 'oldest', label: 'Cũ nhất' },
+              { key: 'like_desc', label: 'Like nhiều → ít' },
+              { key: 'like_asc', label: 'Like ít → nhiều' },
+              { key: 'save_desc', label: 'Lưu nhiều → ít' },
+              { key: 'save_asc', label: 'Lưu ít → nhiều' },
+              { key: 'view_desc', label: 'Xem nhiều → ít' },
+              { key: 'view_asc', label: 'Xem ít → nhiều' },
+            ].map(opt => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => {
+                  setSortOption(opt.key);
+                  setRecipes(prev => sortRecipes(prev, opt.key));
+                  setSortModalVisible(false);
+                }}
+              >
+                <Text style={[styles.menuItem, sortOption === opt.key ? { fontWeight: '700' } : {}]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
+};
+
+const friendlySortLabel = (key: string) => {
+  switch (key) {
+    case 'newest': return 'Mới nhất';
+    case 'oldest': return 'Cũ nhất';
+    case 'like_desc': return 'Like ↓';
+    case 'like_asc': return 'Like ↑';
+    case 'save_desc': return 'Lưu ↓';
+    case 'save_asc': return 'Lưu ↑';
+    case 'view_desc': return 'Xem ↓';
+    case 'view_asc': return 'Xem ↑';
+    default: return 'Mới nhất';
+  }
 };
 
 const styles = StyleSheet.create({
@@ -209,6 +298,27 @@ const styles = StyleSheet.create({
   menuItem: {
     fontSize: 16,
     paddingVertical: 8,
+  },
+  sortBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  sortLabel: {
+    fontSize: 14,
+    color: '#333',
+    marginRight: 8,
+  },
+  sortButton: {
+    backgroundColor: '#f1f1f1',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  sortButtonText: {
+    fontSize: 14,
+    color: '#333',
   },
   emptyText: {
     fontSize: 16,
