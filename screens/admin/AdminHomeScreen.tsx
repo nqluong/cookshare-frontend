@@ -1,354 +1,353 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
+import adminStatisticApi, { getDefaultDateRange } from "../../services/adminStatisticsService";
 import { Colors } from "../../styles/colors";
 
-interface TopRecipe {
-  id: string;
-  name: string;
-  image: any;
-  time: string;
-  likes: string;
-  rank: string;
+interface QuickStat {
+  icon: any;
+  label: string;
+  value: string;
+  color: string;
+  bgColor: string;
+  onPress?: () => void;
 }
 
 export default function AdminHomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
 
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalRecipes: 0,
+    totalUsers: 0,
+    totalLikes: 0,
+    totalSearches: 0,
+    engagementRate: 0,
+    searchSuccessRate: 0,
+  });
+
+  useEffect(() => {
+    fetchQuickStats();
+  }, []);
+
+  const fetchQuickStats = async () => {
+    try {
+      const dateRange = getDefaultDateRange();
+      
+      const [interactionData, searchData] = await Promise.all([
+        adminStatisticApi.getInteractionOverview(dateRange),
+        adminStatisticApi.getSearchOverview(dateRange),
+      ]);
+
+      setStats({
+        totalRecipes: interactionData.totalRecipes,
+        totalUsers: searchData.totalUsers,
+        totalLikes: interactionData.totalLikes,
+        totalSearches: searchData.totalSearches,
+        engagementRate: interactionData.engagementRate,
+        searchSuccessRate: searchData.successRate,
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExitAdmin = () => {
     router.replace('/(tabs)/home' as any);
   };
 
-  // Mock data cho biểu đồ tuần
-  const weeklyData = [
-    { week: "Tuần 1", users: 5, recipes: 3 },
-    { week: "Tuần 2", users: 8, recipes: 6 },
-    { week: "Tuần 3", users: 12, recipes: 10 },
-    { week: "Tuần 4", users: 16, recipes: 14 },
+  const quickStats: QuickStat[] = [
+    {
+      icon: "document-text",
+      label: "Công Thức",
+      value: loading ? "..." : stats.totalRecipes.toString(),
+      color: "#1a73e8",
+      bgColor: "#e8f0fe",
+      onPress: () => router.push('/admin/recipes'),
+    },
+    {
+      icon: "people",
+      label: "Người Dùng",
+      value: loading ? "..." : stats.totalUsers.toString(),
+      color: "#5f6368",
+      bgColor: "#f1f3f4",
+      onPress: () => router.push('/admin/users'),
+    },
+    {
+      icon: "heart",
+      label: "Tổng Likes",
+      value: loading ? "..." : formatNumber(stats.totalLikes),
+      color: "#ef4444",
+      bgColor: "#fee2e2",
+    },
+    {
+      icon: "search",
+      label: "Tìm Kiếm",
+      value: loading ? "..." : formatNumber(stats.totalSearches),
+      color: "#6366f1",
+      bgColor: "#eef2ff",
+    },
+    {
+      icon: "trending-up",
+      label: "Mức Tương Tác",
+      value: loading ? "..." : `${stats.engagementRate.toFixed(1)}%`,
+      color: "#10b981",
+      bgColor: "#d1fae5",
+    },
+    {
+      icon: "checkmark-circle",
+      label: "Tìm Kiếm thành công",
+      value: loading ? "..." : `${stats.searchSuccessRate.toFixed(1)}%`,
+      color: "#f59e0b",
+      bgColor: "#fef3c7",
+    },
   ];
 
-  // Mock top recipes
-  const topRecipes: TopRecipe[] = [
+  const menuItems = [
     {
-      id: "1",
-      name: "Chung Lê",
-      image: require("../../assets/images/default-avatar.png"),
-      time: "45'",
-      likes: "1.5k",
-      rank: "Top 1",
+      icon: "stats-chart",
+      label: "Thống Kê Chi Tiết",
+      description: "Xem phân tích tương tác & tìm kiếm",
+      color: "#10b981",
+      onPress: () => router.push('/admin/statistics' as any),
     },
     {
-      id: "2",
-      name: "",
-      image: require("../../assets/images/default-avatar.png"),
-      time: "45'",
-      likes: "1.3k",
-      rank: "Top 2",
+      icon: "restaurant",
+      label: "Quản Lý Công Thức",
+      description: "Duyệt và quản lý công thức",
+      color: "#3b82f6",
+      onPress: () => router.push('/admin/recipes' as any),
     },
     {
-      id: "3",
-      name: "",
-      image: require("../../assets/images/default-avatar.png"),
-      time: "45'",
-      likes: "1.2k",
-      rank: "Top 3",
+      icon: "leaf",
+      label: "Quản Lý Nguyên Liệu",
+      description: "Thêm, sửa nguyên liệu",
+      color: "#f59e0b",
+      onPress: () => router.push('/admin/ingredients' as any),
+    },
+    {
+      icon: "people",
+      label: "Quản Lý Người Dùng",
+      description: "Xem danh sách người dùng",
+      color: "#8b5cf6",
+      onPress: () => router.push('/admin/users' as any),
     },
   ];
-
-  const renderBarChart = () => {
-    const maxValue = Math.max(...weeklyData.map((d) => Math.max(d.users, d.recipes)));
-
-    return (
-      <View style={styles.chartContainer}>
-        {weeklyData.map((item, index) => {
-          const userHeight = (item.users / maxValue) * 120;
-          const recipeHeight = (item.recipes / maxValue) * 120;
-
-          return (
-            <View key={index} style={styles.barGroup}>
-              <View style={styles.barsWrapper}>
-                <View style={[styles.bar, styles.userBar, { height: userHeight }]} />
-                <View style={[styles.bar, styles.recipeBar, { height: recipeHeight }]} />
-              </View>
-              <Text style={styles.barLabel}>{item.week}</Text>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chào, {user?.fullName || "Chung"}</Text>
+        <View>
+          <Text style={styles.headerGreeting}>Chào,</Text>
+          <Text style={styles.headerTitle}>{user?.fullName || "Admin"}</Text>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.notificationButton}>
-            <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>3</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.exitButton} onPress={handleExitAdmin}>
-            <Ionicons name="exit-outline" size={24} color={Colors.text.primary} />
+            <Ionicons name="exit-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Ionicons name="document-text" size={20} color="#1a73e8" />
-            </View>
-            <Text style={styles.statLabel}>Tổng Số Công Thức</Text>
-            <Text style={styles.statValue}>2000</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: "#e8f0fe" }]}>
-              <Ionicons name="people" size={20} color="#5f6368" />
-            </View>
-            <Text style={styles.statLabel}>Người Dùng</Text>
-            <Text style={[styles.statValue, { color: "#5f6368" }]}>1000</Text>
+        {/* Quick Stats Grid */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>Tổng Quan Nhanh</Text>
+          <View style={styles.statsGrid}>
+            {quickStats.map((stat, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.statCard}
+                onPress={stat.onPress}
+                disabled={!stat.onPress}
+              >
+                <View style={[styles.statIconContainer, { backgroundColor: stat.bgColor }]}>
+                  <Ionicons name={stat.icon} size={24} color={stat.color} />
+                </View>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        {/* Chart Section */}
-        <View style={styles.chartSection}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Tháng 9</Text>
-            <View style={styles.chartActions}>
-              <TouchableOpacity style={styles.chartIconButton}>
-                <Ionicons name="search" size={20} color="#10b981" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.chartIconButton}>
-                <Ionicons name="calendar" size={20} color="#10b981" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Bar Chart */}
-          {renderBarChart()}
-
-          {/* Tab Buttons */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity style={styles.tabButton}>
-              <Text style={styles.tabButtonText}>Ngày</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
-              <Text style={[styles.tabButtonText, styles.tabButtonTextActive]}>Tuần</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.tabButton}>
-              <Text style={styles.tabButtonText}>Tháng</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Top Recipes */}
-        <View style={styles.topRecipesSection}>
-          {topRecipes.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.recipeItem}>
-              <Image source={item.image} style={styles.recipeImage} />
-              
-              <View style={styles.recipeInfo}>
-                <View style={styles.recipeTimeContainer}>
-                  <Ionicons name="time-outline" size={16} color="#ef4444" />
-                  <Text style={styles.recipeTime}>{item.time}</Text>
-                </View>
-                <View style={styles.recipeLikesContainer}>
-                  <Ionicons name="heart" size={16} color="#ef4444" />
-                  <Text style={styles.recipeLikes}>{item.likes}</Text>
-                </View>
+        {/* Menu Items */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionTitle}>Quản Lý</Text>
+          {menuItems.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.menuItem}
+              onPress={item.onPress}
+            >
+              <View style={[styles.menuIconContainer, { backgroundColor: `${item.color}15` }]}>
+                <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={28} color={item.color} />
               </View>
-
-              {item.name && <Text style={styles.recipeName}>{item.name}</Text>}
-
-              <View style={styles.rankBadge}>
-                <Text style={styles.rankText}>{item.rank}</Text>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuLabel}>{item.label}</Text>
+                <Text style={styles.menuDescription}>{item.description}</Text>
               </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.text.primary} />
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Bottom Spacing */}
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#10b981",
+    backgroundColor: "#f9fafb",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     backgroundColor: "#10b981",
   },
+  headerGreeting: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+    marginBottom: 4,
+  },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
-    color: Colors.text.primary,
+    color: "#fff",
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
   },
   notificationButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "#ef4444",
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#10b981",
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#fff",
   },
   exitButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   scrollView: {
     flex: 1,
   },
-  statsContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    gap: 12,
-    marginTop: 8,
+  statsSection: {
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.text.primary,
     marginBottom: 16,
-    backgroundColor: "#10b981",
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
   },
   statCard: {
-    flex: 1,
+    width: "31%",
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    gap: 8,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   statIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: "#e8f5e9",
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.text.secondary,
+    marginBottom: 12,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#10b981",
-  },
-  chartSection: {
-    backgroundColor: "#d1f4e0",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-  },
-  chartHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  chartTitle: {
-    fontSize: 18,
-    fontWeight: "600",
     color: Colors.text.primary,
+    marginBottom: 4,
   },
-  chartActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  chartIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  chartContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "flex-end",
-    height: 180,
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  barGroup: {
-    alignItems: "center",
-    flex: 1,
-  },
-  barsWrapper: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 4,
-    height: 140,
-  },
-  bar: {
-    width: 16,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-  },
-  userBar: {
-    backgroundColor: "#6366f1",
-  },
-  recipeBar: {
-    backgroundColor: "#10b981",
-  },
-  barLabel: {
+  statLabel: {
     fontSize: 11,
     color: Colors.text.secondary,
-    marginTop: 6,
+    textAlign: "center",
   },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: "#c8eed9",
-    borderRadius: 25,
-    padding: 4,
-    gap: 4,
+  menuSection: {
+    padding: 16,
+    paddingTop: 0,
   },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 20,
-    alignItems: "center",
-  },
-  tabButtonActive: {
-    backgroundColor: "#10b981",
-  },
-  tabButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: Colors.text.secondary,
-  },
-  tabButtonTextActive: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  topRecipesSection: {
-    backgroundColor: "#d1f4e0",
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-  },
-  recipeItem: {
+  menuItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 12,
+    padding: 16,
     marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -356,52 +355,25 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  recipeImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    marginRight: 12,
-  },
-  recipeInfo: {
-    flex: 1,
-    gap: 6,
-  },
-  recipeTimeContainer: {
-    flexDirection: "row",
+  menuIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: "center",
-    gap: 4,
+    justifyContent: "center",
+    marginRight: 16,
   },
-  recipeTime: {
+  menuContent: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  menuDescription: {
     fontSize: 13,
     color: Colors.text.secondary,
-    fontWeight: "500",
-  },
-  recipeLikesContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  recipeLikes: {
-    fontSize: 13,
-    color: "#ef4444",
-    fontWeight: "600",
-  },
-  recipeName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.text.primary,
-    marginRight: 12,
-  },
-  rankBadge: {
-    backgroundColor: Colors.gray[100],
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  rankText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: Colors.text.primary,
   },
 });
-

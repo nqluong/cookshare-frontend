@@ -1,16 +1,17 @@
+import { AdminRecipe, AdminRecipeDetailResponse } from '@/types/admin/recipe.types';
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import FilterOptions from "../../components/admin/FilterOptions";
-import FilterTabs from "../../components/admin/FilterTabs";
-import RecipeDetailModal from "../../components/admin/RecipeDetailModal";
-import RecipeList from "../../components/admin/RecipeList";
-import SearchBar from "../../components/admin/SearchBar";
+import FilterOptions from "../../components/admin/management/FilterOptions";
+import FilterTabs from "../../components/admin/management/FilterTabs";
+import RecipeDetailModal from "../../components/admin/management/RecipeDetailModal";
+import RecipeList from "../../components/admin/management/RecipeList";
+import SearchBar from "../../components/admin/management/SearchBar";
 import CustomAlert from "../../components/ui/CustomAlert";
 import { useCustomAlert } from "../../hooks/useCustomAlert";
-import { AdminRecipe, AdminRecipeDetailResponse, adminRecipeService } from "../../services/adminRecipeService";
+import { adminRecipeService } from "../../services/adminRecipeService";
 import { Colors } from "../../styles/colors";
 
 export default function AdminRecipesScreen() {

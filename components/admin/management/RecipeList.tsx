@@ -1,8 +1,8 @@
+import { AdminRecipe } from "@/types/admin/recipe.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { AdminRecipe } from "../../services/adminRecipeService";
-import { Colors } from "../../styles/colors";
+import { Colors } from "../../../styles/colors";
 import RecipeItem from "./RecipeItem";
 
 interface RecipeListProps {

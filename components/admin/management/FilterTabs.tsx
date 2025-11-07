@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Colors } from "../../styles/colors";
+import { Colors } from "../../../styles/colors";
 
 interface FilterTabsProps {
   activeFilter: 'all' | 'pending' | 'approved' | 'rejected';

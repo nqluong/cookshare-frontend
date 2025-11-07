@@ -1,8 +1,8 @@
+import { AdminRecipe } from "@/types/admin/recipe.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getImageUrl } from "../../config/api.config";
-import { AdminRecipe } from "../../services/adminRecipeService";
-import { Colors } from "../../styles/colors";
+import { getImageUrl } from "../../../config/api.config";
+import { Colors } from "../../../styles/colors";
 
 interface RecipeItemProps {
   recipe: AdminRecipe;
@@ -29,7 +29,7 @@ export default function RecipeItem({
     <View style={styles.recipeItem}>
       <View style={styles.recipeMainRow}>
         <Image 
-          source={recipe.featuredImage ? { uri: getImageUrl(recipe.featuredImage) } : require("../../assets/images/default-avatar.png")} 
+          source={recipe.featuredImage ? { uri: getImageUrl(recipe.featuredImage) } : require("../../../assets/images/default-avatar.png")} 
           style={styles.recipeImage} 
         />
 
