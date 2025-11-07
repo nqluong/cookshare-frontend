@@ -90,6 +90,21 @@ export default function AdminLayout() {
           href: null,
         }}
       />
+
+      <Tabs.Screen
+        name="recipes/[id]"
+        options={{
+          href: null,
+        }}
+      />
+
+            <Tabs.Screen
+        name="recipes/index"
+        options={{
+          href: null,
+        }}
+      />
+
     </Tabs>
   );
 }
