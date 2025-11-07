@@ -1,5 +1,8 @@
+import CollectionListTab from "@/components/profile/CollectionListTab";
+import RecipeGrid from "@/components/profile/RecipeGrid";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
+import { Image } from 'expo-image';
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,22 +14,21 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { Image } from 'expo-image';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { userService } from "../../services/userService";
 import { Colors } from "../../styles/colors";
 import { UserProfile } from "../../types/user.types";
-import CollectionListTab from "@/components/profile/CollectionListTab";
-import RecipeGrid from "@/components/profile/RecipeGrid";
 
 export default function OwnProfileScreen() {
 
   const canGoBack = router.canGoBack();
   const { user, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { reload } = useLocalSearchParams<{ reload?: string }>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<"recipes" | "collections">(
     "recipes"
@@ -50,6 +52,17 @@ export default function OwnProfileScreen() {
         loadProfile();
       }
     }, [user?.avatarUrl, lastLoadedAvatarUrl])
+  );
+
+  // Nếu bị điều hướng về profile với param reload -> reload profile and notify child to refetch
+  useFocusEffect(
+    useCallback(() => {
+      if (reload) {
+        console.log('🔁 reload param detected, refreshing profile and recipes');
+        loadProfile();
+        setRefreshKey(k => k + 1);
+      }
+    }, [reload])
   );
 
   const loadProfile = async () => {
@@ -254,7 +267,7 @@ export default function OwnProfileScreen() {
     if (!userProfile?.userId) return null;
 
     if (activeTab === "recipes") {
-      return <RecipeGrid userId={userProfile.userId} />;
+      return <RecipeGrid userId={userProfile.userId} refreshKey={refreshKey} />;
     } else {
       return <CollectionListTab userId={userProfile.userId} />;
     }

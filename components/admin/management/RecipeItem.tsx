@@ -1,18 +1,18 @@
+import { AdminRecipe } from "@/types/admin/recipe.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getImageUrl } from "../../config/api.config";
-import { AdminRecipe } from "../../services/adminRecipeService";
-import { Colors } from "../../styles/colors";
+import { getImageUrl } from "../../../config/api.config";
+import { Colors } from "../../../styles/colors";
 
 interface RecipeItemProps {
   recipe: AdminRecipe;
   onView: (recipe: AdminRecipe) => void;
   onEdit: (recipeId: string) => void;
-  onDelete: (recipe: AdminRecipe) => void;
-  onApprove?: (recipe: AdminRecipe) => void;
-  onReject?: (recipe: AdminRecipe) => void;
-  onToggleFeatured?: (recipe: AdminRecipe) => void;
-  onTogglePublished?: (recipe: AdminRecipe) => void;
+  onDelete: (recipe: string) => void;
+  onApprove?: (recipe: string) => void;
+  onReject?: (recipe: string) => void;
+  onToggleFeatured?: (recipe: string) => void;
+  onTogglePublished?: (recipe: string) => void;
 }
 
 export default function RecipeItem({ 
@@ -29,7 +29,7 @@ export default function RecipeItem({
     <View style={styles.recipeItem}>
       <View style={styles.recipeMainRow}>
         <Image 
-          source={recipe.featuredImage ? { uri: getImageUrl(recipe.featuredImage) } : require("../../assets/images/default-avatar.png")} 
+          source={recipe.featuredImage ? { uri: getImageUrl(recipe.featuredImage) } : require("../../../assets/images/default-avatar.png")} 
           style={styles.recipeImage} 
         />
 
@@ -103,7 +103,7 @@ export default function RecipeItem({
         {onApprove && recipe.status === 'PENDING' && (
           <TouchableOpacity 
             style={[styles.actionButton, styles.approveButton]}
-            onPress={() => onApprove(recipe)}
+            onPress={() => onApprove(recipe.recipeId)}
           >
             <Ionicons name="checkmark-outline" size={18} color="#10b981" />
           </TouchableOpacity>
@@ -112,7 +112,7 @@ export default function RecipeItem({
         {onReject && recipe.status === 'PENDING' && (
           <TouchableOpacity 
             style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => onReject(recipe)}
+            onPress={() => onReject(recipe.recipeId)}
           >
             <Ionicons name="close-outline" size={18} color="#ef4444" />
           </TouchableOpacity>
@@ -122,7 +122,7 @@ export default function RecipeItem({
         {onToggleFeatured && (
           <TouchableOpacity 
             style={[styles.actionButton, recipe.isFeatured ? styles.featuredButton : styles.actionButton]}
-            onPress={() => onToggleFeatured(recipe)}
+            onPress={() => onToggleFeatured(recipe.recipeId)}
           >
             <Ionicons 
               name={recipe.isFeatured ? "star" : "star-outline"} 
@@ -136,7 +136,7 @@ export default function RecipeItem({
         {onTogglePublished && !recipe.isPublished && (
           <TouchableOpacity 
             style={[styles.actionButton, styles.publishedButton]}
-            onPress={() => onTogglePublished(recipe)}
+            onPress={() => onTogglePublished(recipe.recipeId)}
           >
             <Ionicons 
               name="eye-outline" 
@@ -154,7 +154,7 @@ export default function RecipeItem({
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={() => onDelete(recipe)}
+          onPress={() => onDelete(recipe.recipeId)}
         >
           <Ionicons name="trash-outline" size={18} color="#ef4444" />
         </TouchableOpacity>

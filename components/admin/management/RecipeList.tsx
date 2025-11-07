@@ -1,8 +1,8 @@
+import { AdminRecipe } from "@/types/admin/recipe.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { AdminRecipe } from "../../services/adminRecipeService";
-import { Colors } from "../../styles/colors";
+import { Colors } from "../../../styles/colors";
 import RecipeItem from "./RecipeItem";
 
 interface RecipeListProps {
@@ -16,11 +16,11 @@ interface RecipeListProps {
   onLoadMore: () => void;
   onViewRecipe: (recipe: AdminRecipe) => void;
   onEditRecipe: (recipeId: string) => void;
-  onDeleteRecipe: (recipe: AdminRecipe) => void;
-  onApproveRecipe?: (recipe: AdminRecipe) => void;
-  onRejectRecipe?: (recipe: AdminRecipe) => void;
-  onToggleFeatured?: (recipe: AdminRecipe) => void;
-  onTogglePublished?: (recipe: AdminRecipe) => void;
+  onDeleteRecipe: (recipe: string) => void;
+  onApproveRecipe?: (recipe: string) => void;
+  onRejectRecipe?: (recipe: string) => void;
+  onToggleFeatured?: (recipe: string) => void;
+  onTogglePublished?: (recipe: string) => void;
 }
 
 export default function RecipeList({

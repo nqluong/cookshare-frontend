@@ -35,7 +35,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="statistics"
+        name="dashboard"
         options={{
           title: "",
           tabBarIcon: ({ color, size }) => (
@@ -67,12 +67,6 @@ export default function AdminLayout() {
       />
       {/* Hide these from tab bar */}
       <Tabs.Screen
-        name="dashboard"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
         name="ingredients"
         options={{
           href: null,
@@ -90,6 +84,27 @@ export default function AdminLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="statistics"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="recipes/[id]"
+        options={{
+          href: null,
+        }}
+      />
+
+            <Tabs.Screen
+        name="recipes/index"
+        options={{
+          href: null,
+        }}
+      />
+
     </Tabs>
   );
 }

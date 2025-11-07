@@ -12,7 +12,7 @@ const DEV_CONFIG = {
 
   // Fallback IP nếu auto-detect fail ( điền ip thật ở đây )
 
-  FALLBACK_IP: 'http://192.168.21.102:8080',
+  FALLBACK_IP: 'http://192.168.1.10:8080',
 
   // Port của backend
   PORT: 8080,
@@ -28,7 +28,7 @@ const getPlatformSpecificHost = (): string | null => {
   }
 
   if (Platform.OS === 'android') {
-    return 'http://192.168.21.102:8080';
+    return 'http://192.168.21.100:8080';
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật
@@ -87,21 +87,34 @@ export const getImageUrl = (imagePath: string | null | undefined): string => {
     return 'https://via.placeholder.com/400';
   }
 
-  const normalizedPath = imagePath.replace(/\\/g, '/');
+  const trimmed = imagePath.toString().trim();
 
-  return `${API_CONFIG.BASE_URL}/${normalizedPath}`;
+  // Nếu là URL Firebase Storage hoặc URL khác, trả về nguyên gốc
+  if (trimmed.startsWith('http') || trimmed.startsWith('//')) {
+    return trimmed;
+  }
+
+  // Nếu là đường dẫn local (từ image picker)
+  if (trimmed.startsWith('file://')) {
+    return trimmed;
+  }
+
+  // Cho các trường hợp khác, thêm base URL và timestamp để tránh cache
+  const normalizedPath = trimmed.replace(/\\/g, '/').replace(/^\/+/, '');
+  return `${API_CONFIG.BASE_URL}/${normalizedPath}?t=${Date.now()}`;
 };
 
 // 📊 Debug helper - log API config khi khởi động
 if (__DEV__) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔧 API Configuration');
+  console.log('🔧 API Configuration');'['
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`📱 Platform: ${Platform.OS}`);
   console.log(`🌐 API Host: ${API_HOST}`);
   console.log(`📍 API V1: ${API_CONFIG.API_V1_URL}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
+
 
 // WebSocket URL sẽ tự động được tạo từ API_BASE_URL
 export const WS_BASE_URL = API_CONFIG.BASE_URL.replace('http', 'ws').replace('/api', '');

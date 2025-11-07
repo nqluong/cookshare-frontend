@@ -1,4 +1,5 @@
-import AdminStatisticsScreen from "@/screens/admin/AdminStatisticsScreen";
+import AdminStatisticsScreen from '../../screens/admin/AdminStatisticsScreen';
 
-export default AdminStatisticsScreen;
-
+export default function StatisticsPage() {
+  return <AdminStatisticsScreen />;
+}

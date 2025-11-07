@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -33,7 +34,7 @@ export default function AdminUsersScreen() {
   const [totalElements, setTotalElements] = useState(0);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showUserDetailModal, setShowUserDetailModal] = useState(false);
-  
+
   const { alert, showSuccess, showError, showWarning, hideAlert } = useCustomAlert();
 
   const loadUsers = useCallback(async (page: number = 0, search: string = "", reset: boolean = true) => {
@@ -44,13 +45,13 @@ export default function AdminUsersScreen() {
       }
 
       const response = await adminUserService.getAllUsers(search, page, 10);
-      
+
       if (reset) {
         setUsers(response.content);
       } else {
         setUsers(prev => [...prev, ...response.content]);
       }
-      
+
       setCurrentPage(page);
       setHasMore(!response.last);
       setTotalElements(response.totalElements);
@@ -95,7 +96,7 @@ export default function AdminUsersScreen() {
   const handleBanUser = (user: AdminUser) => {
     const action = user.isActive ? 'cấm' : 'gỡ cấm';
     const capitalizedAction = action.charAt(0).toUpperCase() + action.slice(1);
-    
+
     showWarning(
       `${capitalizedAction} người dùng`,
       `Bạn có chắc chắn muốn ${action} người dùng "${user.fullName}"?`,
@@ -206,8 +207,8 @@ export default function AdminUsersScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <ScrollView 
-            style={styles.scrollView} 
+          <ScrollView
+            style={styles.scrollView}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -237,9 +238,17 @@ export default function AdminUsersScreen() {
                   <View key={user.userId} style={styles.userItem}>
                     <View style={styles.userAvatar}>
                       {user.avatarUrl ? (
-                        <Ionicons name="person" size={24} color="#6366f1" />
+                        <Image
+                          source={{ uri: user.avatarUrl }}
+                          style={styles.avatar}
+                          contentFit="cover"
+                        />
                       ) : (
-                        <Ionicons name="person" size={24} color="#6366f1" />
+                        <Image
+                          source={require("../../assets/images/default-avatar.png")}
+                          style={styles.avatar}
+                          contentFit="cover"
+                        />
                       )}
                     </View>
 
@@ -268,29 +277,29 @@ export default function AdminUsersScreen() {
                     </View>
 
                     <View style={styles.userActions}>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => handleViewUser(user)}
                       >
                         <Ionicons name="eye-outline" size={20} color={Colors.text.secondary} />
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => handleEditUser(user.userId)}
                       >
                         <Ionicons name="create-outline" size={20} color={Colors.text.secondary} />
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => handleBanUser(user)}
                       >
-                        <Ionicons 
-                          name={user.isActive ? "ban" : "checkmark-circle"} 
-                          size={20} 
-                          color={user.isActive ? "#ef4444" : "#10b981"} 
+                        <Ionicons
+                          name={user.isActive ? "ban" : "checkmark-circle"}
+                          size={20}
+                          color={user.isActive ? "#ef4444" : "#10b981"}
                         />
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => handleDeleteUser(user)}
                       >
@@ -320,7 +329,7 @@ export default function AdminUsersScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setShowUserDetailModal(false)}
             >
@@ -336,10 +345,18 @@ export default function AdminUsersScreen() {
               <View style={styles.modalUserHeader}>
                 <View style={styles.modalUserAvatar}>
                   {selectedUser.avatarUrl ? (
-                    <Ionicons name="person" size={40} color="#6366f1" />
-                  ) : (
-                    <Ionicons name="person" size={40} color="#6366f1" />
-                  )}
+                              <Image
+                                source={{ uri: selectedUser.avatarUrl }}
+                                style={styles.modalAvatar}
+                                contentFit="cover"
+                              />
+                            ) : (
+                              <Image
+                                source={require("../../assets/images/default-avatar.png")}
+                                style={styles.modalAvatar}
+                                contentFit="cover"
+                              />
+                            )}
                 </View>
                 <View style={styles.modalUserInfo}>
                   <Text style={styles.modalUserName}>{selectedUser.fullName}</Text>
@@ -358,34 +375,34 @@ export default function AdminUsersScreen() {
               {/* User Details */}
               <View style={styles.modalDetailsSection}>
                 <Text style={styles.modalSectionTitle}>Thông tin cơ bản</Text>
-                
+
                 <View style={styles.modalDetailRow}>
                   <Text style={styles.modalDetailLabel}>Username:</Text>
                   <Text style={styles.modalDetailValue}>{selectedUser.username}</Text>
                 </View>
-                
+
                 <View style={styles.modalDetailRow}>
                   <Text style={styles.modalDetailLabel}>Email:</Text>
                   <Text style={styles.modalDetailValue}>{selectedUser.email}</Text>
                 </View>
-                
+
                 <View style={styles.modalDetailRow}>
                   <Text style={styles.modalDetailLabel}>Tên đầy đủ:</Text>
                   <Text style={styles.modalDetailValue}>{selectedUser.fullName}</Text>
                 </View>
-                
+
                 <View style={styles.modalDetailRow}>
                   <Text style={styles.modalDetailLabel}>Vai trò:</Text>
                   <Text style={styles.modalDetailValue}>{selectedUser.role}</Text>
                 </View>
-                
+
                 <View style={styles.modalDetailRow}>
                   <Text style={styles.modalDetailLabel}>Xác thực email:</Text>
                   <View style={styles.modalDetailValue}>
-                    <Ionicons 
-                      name={selectedUser.emailVerified ? "checkmark-circle" : "close-circle"} 
-                      size={20} 
-                      color={selectedUser.emailVerified ? "#10b981" : "#ef4444"} 
+                    <Ionicons
+                      name={selectedUser.emailVerified ? "checkmark-circle" : "close-circle"}
+                      size={20}
+                      color={selectedUser.emailVerified ? "#10b981" : "#ef4444"}
                     />
                     <Text style={[
                       styles.modalDetailValue,
@@ -400,20 +417,20 @@ export default function AdminUsersScreen() {
               {/* Statistics */}
               <View style={styles.modalDetailsSection}>
                 <Text style={styles.modalSectionTitle}>Thống kê</Text>
-                
+
                 <View style={styles.modalStatsGrid}>
                   <View style={styles.modalStatCard}>
                     <Ionicons name="people-outline" size={24} color="#6366f1" />
                     <Text style={styles.modalStatNumber}>{selectedUser.followerCount}</Text>
                     <Text style={styles.modalStatLabel}>Người theo dõi</Text>
                   </View>
-                  
+
                   <View style={styles.modalStatCard}>
                     <Ionicons name="person-add-outline" size={24} color="#10b981" />
                     <Text style={styles.modalStatNumber}>{selectedUser.followingCount}</Text>
                     <Text style={styles.modalStatLabel}>Đang theo dõi</Text>
                   </View>
-                  
+
                   <View style={styles.modalStatCard}>
                     <Ionicons name="book-outline" size={24} color="#f59e0b" />
                     <Text style={styles.modalStatNumber}>{selectedUser.recipeCount}</Text>
@@ -425,7 +442,7 @@ export default function AdminUsersScreen() {
               {/* Activity Info */}
               <View style={styles.modalDetailsSection}>
                 <Text style={styles.modalSectionTitle}>Hoạt động</Text>
-                
+
                 <View style={styles.modalDetailRow}>
                   <Text style={styles.modalDetailLabel}>Tham gia:</Text>
                   <Text style={styles.modalDetailValue}>
@@ -438,7 +455,7 @@ export default function AdminUsersScreen() {
                     })}
                   </Text>
                 </View>
-                
+
                 <View style={styles.modalDetailRow}>
                   <Text style={styles.modalDetailLabel}>Hoạt động cuối:</Text>
                   <Text style={styles.modalDetailValue}>
@@ -455,7 +472,7 @@ export default function AdminUsersScreen() {
 
               {/* Action Buttons */}
               <View style={styles.modalActions}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.modalActionButton, styles.modalEditButton]}
                   onPress={() => {
                     setShowUserDetailModal(false);
@@ -465,10 +482,10 @@ export default function AdminUsersScreen() {
                   <Ionicons name="create-outline" size={20} color="#fff" />
                   <Text style={styles.modalActionButtonText}>Chỉnh sửa</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={[
-                    styles.modalActionButton, 
+                    styles.modalActionButton,
                     selectedUser.isActive ? styles.modalBanButton : styles.modalUnbanButton
                   ]}
                   onPress={() => {
@@ -476,17 +493,17 @@ export default function AdminUsersScreen() {
                     handleBanUser(selectedUser);
                   }}
                 >
-                  <Ionicons 
-                    name={selectedUser.isActive ? "ban" : "checkmark-circle"} 
-                    size={20} 
-                    color="#fff" 
+                  <Ionicons
+                    name={selectedUser.isActive ? "ban" : "checkmark-circle"}
+                    size={20}
+                    color="#fff"
                   />
                   <Text style={styles.modalActionButtonText}>
                     {selectedUser.isActive ? 'Cấm' : 'Gỡ cấm'}
                   </Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={[styles.modalActionButton, styles.modalDeleteButton]}
                   onPress={() => {
                     setShowUserDetailModal(false);
@@ -501,7 +518,7 @@ export default function AdminUsersScreen() {
           )}
         </SafeAreaView>
       </Modal>
-      
+
       {/* Custom Alert */}
       <CustomAlert
         visible={alert.visible}
@@ -519,6 +536,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#10b981",
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  modalAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   header: {
     flexDirection: "row",

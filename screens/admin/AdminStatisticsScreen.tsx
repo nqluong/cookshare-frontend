@@ -1,202 +1,225 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Colors } from "../../styles/colors";
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '../../styles/colors';
 
-type TimeFilter = "Ngày" | "Tuần" | "Tháng" | "Năm";
+import StatisticsTabs, { StatisticsTabType } from '../../components/admin/statistics/StatisticsTabs';
+import CategoryEngagementList from '../../components/admin/statistics/interaction/CategoryEngagementList';
+import DetailedStatsCard from '../../components/admin/statistics/interaction/DetailedStatsCard';
+import FollowTrendsChart from '../../components/admin/statistics/interaction/FollowTrendsChart';
+import OverviewCards from '../../components/admin/statistics/interaction/OverviewCards';
+import PeakHoursChart from '../../components/admin/statistics/interaction/PeakHoursChart';
+import TopCommentsCard from '../../components/admin/statistics/interaction/TopCommentsCard';
+import PopularCategoriesCard from '../../components/admin/statistics/search/PopularCategoriesCard';
+import PopularIngredientsCard from '../../components/admin/statistics/search/PopularIngredientsCard';
+import PopularKeywordsList from '../../components/admin/statistics/search/PopularKeywordsList';
+import SearchOverviewCards from '../../components/admin/statistics/search/SearchOverviewCards';
+import SearchSuccessRateCard from '../../components/admin/statistics/search/SearchSuccessRateCard';
+import SearchTrendsChart from '../../components/admin/statistics/search/SearchTrendsChart';
+import ZeroResultKeywordsCard from '../../components/admin/statistics/search/ZeroResultKeywordsCard';
+import adminStatisticApi, { getDefaultDateRange } from '../../services/adminStatisticsService';
+
+import type {
+  DetailedInteractionStats,
+  EngagementByCategory,
+  FollowTrends,
+  InteractionOverview,
+  PeakHoursStats,
+  TopComments,
+} from '../../types/admin/interaction.types';
+import type {
+  PopularCategories,
+  PopularIngredients,
+  PopularKeywords,
+  SearchOverview,
+  SearchSuccessRate,
+  SearchTrends,
+  ZeroResultKeywords,
+} from '../../types/admin/search.types';
 
 export default function AdminStatisticsScreen() {
-  const [selectedFilter, setSelectedFilter] = useState<TimeFilter>("Tháng");
+  
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<StatisticsTabType>('interaction');
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Mock data for monthly chart
-  const monthlyData = [
-    { month: 1, users: 20, recipes: 10 },
-    { month: 2, users: 30, recipes: 15 },
-    { month: 3, users: 35, recipes: 20 },
-    { month: 4, users: 40, recipes: 25 },
-    { month: 5, users: 50, recipes: 30 },
-    { month: 6, users: 60, recipes: 35 },
-    { month: 7, users: 65, recipes: 40 },
-    { month: 8, users: 70, recipes: 50 },
-    { month: 9, users: 80, recipes: 60 },
-    { month: 10, users: 90, recipes: 70 },
-    { month: 11, users: 95, recipes: 75 },
-    { month: 12, users: 100, recipes: 80 },
-  ];
+  // Interaction data states
+  const [interactionOverview, setInteractionOverview] = useState<InteractionOverview | null>(null);
+  const [detailedStats, setDetailedStats] = useState<DetailedInteractionStats | null>(null);
+  const [peakHours, setPeakHours] = useState<PeakHoursStats | null>(null);
+  const [topComments, setTopComments] = useState<TopComments | null>(null);
+  const [followTrends, setFollowTrends] = useState<FollowTrends | null>(null);
+  const [categoryEngagement, setCategoryEngagement] = useState<EngagementByCategory | null>(null);
 
-  const renderLineChart = () => {
-    const maxValue = Math.max(...monthlyData.map((d) => Math.max(d.users, d.recipes)));
-    const chartHeight = 200;
+  // Search data states
+  const [searchOverview, setSearchOverview] = useState<SearchOverview | null>(null);
+  const [popularKeywords, setPopularKeywords] = useState<PopularKeywords | null>(null);
+  const [popularIngredients, setPopularIngredients] = useState<PopularIngredients | null>(null);
+  const [popularCategories, setPopularCategories] = useState<PopularCategories | null>(null);
+  const [searchSuccessRate, setSearchSuccessRate] = useState<SearchSuccessRate | null>(null);
+  const [zeroResultKeywords, setZeroResultKeywords] = useState<ZeroResultKeywords | null>(null);
+  const [searchTrends, setSearchTrends] = useState<SearchTrends | null>(null);
 
-    // Calculate points for lines
-    const userPoints = monthlyData.map((item, index) => {
-      const x = (index / (monthlyData.length - 1)) * 100; // percentage
-      const y = ((maxValue - item.users) / maxValue) * 100; // percentage from top
-      return { x, y, value: item.users };
-    });
+  // Loading states
+  const [loadingInteraction, setLoadingInteraction] = useState(false);
+  const [loadingSearch, setLoadingSearch] = useState(false);
 
-    const recipePoints = monthlyData.map((item, index) => {
-      const x = (index / (monthlyData.length - 1)) * 100;
-      const y = ((maxValue - item.recipes) / maxValue) * 100;
-      return { x, y, value: item.recipes };
-    });
+  // Fetch data on tab change
+  useEffect(() => {
+    if (activeTab === 'interaction') {
+      fetchInteractionData();
+    } else if (activeTab === 'search') {
+      fetchSearchData();
+    }
+  }, [activeTab]);
 
-    return (
-      <View style={styles.chartContainer}>
-        {/* Y-axis labels */}
-        <View style={styles.yAxisContainer}>
-          <Text style={styles.yAxisLabel}>100</Text>
-          <Text style={styles.yAxisLabel}>80</Text>
-          <Text style={styles.yAxisLabel}>60</Text>
-          <Text style={styles.yAxisLabel}>40</Text>
-          <Text style={styles.yAxisLabel}>20</Text>
-          <Text style={styles.yAxisLabel}>0</Text>
-        </View>
+  const fetchInteractionData = async () => {
+    setLoadingInteraction(true);
+    try {
+      const dateRange = getDefaultDateRange();
 
-        {/* Chart area */}
-        <View style={styles.chartArea}>
-          {/* Grid lines */}
-          <View style={styles.gridContainer}>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <View key={i} style={styles.gridLine} />
-            ))}
-          </View>
+      const [overview, detailed, peak, comments, trends, engagement] = await Promise.all([
+        adminStatisticApi.getInteractionOverview(dateRange),
+        adminStatisticApi.getDetailedInteractionStats(dateRange),
+        adminStatisticApi.getPeakHours(dateRange),
+        adminStatisticApi.getTopComments(10, dateRange),
+        adminStatisticApi.getFollowTrends({ ...dateRange, groupBy: 'WEEK' }),
+        adminStatisticApi.getEngagementByCategory(dateRange),
+      ]);
 
-          {/* Data points */}
-          <View style={styles.dataPointsContainer}>
-            {userPoints.map((point, index) => (
-              <View
-                key={`user-${index}`}
-                style={[
-                  styles.dataPoint,
-                  styles.userDataPoint,
-                  {
-                    left: `${point.x}%`,
-                    top: `${point.y}%`,
-                  },
-                ]}
-              />
-            ))}
-            {recipePoints.map((point, index) => (
-              <View
-                key={`recipe-${index}`}
-                style={[
-                  styles.dataPoint,
-                  styles.recipeDataPoint,
-                  {
-                    left: `${point.x}%`,
-                    top: `${point.y}%`,
-                  },
-                ]}
-              />
-            ))}
-          </View>
+      setInteractionOverview(overview);
+      setDetailedStats(detailed);
+      setPeakHours(peak);
+      setTopComments(comments);
+      setFollowTrends(trends);
+      setCategoryEngagement(engagement);
+    } catch (error) {
+      console.error('Error fetching interaction data:', error);
+    } finally {
+      setLoadingInteraction(false);
+    }
+  };
 
-          {/* X-axis labels */}
-          <View style={styles.xAxisContainer}>
-            {monthlyData.map((item, index) => (
-              <Text key={index} style={styles.xAxisLabel}>
-                {item.month}
-              </Text>
-            ))}
-          </View>
-        </View>
-      </View>
-    );
+  const fetchSearchData = async () => {
+    setLoadingSearch(true);
+    try {
+      const dateRange = getDefaultDateRange();
+
+      // Fetch all search statistics
+      const [overview, keywords, ingredients, categories, successRate, zeroResults, trends] =
+        await Promise.all([
+          adminStatisticApi.getSearchOverview(dateRange),
+          adminStatisticApi.getPopularKeywords(20, dateRange),
+          adminStatisticApi.getPopularIngredients(30, dateRange),
+          adminStatisticApi.getPopularCategories(dateRange),
+          adminStatisticApi.getSearchSuccessRate(dateRange),
+          adminStatisticApi.getZeroResultKeywords(30, dateRange),
+          adminStatisticApi.getSearchTrends({ ...dateRange, groupBy: 'DAY' }),
+        ]);
+
+      setSearchOverview(overview);
+      setPopularKeywords(keywords);
+      setPopularIngredients(ingredients);
+      setPopularCategories(categories);
+      setSearchSuccessRate(successRate);
+      setZeroResultKeywords(zeroResults);
+      setSearchTrends(trends);
+
+    } catch (error) {
+      console.error('Error fetching search data:', error);
+    } finally {
+      setLoadingSearch(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (activeTab === 'interaction') {
+      await fetchInteractionData();
+    } else if (activeTab === 'search') {
+      await fetchSearchData();
+    }
+    setRefreshing(false);
+  };
+
+  const handleTabChange = (tab: StatisticsTabType) => {
+    setActiveTab(tab);
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Thống Kế</Text>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Thống Kê Chi Tiết</Text>
+        <TouchableOpacity style={styles.filterButton}>
+          <Ionicons name="calendar-outline" size={24} color={Colors.text.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Ionicons name="document-text" size={20} color="#1a73e8" />
-            </View>
-            <Text style={styles.statLabel}>Tổng Số Công Thức</Text>
-            <Text style={styles.statValue}>2000</Text>
-          </View>
+      {/* Tabs */}
+      <StatisticsTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: "#e8f0fe" }]}>
-              <Ionicons name="people" size={20} color="#5f6368" />
-            </View>
-            <Text style={styles.statLabel}>Người Dùng</Text>
-            <Text style={[styles.statValue, { color: "#5f6368" }]}>1000</Text>
-          </View>
-        </View>
+      {/* Content */}
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#10b981']}
+            tintColor="#10b981"
+          />
+        }
+      >
+        {activeTab === 'interaction' && (
+          <>
+            
+            <OverviewCards data={interactionOverview} loading={loadingInteraction} />
+            
+            <PeakHoursChart data={peakHours} loading={loadingInteraction} />
+            
+            <CategoryEngagementList 
+              data={categoryEngagement?.categoryEngagements || null} 
+              loading={loadingInteraction} 
+            />
+            
+            <DetailedStatsCard data={detailedStats} loading={loadingInteraction} />
 
-        {/* Chart Section */}
-        <View style={styles.chartSection}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>2025</Text>
-            <View style={styles.chartActions}>
-              <TouchableOpacity style={styles.chartIconButton}>
-                <Ionicons name="search" size={20} color="#10b981" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.chartIconButton}>
-                <Ionicons name="calendar" size={20} color="#10b981" />
-              </TouchableOpacity>
-            </View>
-          </View>
+            <TopCommentsCard data={topComments} loading={loadingInteraction} />
+            
 
-          {/* Chart Title */}
-          <Text style={styles.chartSubtitle}>Người Dùng & Công Thức Mới</Text>
+            <FollowTrendsChart data={followTrends} loading={loadingInteraction} />
+          </>
+        )}
 
-          {/* Line Chart */}
-          {renderLineChart()}
+        {activeTab === 'search' && (
+          <>
+            <SearchOverviewCards data={searchOverview} loading={loadingSearch} />
+            <PopularKeywordsList data={popularKeywords} loading={loadingSearch} />
+            
+            <PopularIngredientsCard data={popularIngredients} loading={loadingSearch} />
+            <PopularCategoriesCard data={popularCategories} loading={loadingSearch} />
+            <SearchSuccessRateCard data={searchSuccessRate} loading={loadingSearch} />
+            <ZeroResultKeywordsCard data={zeroResultKeywords} loading={loadingSearch} />
+            <SearchTrendsChart data={searchTrends} loading={loadingSearch} />
+          </>
+        )}
 
-          {/* Legend */}
-          <View style={styles.legendContainer}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: "#6366f1" }]} />
-              <Text style={styles.legendText}>Người dùng</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: "#ef4444" }]} />
-              <Text style={styles.legendText}>Công thức</Text>
-            </View>
-          </View>
-
-          {/* Time Filter Tabs */}
-          <View style={styles.tabContainer}>
-            {(["Ngày", "Tuần", "Tháng", "Năm"] as TimeFilter[]).map((filter) => (
-              <TouchableOpacity
-                key={filter}
-                style={[
-                  styles.tabButton,
-                  selectedFilter === filter && styles.tabButtonActive,
-                ]}
-                onPress={() => setSelectedFilter(filter)}
-              >
-                <Text
-                  style={[
-                    styles.tabButtonText,
-                    selectedFilter === filter && styles.tabButtonTextActive,
-                  ]}
-                >
-                  {filter}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        {/* Bottom spacing for tab bar */}
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -205,203 +228,50 @@ export default function AdminStatisticsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#10b981",
+    backgroundColor: '#f9fafb',
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#10b981",
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
+  },
+  backButton: {
+    padding: 4,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: '700',
     color: Colors.text.primary,
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 16,
   },
-  notificationButton: {
+  filterButton: {
     padding: 4,
   },
   scrollView: {
     flex: 1,
   },
-  statsContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 16,
-    backgroundColor: "#10b981",
+  comingSoonContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 60,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-  },
-  statIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: "#e8f5e9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#10b981",
-  },
-  chartSection: {
-    backgroundColor: "#d1f4e0",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-  },
-  chartHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  chartTitle: {
+  comingSoonText: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '600',
+    color: Colors.text.secondary,
+    marginTop: 16,
+  },
+  comingSoonSubtext: {
+    fontSize: 14,
     color: Colors.text.primary,
-  },
-  chartActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  chartIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  chartSubtitle: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginBottom: 16,
-  },
-  chartContainer: {
-    flexDirection: "row",
-    height: 250,
-    marginBottom: 16,
-  },
-  yAxisContainer: {
-    justifyContent: "space-between",
-    paddingRight: 8,
-    paddingVertical: 10,
-  },
-  yAxisLabel: {
-    fontSize: 10,
-    color: Colors.text.secondary,
-  },
-  chartArea: {
-    flex: 1,
-    position: "relative",
-  },
-  gridContainer: {
-    position: "absolute",
-    top: 10,
-    left: 0,
-    right: 0,
-    bottom: 30,
-    justifyContent: "space-between",
-  },
-  gridLine: {
-    height: 1,
-    backgroundColor: "#c8eed9",
-  },
-  dataPointsContainer: {
-    position: "absolute",
-    top: 10,
-    left: 0,
-    right: 0,
-    bottom: 30,
-  },
-  dataPoint: {
-    position: "absolute",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: -4,
-    marginTop: -4,
-  },
-  userDataPoint: {
-    backgroundColor: "#6366f1",
-  },
-  recipeDataPoint: {
-    backgroundColor: "#ef4444",
-  },
-  xAxisContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 4,
-  },
-  xAxisLabel: {
-    fontSize: 10,
-    color: Colors.text.secondary,
-  },
-  legendContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 24,
-    marginBottom: 20,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  legendText: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: "#c8eed9",
-    borderRadius: 25,
-    padding: 4,
-    gap: 4,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 20,
-    alignItems: "center",
-  },
-  tabButtonActive: {
-    backgroundColor: "#10b981",
-  },
-  tabButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: Colors.text.secondary,
-  },
-  tabButtonTextActive: {
-    color: "#fff",
-    fontWeight: "600",
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
-
