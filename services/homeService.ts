@@ -54,17 +54,17 @@ export const isRecipeLiked = async (recipeId: string) => {
   return response.data;
 };
 export const getLikedRecipes = async (page: number = 0, size: number = 10) => {
-try {
-const token = await AsyncStorage.getItem('authToken');
-const res = await api.get(`/likes-ratings/likedlist?page=${page}&size=${size}`, {
-headers: {
-Authorization: `Bearer ${token}`,
-},
-});
-return res.data;
-} catch (error) {
-handleError(error);
-}
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    const res = await api.get(`/likes-ratings/likedlist?page=${page}&size=${size}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 export const getHomeSuggestions = async () => {
   try {
@@ -122,33 +122,33 @@ export const searchRecipeByUser = async (searchQuery: string, page: number = 0, 
   try {
     const token = await AsyncStorage.getItem('authToken');
     const res = await axios.get(
-  `${BASE_URL}/searchs/user?name=${encodeURIComponent(searchQuery)}&page=${page}&size=${size}&sortBy=title&direction=ASC`,
-  {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...API_CONFIG.DEFAULT_HEADERS,
-    },
-    timeout: API_CONFIG.TIMEOUT,
-  }
-);
+      `${BASE_URL}/searchs/user?name=${encodeURIComponent(searchQuery)}&page=${page}&size=${size}&sortBy=title&direction=ASC`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...API_CONFIG.DEFAULT_HEADERS,
+        },
+        timeout: API_CONFIG.TIMEOUT,
+      }
+    );
     return res.data;
   } catch (error) {
     handleError(error);
   }
 };
 export const getRecipebyFollowing = async (page: number = 0, size: number = 10) => {
-try {
-const token = await AsyncStorage.getItem('authToken');
-const res = await axios.get(
-  `${BASE_URL}/users/following/recipes?page=${page}&size=${size}`,
-  {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...API_CONFIG.DEFAULT_HEADERS,
-    },
-    timeout: API_CONFIG.TIMEOUT,
-  }
-);
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    const res = await axios.get(
+      `${BASE_URL}/users/following/recipes?page=${page}&size=${size}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...API_CONFIG.DEFAULT_HEADERS,
+        },
+        timeout: API_CONFIG.TIMEOUT,
+      }
+    );
     return res.data;
   } catch (error) {
     handleError(error);

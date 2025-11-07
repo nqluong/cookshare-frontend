@@ -9,7 +9,7 @@ export interface CommentResponse {
   createdAt: string;
   updatedAt: string;
   replyCount: number;
-  replies: CommentResponse[] | null;
+  replies: CommentResponse[] ;
 }
 export interface CommentRequest {
   recipeId: string;
