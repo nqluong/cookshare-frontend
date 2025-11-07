@@ -1,9 +1,9 @@
+import { AdminRecipe, AdminRecipeDetailResponse } from "@/types/admin/recipe.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getImageUrl } from "../../config/api.config";
-import { AdminRecipe, AdminRecipeDetailResponse } from "../../services/adminRecipeService";
-import { Colors } from "../../styles/colors";
+import { getImageUrl } from "../../../config/api.config";
+import { Colors } from "../../../styles/colors";
 
 interface RecipeDetailModalProps {
   visible: boolean;
@@ -55,7 +55,7 @@ export default function RecipeDetailModal({
           {/* Recipe Header */}
           <View style={styles.modalRecipeHeader}>
             <Image 
-              source={recipe.featuredImage ? { uri: getImageUrl(recipe.featuredImage) } : require("../../assets/images/default-avatar.png")} 
+              source={recipe.featuredImage ? { uri: getImageUrl(recipe.featuredImage) } : require('../../../assets/images/default-avatar.png')}
               style={styles.modalRecipeImage} 
             />
             <View style={styles.modalRecipeInfo}>

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Colors } from "../../styles/colors";
+import { Colors } from "../../../styles/colors";
 
 interface FilterOptionsProps {
   visible: boolean;
