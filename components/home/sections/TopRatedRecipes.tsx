@@ -69,7 +69,13 @@ export default function TopRatedRecipes({
         <Text style={styles.title}>Đánh giá cao nhất ⭐</Text>
         <TouchableOpacity 
           style={styles.viewAllButton}
-          onPress={() => router.push({ pathname: '/_view-all', params: { type: 'topRated' } })}
+          onPress={() => 
+            router.push({ 
+              pathname: '/_view-all', 
+              params: { 
+                type: 'topRated' ,
+                liked: JSON.stringify([...likedRecipes])
+              } })}
           activeOpacity={0.7}
         >
           <Text style={styles.viewAllText}>Xem tất cả</Text>

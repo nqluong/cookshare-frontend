@@ -68,7 +68,12 @@ export default function PopularRecipes({
         <Text style={styles.title}>Phổ biến nhất</Text>
         <TouchableOpacity 
           style={styles.viewAllButton}
-          onPress={() => router.push({ pathname: '/_view-all', params: { type: 'popular' } })}
+          onPress={() => 
+            router.push({ 
+              pathname: '/_view-all', 
+              params: { type: 'popular' ,
+              liked: JSON.stringify([...likedRecipes])  
+              } })}
           activeOpacity={0.7}
         >
           <Text style={styles.viewAllText}>Xem tất cả</Text>

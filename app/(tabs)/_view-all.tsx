@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -17,6 +18,7 @@ import {
   getPopularRecipes,
   getTopRatedRecipes,
   getTrendingRecipes,
+  isRecipeLiked,
 } from '../../services/homeService';
 import { Colors } from '../../styles/colors';
 import { Recipe } from '../../types/dish';
@@ -41,8 +43,10 @@ export default function ViewAllScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const type = (params.type as RecipeType) || 'newest';
-  
-  // Use canGoBack to determine if we should show back button
+
+  // ✅ Nhận danh sách công thức đã like từ params
+  const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
+
   const canGoBack = router.canGoBack();
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -51,48 +55,72 @@ export default function ViewAllScreen() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
     fetchRecipes(0, true);
-  }, [type]);
-
+  }, [type])
+);
   const fetchRecipes = async (pageNum: number, isInitial: boolean = false) => {
-    if (!hasMore && !isInitial) return;
+  if (!hasMore && !isInitial) return;
 
-    try {
-      if (isInitial) {
-        setLoading(true);
-        setRecipes([]);
-        setPage(0);
-        setHasMore(true);
-      } else {
-        setLoadingMore(true);
-      }
-
-      const apiFn = API_FUNCTIONS[type];
-      const response = await apiFn(pageNum, 20); // 20 items mỗi lần load
-
-      if (response.success && response.data) {
-        const newRecipes = response.data.content || [];
-
-        if (isInitial) {
-          setRecipes(newRecipes);
-        } else {
-          setRecipes((prev) => [...prev, ...newRecipes]);
-        }
-
-        setPage(pageNum);
-        setHasMore(!response.data.last);
-      }
-    } catch (err: any) {
-      console.error('Error fetching recipes:', err);
-      setError(err.message || 'Không thể tải dữ liệu');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
+  try {
+    if (isInitial) {
+      setLoading(true);
+      setRecipes([]);
+      setPage(0);
+      setHasMore(true);
+    } else {
+      setLoadingMore(true);
     }
-  };
+
+    const apiFn = API_FUNCTIONS[type];
+    const response = await apiFn(pageNum, 20);
+
+    if (response.success && response.data) {
+      const newRecipes = response.data.content || [];
+
+      // ✅ Lấy danh sách recipeId để kiểm tra like
+      const recipeIds = newRecipes.map((r: Recipe) => r.recipeId);
+
+      // ✅ Gọi song song API kiểm tra like
+      const likeChecks = await Promise.all(
+  recipeIds.map(async (id: string) => {
+    try {
+      const res = await isRecipeLiked(id);
+      return res?.result ? id : null;
+    } catch {
+      return null;
+    }
+  })
+);
+      const likedIds = likeChecks.filter(Boolean) as string[];
+
+      // ✅ Cập nhật state likedRecipes
+      setLikedRecipes((prev) => {
+        const updated = new Set(isInitial ? [] : prev);
+        likedIds.forEach((id) => updated.add(id));
+        return updated;
+      });
+
+      if (isInitial) {
+        setRecipes(newRecipes);
+      } else {
+        setRecipes((prev) => [...prev, ...newRecipes]);
+      }
+
+      setPage(pageNum);
+      setHasMore(!response.data.last);
+    }
+  } catch (err: any) {
+    console.error('Error fetching recipes:', err);
+    setError(err.message || 'Không thể tải dữ liệu');
+  } finally {
+    setLoading(false);
+    setLoadingMore(false);
+  }
+};
+
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
@@ -103,11 +131,8 @@ export default function ViewAllScreen() {
   const toggleLike = (recipeId: string) => {
     setLikedRecipes((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(recipeId)) {
-        newSet.delete(recipeId);
-      } else {
-        newSet.add(recipeId);
-      }
+      if (newSet.has(recipeId)) newSet.delete(recipeId);
+      else newSet.add(recipeId);
       return newSet;
     });
   };
@@ -127,7 +152,6 @@ export default function ViewAllScreen() {
 
   const renderRecipeCard = ({ item: recipe }: { item: Recipe }) => {
     const isLiked = likedRecipes.has(recipe.recipeId);
-    const currentLikes = isLiked ? recipe.likeCount + 1 : recipe.likeCount;
 
     return (
       <TouchableOpacity
@@ -190,7 +214,7 @@ export default function ViewAllScreen() {
 
             <View style={styles.statItem}>
               <Ionicons name="heart" size={14} color={Colors.primary} />
-              <Text style={styles.statText}>{currentLikes}</Text>
+              <Text style={styles.statText}>{recipe.likeCount}</Text>
             </View>
           </View>
         </View>
@@ -276,13 +300,8 @@ export default function ViewAllScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  safeArea: {
-    backgroundColor: Colors.white,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  safeArea: { backgroundColor: Colors.white },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -293,21 +312,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray[100],
   },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text.primary,
-  },
-  placeholder: {
-    width: 32,
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
+  backButton: { padding: 4 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
+  placeholder: { width: 32 },
+  listContent: { padding: 16, paddingBottom: 100 },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -319,15 +327,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  imageWrapper: {
-    width: '100%',
-    height: 200,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
+  imageWrapper: { width: '100%', height: 200, position: 'relative' },
+  image: { width: '100%', height: '100%' },
   likeButton: {
     position: 'absolute',
     top: 12,
@@ -339,9 +340,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: {
-    padding: 16,
-  },
+  content: { padding: 16 },
   recipeName: {
     fontSize: 16,
     fontWeight: '700',
@@ -357,68 +356,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray[100],
   },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flex: 1,
-  },
-  divider: {
-    width: 1,
-    height: 14,
-    backgroundColor: Colors.gray[200],
-    marginHorizontal: 8,
-  },
-  detailText: {
-    fontSize: 13,
-    color: Colors.text.secondary,
-    fontWeight: '500',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 13,
-    color: Colors.text.primary,
-    fontWeight: '600',
-  },
-  statSubText: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-  },
-  footer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: Colors.text.secondary,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#FF3B30',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryText: {
-    fontSize: 16,
-    color: Colors.primary,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
+  detailItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
+  divider: { width: 1, height: 14, backgroundColor: Colors.gray[200], marginHorizontal: 8 },
+  detailText: { fontSize: 13, color: Colors.text.secondary, fontWeight: '500' },
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statText: { fontSize: 13, color: Colors.text.primary, fontWeight: '600' },
+  statSubText: { fontSize: 12, color: Colors.text.secondary },
+  footer: { paddingVertical: 20, alignItems: 'center' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  loadingText: { marginTop: 12, fontSize: 16, color: Colors.text.secondary },
+  errorText: { fontSize: 16, color: '#FF3B30', textAlign: 'center', marginBottom: 16 },
+  retryText: { fontSize: 16, color: Colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
 });
-

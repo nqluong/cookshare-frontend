@@ -184,7 +184,10 @@ export default function TrendingRecipes({
           onPress={() =>
             router.push({
               pathname: "/_view-all",
-              params: { type: "trending" },
+              params: { 
+                type: "trending",
+                liked: JSON.stringify([...likedRecipes])
+              },
             })
           }
           activeOpacity={0.7}
