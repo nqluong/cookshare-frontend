@@ -1,137 +1,146 @@
-import { formatNumber } from '@/services/adminStatisticsService';
-import { Colors } from '@/styles/colors';
 import { PeakHoursStats } from '@/types/admin/interaction.types';
-import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from 'react-native';
-import { BarChart } from 'react-native-chart-kit';
+import { useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../../../styles/colors';
 
 interface PeakHoursChartProps {
   data: PeakHoursStats | null;
   loading: boolean;
 }
 
+type ChartMode = 'hourly' | 'daily';
+
 export default function PeakHoursChart({ data, loading }: PeakHoursChartProps) {
+  const [mode, setMode] = useState<ChartMode>('hourly');
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <View style={styles.header}>
+          <Text style={styles.title}>Giờ Cao Điểm Tương Tác</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#10b981" />
+        </View>
       </View>
     );
   }
 
-  if (!data || data.hourlyStats.length === 0) {
+  if (!data) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Giờ Cao Điểm</Text>
-        <Text style={styles.emptyText}>Chưa có dữ liệu</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Giờ Cao Điểm Tương Tác</Text>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Không có dữ liệu</Text>
+        </View>
       </View>
     );
   }
 
-  const screenWidth = Dimensions.get('window').width;
-  const chartWidth = screenWidth - 32;
-
-  // Sắp xếp theo giờ
-  const sortedHourlyStats = [...data.hourlyStats].sort((a, b) => a.hour - b.hour);
-
-  const labels = sortedHourlyStats.map((item) => `${item.hour}h`);
-  const chartData = sortedHourlyStats.map((item) => item.totalInteractions);
-
-  const chartConfig = {
-    backgroundColor: '#fff',
-    backgroundGradientFrom: '#fff',
-    backgroundGradientTo: '#fff',
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-    style: {
-      borderRadius: 12,
-    },
-    propsForBackgroundLines: {
-      strokeDasharray: '',
-      stroke: Colors.gray[200],
-    },
-    barPercentage: 0.7,
-    fillShadowGradient: '#10b981',
-    fillShadowGradientOpacity: 1,
-  };
-
-  const dayOfWeekMap: { [key: string]: string } = {
-    'Monday': 'T2',
-    'Tuesday': 'T3',
-    'Wednesday': 'T4',
-    'Thursday': 'T5',
-    'Friday': 'T6',
-    'Saturday': 'T7',
-    'Sunday': 'CN',
-  };
+  const chartData = mode === 'hourly' ? data.hourlyStats : data.dailyStats;
+  const maxValue = Math.max(...chartData.map((item) => item.totalInteractions));
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Giờ Cao Điểm</Text>
+      {/* Header với mode toggle */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Giờ Cao Điểm Tương Tác</Text>
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[styles.toggleButton, mode === 'hourly' && styles.toggleButtonActive]}
+            onPress={() => setMode('hourly')}
+          >
+            <Text style={[styles.toggleText, mode === 'hourly' && styles.toggleTextActive]}>
+              Theo Giờ
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleButton, mode === 'daily' && styles.toggleButtonActive]}
+            onPress={() => setMode('daily')}
+          >
+            <Text style={[styles.toggleText, mode === 'daily' && styles.toggleTextActive]}>
+              Theo Ngày
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
+      {/* Peak Info */}
       <View style={styles.peakInfo}>
-        <View style={styles.peakBox}>
-          <Text style={styles.peakLabel}>Giờ cao điểm</Text>
-          <Text style={styles.peakValue}>{data.peakHour}:00</Text>
-        </View>
-        <View style={styles.peakBox}>
-          <Text style={styles.peakLabel}>Ngày cao điểm</Text>
-          <Text style={styles.peakValue}>{dayOfWeekMap[data.peakDayOfWeek] || data.peakDayOfWeek}</Text>
+        <View style={styles.peakBadge}>
+          <Text style={styles.peakLabel}>
+            {mode === 'hourly' ? 'Giờ cao điểm:' : 'Ngày cao điểm:'}
+          </Text>
+          <Text style={styles.peakValue}>
+            {mode === 'hourly' 
+              ? `${data.peakHour}:00` 
+              : data.peakDayOfWeek}
+          </Text>
         </View>
       </View>
 
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Tương Tác Theo Giờ</Text>
-        <BarChart
-          data={{
-            labels: labels.filter((_, i) => i % 2 === 0),
-            datasets: [
-              {
-                data: chartData,
-              },
-            ],
-          }}
-          width={chartWidth}
-          height={220}
-          yAxisLabel=""
-          yAxisSuffix=""
-          chartConfig={chartConfig}
-          style={styles.chart}
-          showBarTops={false}
-          fromZero={true}
-          segments={4}
-        />
-      </View>
-
-      {data.dailyStats && data.dailyStats.length > 0 && (
-        <View style={styles.dailyStats}>
-          <Text style={styles.chartTitle}>Tương Tác Theo Ngày</Text>
-          {data.dailyStats
-            .sort((a, b) => a.dayNumber - b.dayNumber)
-            .map((day, index) => {
-              const maxInteractions = Math.max(...data.dailyStats.map((d) => d.totalInteractions));
-              const percentage = (day.totalInteractions / maxInteractions) * 100;
-
-              return (
-                <View key={index} style={styles.dayRow}>
-                  <Text style={styles.dayLabel}>{dayOfWeekMap[day.dayOfWeek] || day.dayOfWeek}</Text>
-                  <View style={styles.dayBar}>
-                    <View
-                      style={[
-                        styles.dayBarFill,
-                        {
-                          width: `${percentage}%`,
-                          backgroundColor: percentage > 70 ? '#10b981' : '#6b7280',
-                        },
-                      ]}
-                    />
+      {/* Bar Chart - Fixed: Bars grow from bottom to top */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chartScrollContainer}
+      >
+        <View style={styles.chartContainer}>
+          {mode === 'hourly' 
+            ? data.hourlyStats.map((item, index) => {
+                const height = (item.totalInteractions / maxValue) * 120;
+                return (
+                  <View key={index} style={styles.barColumn}>
+                    <View style={styles.barWrapper}>
+                      <View
+                        style={[
+                          styles.bar,
+                          { height: Math.max(height, 4) },
+                          item.hour === data.peakHour && styles.barPeak,
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.barLabel}>{item.hour}h</Text>
+                    <Text style={styles.barValue}>{item.totalInteractions}</Text>
                   </View>
-                  <Text style={styles.dayValue}>{formatNumber(day.totalInteractions)}</Text>
-                </View>
-              );
-            })}
+                );
+              })
+            : data.dailyStats.map((item, index) => {
+                const height = (item.totalInteractions / maxValue) * 120;
+                const shortDay = item.dayOfWeek.replace('Thứ ', 'T');
+                return (
+                  <View key={index} style={styles.barColumn}>
+                    <View style={styles.barWrapper}>
+                      <View
+                        style={[
+                          styles.bar,
+                          { height: Math.max(height, 4) },
+                          item.dayOfWeek === data.peakDayOfWeek && styles.barPeak,
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.barLabel}>{shortDay}</Text>
+                    <Text style={styles.barValue}>{item.totalInteractions}</Text>
+                  </View>
+                );
+              })
+          }
         </View>
-      )}
+      </ScrollView>
+
+      {/* Legend */}
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
+          <Text style={styles.legendText}>Tương tác thường</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#ef4444' }]} />
+          <Text style={styles.legendText}>Cao điểm</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -139,94 +148,141 @@ export default function PeakHoursChart({ data, loading }: PeakHoursChartProps) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    margin: 16,
-    marginTop: 0,
+    marginHorizontal: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: 4,
     elevation: 2,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    marginBottom: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  peakInfo: {
+  header: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  peakBox: {
-    flex: 1,
-    backgroundColor: Colors.gray[50],
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  peakLabel: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    marginBottom: 4,
-  },
-  peakValue: {
+  title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#10b981',
+    color: Colors.text.primary,
   },
-  chartContainer: {
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.gray[100],
+    borderRadius: 8,
+    padding: 2,
+  },
+  toggleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#fff',
+  },
+  toggleText: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    fontWeight: '500',
+  },
+  toggleTextActive: {
+    color: '#10b981',
+    fontWeight: '600',
+  },
+  peakInfo: {
     marginBottom: 16,
   },
-  chartTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 12,
-  },
-  chart: {
-    borderRadius: 12,
-    marginLeft: -16,
-  },
-  dailyStats: {
-    marginTop: 8,
-  },
-  dayRow: {
+  peakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
-  dayLabel: {
+  peakLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    color: Colors.text.secondary,
+    marginRight: 8,
+  },
+  peakValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#f59e0b',
+  },
+  chartScrollContainer: {
+    paddingVertical: 16,
+  },
+  chartContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-end', // This makes bars align to bottom
+  },
+  barColumn: {
+    alignItems: 'center',
+    width: 40,
+  },
+  barWrapper: {
+    height: 120,
+    justifyContent: 'flex-end', // Bars grow from bottom
+  },
+  bar: {
+    width: 28,
+    backgroundColor: '#10b981',
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+  },
+  barPeak: {
+    backgroundColor: '#ef4444',
+  },
+  barLabel: {
+    fontSize: 10,
+    color: Colors.text.secondary,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  barValue: {
+    fontSize: 9,
     color: Colors.text.primary,
-    width: 30,
+    fontWeight: '500',
   },
-  dayBar: {
-    flex: 1,
-    height: 24,
-    backgroundColor: Colors.gray[200],
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray[200],
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
     borderRadius: 4,
-    marginHorizontal: 8,
-    overflow: 'hidden',
   },
-  dayBarFill: {
-    height: '100%',
-    borderRadius: 4,
+  legendText: {
+    fontSize: 12,
+    color: Colors.text.secondary,
   },
-  dayValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    width: 60,
-    textAlign: 'right',
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  errorContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
   },
 });

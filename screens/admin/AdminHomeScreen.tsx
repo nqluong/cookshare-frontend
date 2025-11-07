@@ -36,7 +36,6 @@ export default function AdminHomeScreen() {
     searchSuccessRate: 0,
   });
 
-  // Fetch quick stats
   useEffect(() => {
     fetchQuickStats();
   }, []);
@@ -102,14 +101,14 @@ export default function AdminHomeScreen() {
     },
     {
       icon: "trending-up",
-      label: "Engagement",
+      label: "Mức Tương Tác",
       value: loading ? "..." : `${stats.engagementRate.toFixed(1)}%`,
       color: "#10b981",
       bgColor: "#d1fae5",
     },
     {
       icon: "checkmark-circle",
-      label: "Tìm Kiếm OK",
+      label: "Tìm Kiếm thành công",
       value: loading ? "..." : `${stats.searchSuccessRate.toFixed(1)}%`,
       color: "#f59e0b",
       bgColor: "#fef3c7",
@@ -143,7 +142,7 @@ export default function AdminHomeScreen() {
       label: "Quản Lý Người Dùng",
       description: "Xem danh sách người dùng",
       color: "#8b5cf6",
-      onPress: () => router.push('/admin)/users' as any),
+      onPress: () => router.push('/admin/users' as any),
     },
   ];
 

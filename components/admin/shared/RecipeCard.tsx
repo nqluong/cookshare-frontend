@@ -8,14 +8,29 @@ interface RecipeCardProps {
   rank?: number;
   showStats?: ("views" | "likes" | "saves" | "comments" | "rating" | "trending")[];
   style?: ViewStyle;
+  onPress?: (recipe: RecipePerformanceDTO | TrendingRecipeDTO) => void;
 }
 
-export default function RecipeCard({ recipe, rank, showStats, style }: RecipeCardProps) {
+export default function RecipeCard({ recipe, rank, showStats, style, onPress }: RecipeCardProps) {
   const handlePress = () => {
-    if ("slug" in recipe && recipe.slug) {
-      router.push(`/recipes/${recipe.slug}` as any);
-    } else if ("recipeId" in recipe) {
-      router.push(`/recipes/${recipe.recipeId}` as any);
+    // Kiểm tra xem có onPress được truyền vào không
+    if (onPress) {
+      onPress(recipe);
+    } else {
+      // Lấy recipeId từ các trường có thể có
+      let recipeId: string | undefined;
+      if ('recipeId' in recipe) {
+        recipeId = recipe.recipeId;
+      } else if ('id' in recipe) {
+        recipeId = (recipe as any).id;
+      }
+
+      if (recipeId) {
+        router.push({
+          pathname: '/admin/recipes/[id]',
+          params: { id: recipeId }
+        } as any);
+      }
     }
   };
 

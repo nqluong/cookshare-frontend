@@ -23,7 +23,7 @@ export default function CategoryEngagementList({ data, loading }: CategoryEngage
   if (!data || data.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Engagement Theo Danh Mục</Text>
+        <Text style={styles.title}>Tương Tác Theo Danh Mục</Text>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Không có dữ liệu</Text>
         </View>
@@ -36,7 +36,7 @@ export default function CategoryEngagementList({ data, loading }: CategoryEngage
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Engagement Theo Danh Mục</Text>
+      <Text style={styles.title}>Tương Tác Theo Danh Mục</Text>
       
       {sortedData.slice(0, 5).map((category, index) => (
         <View key={category.categoryId} style={styles.categoryCard}>
@@ -70,7 +70,7 @@ export default function CategoryEngagementList({ data, loading }: CategoryEngage
             <Text style={styles.engagementRate}>
               {category.engagementRate.toFixed(1)}%
             </Text>
-            <Text style={styles.engagementLabel}>Engagement</Text>
+            <Text style={styles.engagementLabel}>Tương tác</Text>
           </View>
         </View>
       ))}

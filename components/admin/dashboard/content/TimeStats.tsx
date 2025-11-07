@@ -23,7 +23,7 @@ export default function TimeStats({ contentAnalysis }: TimeStatsProps) {
             <Ionicons name={stat.icon as any} size={24} color={stat.color} />
             <Text style={styles.contentStatLabel}>{stat.label}</Text>
             <Text style={styles.contentStatValue}>
-              {contentAnalysis[stat.key]} phút
+              {Number(contentAnalysis[stat.key]).toFixed(2)} phút
             </Text>
           </View>
         ))}

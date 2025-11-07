@@ -47,7 +47,6 @@ import type {
 } from '../../types/admin/search.types';
 
 export default function AdminStatisticsScreen() {
-  console.log('🎨 AdminStatisticsScreen component rendering...');
   
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<StatisticsTabType>('interaction');
@@ -88,7 +87,6 @@ export default function AdminStatisticsScreen() {
     try {
       const dateRange = getDefaultDateRange();
 
-      // Fetch all interaction statistics
       const [overview, detailed, peak, comments, trends, engagement] = await Promise.all([
         adminStatisticApi.getInteractionOverview(dateRange),
         adminStatisticApi.getDetailedInteractionStats(dateRange),
@@ -104,10 +102,8 @@ export default function AdminStatisticsScreen() {
       setTopComments(comments);
       setFollowTrends(trends);
       setCategoryEngagement(engagement);
-
-      console.log('✅ Interaction data loaded successfully');
     } catch (error) {
-      console.error('❌ Error fetching interaction data:', error);
+      console.error('Error fetching interaction data:', error);
     } finally {
       setLoadingInteraction(false);
     }
@@ -139,7 +135,7 @@ export default function AdminStatisticsScreen() {
       setSearchTrends(trends);
 
     } catch (error) {
-      console.error('❌ Error fetching search data:', error);
+      console.error('Error fetching search data:', error);
     } finally {
       setLoadingSearch(false);
     }
@@ -190,10 +186,8 @@ export default function AdminStatisticsScreen() {
       >
         {activeTab === 'interaction' && (
           <>
-            {/* Test render từng component một */}
-            {console.log('📊 Step 1: Testing OverviewCards...')}
-            <OverviewCards data={interactionOverview} loading={loadingInteraction} />
             
+            <OverviewCards data={interactionOverview} loading={loadingInteraction} />
             
             <PeakHoursChart data={peakHours} loading={loadingInteraction} />
             

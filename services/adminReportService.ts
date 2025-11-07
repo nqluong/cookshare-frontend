@@ -17,10 +17,6 @@ import {
 export const BASE_URL = API_CONFIG.BASE_URL;
 
 class AdminReportService {
-  constructor() {
-    console.log('🔧 AdminReportService initialized');
-    console.log(`📡 API Base URL: ${BASE_URL}`);
-  }
 
   private async getAuthToken(): Promise<string | null> {
     return await AsyncStorage.getItem('access_token');
@@ -58,23 +54,16 @@ class AdminReportService {
       }
 
       const result = await response.json();
-      console.log('API Response:', {
-        url,
-        response: result
-      });
       
-      // Check if response matches ApiResponse<T> format
       if (!result || typeof result !== 'object') {
         throw new Error('Invalid response: not an object');
       }
 
-      // Check if it's a direct response (no wrapper)
       if (Array.isArray(result) || !('success' in result)) {
         console.log('Direct response detected, returning as is');
         return result as T;
       }
-
-      // Check if it's wrapped in our ApiResponse format
+      
       if (!('data' in result)) {
         throw new Error('Invalid response: missing data field');
       }

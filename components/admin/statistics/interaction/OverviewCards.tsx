@@ -49,7 +49,7 @@ export default function OverviewCards({ data, loading }: OverviewCardsProps) {
     },
     {
       icon: 'trending-up' as const,
-      label: 'Engagement Rate',
+      label: 'Tỷ Lệ Tương Tác',
       value: `${data.engagementRate.toFixed(1)}%`,
       color: '#10b981',
       bgColor: '#d1fae5',
