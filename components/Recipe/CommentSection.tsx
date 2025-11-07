@@ -31,6 +31,12 @@ interface CommentModalProps {
   onCommentCountChange?: (newCount: number) => void;
 }
 
+type SortOption = 'relevant' | 'newest' | 'oldest';
+
+interface CommentWithExpandedReplies extends CommentResponse {
+  expandedRepliesCount?: number;
+}
+
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const CommentModal: React.FC<CommentModalProps> = ({
@@ -41,23 +47,38 @@ const CommentModal: React.FC<CommentModalProps> = ({
   currentUserAvatar,
   onCommentCountChange,
 }) => {
-  const [comments, setComments] = useState<CommentResponse[]>([]);
+  const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [replyingTo, setReplyingTo] = useState<CommentResponse | null>(null);
   const [editingComment, setEditingComment] = useState<CommentResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [sortOption, setSortOption] = useState<SortOption>('relevant');
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [scrollToCommentId, setScrollToCommentId] = useState<string | null>(null);
 
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList>(null);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const isConnected = useWebSocketStatus();
+  
   const totalComments = useMemo(
-    () => comments.reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0),
-    [comments]
-  );
+  () => countAllCommentsRecursive(comments),
+  [comments]
+);
+
+  const sortedComments = useMemo(() => {
+    const sorted = [...comments];
+    if (sortOption === 'newest') {
+      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortOption === 'oldest') {
+      sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    // 'relevant' giữ nguyên thứ tự từ server
+    return sorted;
+  }, [comments, sortOption]);
 
   // ========================================================================
   // KEYBOARD
@@ -103,15 +124,29 @@ const CommentModal: React.FC<CommentModalProps> = ({
   }, [visible]);
 
   useEffect(() => {
-  onCommentCountChange?.(totalComments);
-}, [totalComments, onCommentCountChange]);
+    onCommentCountChange?.(totalComments);
+  }, [totalComments, onCommentCountChange]);
+
+  // Auto-scroll to comment
+  useEffect(() => {
+    if (scrollToCommentId && flatListRef.current) {
+      const index = sortedComments.findIndex(c => c.commentId === scrollToCommentId);
+      if (index !== -1) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+          setScrollToCommentId(null);
+        }, 300);
+      }
+    }
+  }, [scrollToCommentId, sortedComments]);
 
   const loadComments = useCallback(async () => {
     try {
       setLoading(true);
       const data = await commentService.getCommentsByRecipe(recipeId);
-      setComments(data);
-      console.log('📥 Loaded', data.length, 'comments');
+      const normalized = normalizeCommentsRecursive(data);
+      setComments(normalized);
+      console.log('📥 Loaded', normalized.length, 'comments');
     } catch (error) {
       console.error('❌ Load error:', error);
       Alert.alert('Lỗi', 'Không thể tải bình luận');
@@ -124,78 +159,102 @@ const CommentModal: React.FC<CommentModalProps> = ({
   // WEBSOCKET EVENTS
   // ========================================================================
   const handleNewComment = useCallback(
-    (data: any) => {
-      if (data.recipeId !== recipeId) return;
-      const newComment: CommentResponse = data.comment;
-      console.log('🔔 NEW_COMMENT:', newComment.commentId);
+  (data: any) => {
+    if (data.recipeId !== recipeId) return;
+    const newComment: CommentResponse = data.comment;
 
-      setComments((prev) => {
-        // Nếu là reply
-        if (newComment.parentCommentId) {
-          return prev.map((c) =>
-            c.commentId === newComment.parentCommentId
-              ? {
-                  ...c,
-                  replies: [...(c.replies || []), newComment],
-                  replyCount: (c.replyCount || 0) + 1,
-                }
-              : c
-          );
-        }
-
-        // Nếu là comment gốc
-        if (prev.some((c) => c.commentId === newComment.commentId)) return prev;
-        return [newComment, ...prev];
-      });
-    },
-    [recipeId]
-  );
-
-  const handleUpdateComment = useCallback(
-    (data: any) => {
-      if (data.recipeId !== recipeId) return;
-      const updated = data.comment;
-      console.log('✏️ UPDATE_COMMENT:', updated.commentId);
-
-      setComments((prev) =>
-        prev.map((c) => {
-          if (c.commentId === updated.commentId)
-            return { ...c, content: updated.content, updatedAt: updated.updatedAt };
-          if (c.replies?.some((r) => r.commentId === updated.commentId)) {
+    setComments((prev) => {
+      // Hàm đệ quy: tìm cha và thêm reply ở MỌI CẤP ĐỘ
+      const addReplyRecursively = (
+        comments: CommentWithExpandedReplies[]
+      ): { updated: boolean; comments: CommentWithExpandedReplies[] } => {
+        let updated = false;
+        
+        const newComments = comments.map((comment) => {
+          // Nếu comment này là cha trực tiếp → thêm reply
+          if (comment.commentId === newComment.parentCommentId) {
+            updated = true;
+            const updatedReplies = [...(comment.replies || []), newComment];
             return {
-              ...c,
-              replies: c.replies.map((r) =>
-                r.commentId === updated.commentId
-                  ? { ...r, content: updated.content, updatedAt: updated.updatedAt }
-                  : r
-              ),
+              ...comment,
+              replies: updatedReplies,
+              replyCount: (comment.replyCount || 0) + 1,
+              expandedRepliesCount: updatedReplies.length, // HIỆN TẤT CẢ
             };
           }
-          return c;
-        })
-      );
-    },
-    [recipeId]
-  );
 
-  const handleDeleteComment = useCallback(
-    (data: any) => {
-      if (data.recipeId !== recipeId) return;
-      const deletedId = data.comment.commentId;
-      console.log('🗑️ DELETE_COMMENT:', deletedId);
+          // Nếu không phải cha → tìm đệ quy trong replies của nó
+          if (comment.replies && comment.replies.length > 0) {
+            const result = addReplyRecursively(comment.replies);
+            if (result.updated) {
+              updated = true;
+              return {
+                ...comment,
+                replies: result.comments,
+                replyCount: (comment.replyCount || 0) + 1,
+              };
+            }
+          }
 
-      setComments((prev) =>
-        prev
-          .filter((c) => c.commentId !== deletedId)
-          .map((c) => ({
-            ...c,
-            replies: c.replies?.filter((r) => r.commentId !== deletedId) || [],
-            replyCount: Math.max(0, (c.replyCount || 0) - 1),
-          }))
-      );
-    },
-    [recipeId]
-  );
+          return comment;
+        });
+
+        return { updated, comments: newComments };
+      };
+
+      // Nếu là comment gốc
+      if (!newComment.parentCommentId) {
+        if (prev.some((c) => c.commentId === newComment.commentId)) return prev;
+        return [newComment, ...prev];
+      }
+
+      // Nếu là reply → tìm cha ở mọi cấp
+      const result = addReplyRecursively(prev);
+      return result.updated ? result.comments : prev;
+    });
+  },
+  [recipeId]
+);
+
+  const handleUpdateComment = useCallback(
+  (data: any) => {
+    if (data.recipeId !== recipeId) return;
+    const updated = data.comment;
+    const updateRecursively = (
+      comments: CommentWithExpandedReplies[]
+    ): CommentWithExpandedReplies[] => {
+      return comments.map((c) => {
+        if (c.commentId === updated.commentId) {
+          return { ...c, content: updated.content, updatedAt: updated.updatedAt };
+        }
+        if (c.replies) return { ...c, replies: updateRecursively(c.replies) };
+        return c;
+      });
+    };
+    setComments(updateRecursively);
+  },
+  [recipeId]
+);
+
+const handleDeleteComment = useCallback(
+  (data: any) => {
+    if (data.recipeId !== recipeId) return;
+    const deletedId = data.comment.commentId;
+    const removeRecursively = (
+      comments: CommentWithExpandedReplies[]
+    ): CommentWithExpandedReplies[] => {
+      return comments
+        .filter((c) => c.commentId !== deletedId)
+        .map((c) => ({
+          ...c,
+          replies: c.replies ? removeRecursively(c.replies) : [],
+          replyCount: Math.max(0, (c.replyCount || 0) - 1),
+        }));
+    };
+    setComments(removeRecursively);
+  },
+  [recipeId]
+);
 
   // ========================================================================
   // WEBSOCKET SUBSCRIBE / UNSUBSCRIBE
@@ -234,13 +293,20 @@ const CommentModal: React.FC<CommentModalProps> = ({
         return;
       }
 
-      await commentService.createComment({
+      const newComment = await commentService.createComment({
         recipeId,
         content: text,
         parentCommentId: replyingTo?.commentId,
       });
 
       setReplyingTo(null);
+      
+      // Scroll to new comment
+      if (replyingTo) {
+        setScrollToCommentId(replyingTo.commentId);
+      } else {
+        setScrollToCommentId(newComment.commentId);
+      }
     } catch (error: any) {
       console.error('❌ Submit error:', error);
       Alert.alert('Lỗi', error.message || 'Không thể gửi bình luận');
@@ -278,12 +344,47 @@ const CommentModal: React.FC<CommentModalProps> = ({
   };
 
   // ========================================================================
+  // EXPAND/COLLAPSE REPLIES
+  // ========================================================================
+  const handleExpandReplies = (commentId: string) => {
+  const expandRecursive = (comments: CommentWithExpandedReplies[]): CommentWithExpandedReplies[] => {
+    return comments.map((c) => {
+      if (c.commentId === commentId) {
+        return {
+          ...c,
+          expandedRepliesCount: Math.min(
+            (c.expandedRepliesCount || 0) + 5,
+            c.replies?.length || 0
+          ),
+        };
+      }
+      if (c.replies && c.replies.length > 0) {
+        return {
+          ...c,
+          replies: expandRecursive(c.replies),
+        };
+      }
+      return c;
+    });
+  };
+
+  setComments((prev) => expandRecursive(prev));
+};
+
+
+  // ========================================================================
   // RENDER COMMENT
   // ========================================================================
   const renderComment = useCallback(
-    (comment: CommentResponse, isReply: boolean = false) => {
+    (comment: CommentWithExpandedReplies, isReply: boolean = false) => {
       const isOwner = comment.userId === currentUserId;
       const timeAgo = getTimeAgo(comment.createdAt);
+      const hasReplies = comment.replies && comment.replies.length > 0;
+      const expandedCount = comment.expandedRepliesCount || 0;
+      const visibleReplies = hasReplies ? comment.replies!.slice(0, expandedCount) : [];
+      const totalDescendants = countDescendants(comment);
+      const totalDirectReplies = comment.replies ? comment.replies.length : 0;
+      const remainingReplies = Math.max(0, totalDirectReplies - expandedCount);
 
       return (
         <View
@@ -292,7 +393,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
         >
           <Image
             source={{ uri: comment.userAvatar || 'https://via.placeholder.com/40' }}
-            style={styles.avatar}
+            style={[styles.avatar, isReply && styles.avatarReply]}
           />
           <View style={styles.commentContent}>
             <View style={styles.commentBubble}>
@@ -303,11 +404,12 @@ const CommentModal: React.FC<CommentModalProps> = ({
             <View style={styles.commentMeta}>
               <Text style={styles.timeAgo}>{timeAgo}</Text>
 
-              {!isReply && (
+              {(
                 <TouchableOpacity
                   onPress={() => {
                     setReplyingTo(comment);
                     setEditingComment(null);
+                    setScrollToCommentId(comment.commentId);
                     inputRef.current?.focus();
                   }}
                   style={styles.metaButton}
@@ -339,11 +441,34 @@ const CommentModal: React.FC<CommentModalProps> = ({
               )}
             </View>
 
-            {!isReply && comment.replies?.length ? (
+            {hasReplies && (
               <View style={styles.repliesContainer}>
-                {comment.replies.map((reply) => renderComment(reply, true))}
+                {expandedCount === 0 ? (
+                  <TouchableOpacity
+                    onPress={() => handleExpandReplies(comment.commentId)}
+                    style={styles.expandButton}
+                  >
+                    <Text style={styles.expandButtonText}>
+                      Xem {totalDescendants} câu trả lời
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    {visibleReplies.map((reply) => renderComment(reply, true))}
+                    {remainingReplies > 0 && (
+                      <TouchableOpacity
+                        onPress={() => handleExpandReplies(comment.commentId)}
+                        style={styles.expandButton}
+                      >
+                        <Text style={styles.expandButtonText}>
+                          Xem thêm {remainingReplies} câu trả lời
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
               </View>
-            ) : null}
+            )}
           </View>
         </View>
       );
@@ -351,12 +476,75 @@ const CommentModal: React.FC<CommentModalProps> = ({
     [currentUserId]
   );
 
+  // ========================================================================
+  // RENDER SORT MODAL
+  // ========================================================================
+  const renderSortModal = () => (
+    <Modal visible={showSortModal} transparent animationType="fade">
+      <TouchableOpacity
+        style={styles.sortModalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowSortModal(false)}
+      >
+        <View style={styles.sortModalContent}>
+          <TouchableOpacity
+            style={styles.sortOption}
+            onPress={() => {
+              setSortOption('relevant');
+              setShowSortModal(false);
+            }}
+          >
+            <View style={styles.sortOptionRow}>
+              <Text style={styles.sortOptionText}>Phù hợp nhất</Text>
+              {sortOption === 'relevant' && <Text style={styles.checkMark}>✓</Text>}
+            </View>
+            <Text style={styles.sortOptionDesc}>
+              Hiển thị bình luận của bạn và những bình luận có nhiều lượt tương tác nhất trước tiên.
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.sortOption}
+            onPress={() => {
+              setSortOption('newest');
+              setShowSortModal(false);
+            }}
+          >
+            <View style={styles.sortOptionRow}>
+              <Text style={styles.sortOptionText}>Mới nhất</Text>
+              {sortOption === 'newest' && <Text style={styles.checkMark}>✓</Text>}
+            </View>
+            <Text style={styles.sortOptionDesc}>
+              Hiển thị tất cả bình luận, mới nhất trước tiên.
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.sortOption}
+            onPress={() => {
+              setSortOption('oldest');
+              setShowSortModal(false);
+            }}
+          >
+            <View style={styles.sortOptionRow}>
+              <Text style={styles.sortOptionText}>Tất cả bình luận</Text>
+              {sortOption === 'oldest' && <Text style={styles.checkMark}>✓</Text>}
+            </View>
+            <Text style={styles.sortOptionDesc}>
+              Hiển thị tất cả bình luận, bao gồm cả nội dung có thể là spam.
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
 
   // ========================================================================
   // RENDER UI
   // ========================================================================
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      {renderSortModal()}
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
         <Animated.View
@@ -373,6 +561,19 @@ const CommentModal: React.FC<CommentModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          {/* SORT BUTTON */}
+          <TouchableOpacity
+            style={styles.sortButton}
+            onPress={() => setShowSortModal(true)}
+          >
+            <Text style={styles.sortButtonText}>
+              {sortOption === 'relevant' && 'Phù hợp nhất'}
+              {sortOption === 'newest' && 'Mới nhất'}
+              {sortOption === 'oldest' && 'Tất cả bình luận'}
+            </Text>
+            <Text style={styles.sortButtonIcon}>▼</Text>
+          </TouchableOpacity>
+
           <View style={styles.contentContainer}>
             {loading ? (
               <View style={styles.loadingContainer}>
@@ -387,11 +588,16 @@ const CommentModal: React.FC<CommentModalProps> = ({
             ) : (
               <FlatList
                 ref={flatListRef}
-                data={comments}
+                data={sortedComments}
                 keyExtractor={(item) => item.commentId}
                 renderItem={({ item }) => renderComment(item)}
                 contentContainerStyle={styles.listContent}
                 keyboardShouldPersistTaps="handled"
+                onScrollToIndexFailed={(info) => {
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+                  }, 100);
+                }}
               />
             )}
           </View>
@@ -453,6 +659,27 @@ function getTimeAgo(dateString: string) {
   if (diff < 86400) return `${Math.floor(diff / 3600)} giờ`;
   if (diff < 604800) return `${Math.floor(diff / 86400)} ngày`;
   return date.toLocaleDateString('vi-VN');
+}
+
+function normalizeCommentsRecursive(comments: any[]): any[] {
+  return comments.map((c) => {
+    const clones: any = {
+      ...c,
+      expandedRepliesCount: 0, // KHỞI TẠO luôn = 0
+      replies: c.replies && c.replies.length ? normalizeCommentsRecursive(c.replies) : [],
+    };
+    return clones;
+  });
+}
+
+function countAllCommentsRecursive(comments: any[]): number {
+  if (!comments || comments.length === 0) return 0;
+  return comments.reduce((sum, c) => sum + 1 + countAllCommentsRecursive(c.replies || []), 0);
+}
+
+// trả về tổng số "hậu duệ" (không tính chính comment)
+function countDescendants(comment: any): number {
+  return countAllCommentsRecursive(comment.replies || []);
 }
 
 // ============================================================================
@@ -552,8 +779,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   replyContainer: {
-    marginLeft: 48,
-    marginTop: 12,
+    marginLeft: 10,
+    marginTop: 8,
   },
   optimisticComment: {
     opacity: 1,
@@ -562,6 +789,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#E0E0E0',
+  },
+  avatarReply: {
+    width: 25,
+    height: 25,
+    borderRadius: 12.5,
     backgroundColor: '#E0E0E0',
   },
   commentContent: {
@@ -610,6 +843,74 @@ const styles = StyleSheet.create({
   },
   repliesContainer: {
     marginTop: 4,
+    marginLeft: -10,
+  },
+  expandButton: {
+    marginTop: 8,
+    marginLeft: 12,
+  },
+  expandButtonText: {
+    fontSize: 13,
+    color: '#65676B',
+    fontWeight: '600',
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#F8F8F8',
+  },
+  sortButtonText: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '600',
+  },
+  sortButtonIcon: {
+    fontSize: 10,
+    color: '#666',
+  },
+  sortModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sortModalContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    width: '85%',
+    maxWidth: 400,
+  },
+  sortOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  sortOptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  sortOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  sortOptionDesc: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
+  },
+  checkMark: {
+    fontSize: 18,
+    color: '#1877F2',
+    fontWeight: 'bold',
   },
   inputContainer: {
     borderTopWidth: 1,

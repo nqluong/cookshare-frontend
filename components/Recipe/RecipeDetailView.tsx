@@ -1,5 +1,6 @@
 import { commentService } from "@/services/commentService";
-import { useEffect, useState } from "react";
+import { CommentResponse } from "@/types/comment";
+import { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { getImageUrl } from "../../config/api.config";
 import styles from "../../styles/RecipeDetailView.styles";
@@ -44,34 +45,48 @@ type Recipe = {
   views?: number;
 };
 
+interface CommentWithExpandedReplies extends CommentResponse {
+  expandedRepliesCount?: number;
+}
+
 type Props = {
   recipe: Recipe;
-  currentUserId: string; 
+  currentUserId: string;
   currentUserAvatar?: string;
   onBack: () => void;
   onSearch: () => void;
 };
 
-export default function RecipeDetailView({ recipe, currentUserId, currentUserAvatar }: Props) {
+export default function RecipeDetailView({
+  recipe,
+  currentUserId,
+  currentUserAvatar,
+}: Props) {
   const [commentModalVisible, setCommentModalVisible] = useState(false);
-  const [commentCount, setCommentCount] = useState(0);
+
+  const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
+  const totalComments = useMemo(
+    () => countAllCommentsRecursive(comments),
+    [comments]
+  );
+  const [commentCount, setCommentCount] = useState(totalComments);
 
   useEffect(() => {
     if (!recipe?.id) return;
-  
+
     const loadCommentCount = async () => {
       try {
         const data = await commentService.getCommentsByRecipe(recipe.id);
-        const total = data.reduce((sum: number, c: any) => sum + 1 + (c.replies?.length || 0), 0);
-        console.log('Tổng số bình luận đã tải:', total);
-        setCommentCount(total);
+        const normalized = normalizeCommentsRecursive(data);
+        setComments(normalized);
       } catch (error) {
-        console.error('Lỗi tải số bình luận:', error);
+        console.error("Lỗi tải số bình luận:", error);
       }
     };
-  
+
     loadCommentCount();
-    console.log('Tổng số bình luận đã tải:', commentCount);
+
+    console.log("Tổng số bình luận đã tải:", commentCount);
   }, [recipe?.id]);
 
   return (
@@ -91,14 +106,14 @@ export default function RecipeDetailView({ recipe, currentUserId, currentUserAva
           <TouchableOpacity style={styles.infoButton}>
             <Text style={styles.infoText}>❤️ {recipe.likes ?? 0}</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.infoButton}
             onPress={() => setCommentModalVisible(true)}
           >
-            <Text style={styles.infoText}>💬 {commentCount}</Text>
+            <Text style={styles.infoText}>💬 {totalComments}</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.infoButton}>
             <Text style={styles.infoText}>👁️ {recipe.views ?? 0}</Text>
           </TouchableOpacity>
@@ -172,7 +187,7 @@ export default function RecipeDetailView({ recipe, currentUserId, currentUserAva
           onPress={() => setCommentModalVisible(true)}
         >
           <Text style={styles.commentButtonText}>
-            💬 Xem tất cả {commentCount} bình luận
+            💬 Xem tất cả {totalComments} bình luận
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -187,5 +202,27 @@ export default function RecipeDetailView({ recipe, currentUserId, currentUserAva
         onCommentCountChange={setCommentCount}
       />
     </View>
+  );
+}
+
+function normalizeCommentsRecursive(comments: any[]): any[] {
+  return comments.map((c) => {
+    const clones: any = {
+      ...c,
+      expandedRepliesCount: 0, // KHỞI TẠO luôn = 0
+      replies:
+        c.replies && c.replies.length
+          ? normalizeCommentsRecursive(c.replies)
+          : [],
+    };
+    return clones;
+  });
+}
+
+function countAllCommentsRecursive(comments: any[]): number {
+  if (!comments || comments.length === 0) return 0;
+  return comments.reduce(
+    (sum, c) => sum + 1 + countAllCommentsRecursive(c.replies || []),
+    0
   );
 }
