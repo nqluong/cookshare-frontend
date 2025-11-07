@@ -1,7 +1,7 @@
 import LikedRecipes from '@/components/home/LikedRecipes';
 import RecipeFollowing from '@/components/home/RecipeFollowing';
 import { SearchHistoryItem } from '@/types/search';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -34,6 +34,7 @@ import { Recipe as SearchRecipe } from '../../types/search';
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState('Đề xuất');
   const router = useRouter();
+  const { refresh } = useLocalSearchParams<{ refresh?: string }>();
   const [dailyRecommendations, setDailyRecommendations] = useState<DishRecipe[]>([]);
   const [featuredRecipes, setFeaturedRecipes] = useState<DishRecipe[]>([]);
   const [popularRecipes, setPopularRecipes] = useState<DishRecipe[]>([]);
@@ -89,6 +90,13 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
   useEffect(() => {
     fetchHomeSuggestions();
   }, []);
+
+  // Listen for a refresh query param so other screens can trigger a reload (e.g. after deleting a recipe)
+  useEffect(() => {
+    if (refresh) {
+      fetchHomeSuggestions();
+    }
+  }, [refresh]);
 
   useEffect(() => {
     if (activeTab === 'Yêu thích' && !isLikedTabLoaded) {

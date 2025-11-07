@@ -5,8 +5,13 @@ import { API_CONFIG } from "../config/api.config";
 // Tạo instance axios có sẵn config
 const api = axios.create({
   baseURL: `${API_CONFIG.BASE_URL}/api/recipes`,
-  timeout: API_CONFIG.TIMEOUT,
-  headers: API_CONFIG.DEFAULT_HEADERS,
+  timeout: 30000, // Increased timeout for file uploads
+  headers: {
+    ...API_CONFIG.DEFAULT_HEADERS,
+    'Accept': 'application/json'
+  },
+  maxBodyLength: Infinity, // For large file uploads
+  maxContentLength: Infinity
 });
 // ✅ Thêm token tự động
 api.interceptors.request.use(async (config) => {
@@ -15,14 +20,27 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Hàm xử lý lỗi chung
+// Common error handler
 const handleError = (error: any) => {
+  console.error("API Error:", {
+    code: error.code,
+    message: error.message,
+    response: error.response?.data,
+    status: error.response?.status
+  });
+
   if (error.code === "ECONNABORTED") {
-    throw new Error("⏰ Yêu cầu quá thời gian, thử lại sau.");
-  } else if (error.response) {
-    throw new Error(`❌ Lỗi server: ${error.response.status} - ${error.response.data?.message || "Không xác định"}`);
+    throw new Error("⏰ Request timed out. Try again with smaller images.");
+  } else if (error.response?.data?.message) {
+    throw new Error(`❌ ${error.response.data.message}`);
+  } else if (error.response?.status === 413) {
+    throw new Error("❌ File size too large. Please use smaller images.");
+  } else if (error.response?.status === 415) {
+    throw new Error("❌ Invalid file type. Please use JPG, PNG, or WebP images.");
+  } else if (!error.response) {
+    throw new Error("⚠️ Network error. Check your connection.");
   } else {
-    throw new Error("⚠️ Không thể kết nối tới server. Kiểm tra mạng hoặc backend.");
+    throw new Error(`❌ Server error: ${error.response.status}`);
   }
 };
 
@@ -55,24 +73,66 @@ export const getRecipeById = async (id: string, token?: string | null) => {
   }
 };
 
-// Tạo mới công thức
+// Create recipe with images
 export const createRecipe = async (formData: FormData) => {
   try {
-    // Log formData để debug
-    console.log("FormData being sent:", formData);
-    // Log dữ liệu chi tiết
+    // Extract and validate request data
     const jsonData = JSON.parse(formData.get('data') as string);
-    console.log("Recipe data:", jsonData);
+    const image = formData.get('image');
+    const stepImages = formData.getAll('stepImages');
 
-    const res = await api.post("", formData, {
+    // Sanitize incoming jsonData to avoid duplicate IDs / constraint violations
+    const sanitizedData = sanitizeRecipePayload(jsonData);
+
+    // Recreate FormData using sanitized JSON to prevent server-side constraint errors
+    const uploadForm = new FormData();
+    uploadForm.append('data', JSON.stringify(sanitizedData));
+    if (image) uploadForm.append('image', image as any);
+    if (stepImages && stepImages.length) {
+      stepImages.forEach((si: any) => uploadForm.append('stepImages', si));
+    }
+
+    // Log request details for debugging
+    console.log("📤 Creating recipe:", {
+      data: {
+        ...jsonData,
+        steps: jsonData.steps?.map((s: any) => ({
+          stepNumber: s.stepNumber,
+          instruction: s.instruction
+        }))
+      },
+      imageInfo: image instanceof File ? {
+        type: image.type,
+        size: image.size,
+        name: image.name
+      } : null,
+      stepImagesCount: stepImages.length
+    });
+
+    // Make API request (use sanitized form)
+    const res = await api.post("", uploadForm, {
       headers: { 
         "Content-Type": "multipart/form-data",
         "Accept": "application/json"
       },
-      transformRequest: (data) => data, // Prevent axios from trying to transform FormData
+      transformRequest: (data) => data,
+      timeout: 30000, // 30s timeout for uploads
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
     });
+
+    console.log("✅ Recipe created:", {
+      id: res.data.recipeId,
+      title: res.data.title,
+      imageUrl: res.data.featuredImage
+    });
+    
     return res.data;
-  } catch (error) {
+  } catch (error: any) {
+    console.error("❌ Recipe creation failed:", {
+      error: error.message,
+      response: error.response?.data
+    });
     handleError(error);
   }
 };
@@ -80,11 +140,64 @@ export const createRecipe = async (formData: FormData) => {
 // Cập nhật công thức
 export const updateRecipe = async (id: string, data: any) => {
   try {
-    const res = await api.put(`/${id}`, data);
+    // Support both JSON updates and multipart/form-data updates
+    if (data instanceof FormData) {
+      const res = await api.put(`/${id}`, data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "Accept": "application/json",
+        },
+        transformRequest: (d) => d,
+      });
+      return res.data;
+    }
+    // Sanitize JSON payload before sending
+    const payload = sanitizeRecipePayload(data);
+
+    const res = await api.put(`/${id}`, payload);
     return res.data;
   } catch (error) {
     handleError(error);
   }
+};
+
+// Helper: clean payload to avoid duplicates / invalid values that trigger DB constraints
+const sanitizeRecipePayload = (recipe: any) => {
+  if (!recipe || typeof recipe !== 'object') return recipe;
+
+  const unique = (arr: any[]) => Array.from(new Set((arr || []).filter((v) => v !== null && v !== undefined && v !== '')));
+
+  const cleaned: any = { ...recipe };
+
+  if (Array.isArray(cleaned.categoryIds)) cleaned.categoryIds = unique(cleaned.categoryIds);
+  if (Array.isArray(cleaned.tagIds)) cleaned.tagIds = unique(cleaned.tagIds);
+  if (Array.isArray(cleaned.ingredients)) cleaned.ingredients = unique(cleaned.ingredients);
+
+  if (Array.isArray(cleaned.ingredientDetails)) {
+    cleaned.ingredientDetails = cleaned.ingredientDetails
+      .filter((d: any) => d && d.ingredientId)
+      .map((d: any) => ({
+        ingredientId: d.ingredientId,
+        quantity: d.quantity !== undefined && d.quantity !== null ? Number(d.quantity) : null,
+        unit: d.unit || null,
+      }));
+  }
+
+  if (Array.isArray(cleaned.steps)) {
+    cleaned.steps = cleaned.steps
+      .map((s: any, idx: number) => ({
+        stepNumber: s?.stepNumber ?? idx + 1,
+        instruction: s?.instruction ?? '',
+        imageUrl: s?.imageUrl ?? null,
+      }))
+      .filter((s: any) => (s.instruction && s.instruction.trim() !== '') || s.imageUrl);
+  }
+
+  if (cleaned.prepTime !== undefined) cleaned.prepTime = Number(cleaned.prepTime) || 0;
+  if (cleaned.cookTime !== undefined) cleaned.cookTime = Number(cleaned.cookTime) || 0;
+  if (cleaned.servings !== undefined) cleaned.servings = Number(cleaned.servings) || 0;
+
+  return cleaned;
 };
 
 // Xóa công thức
