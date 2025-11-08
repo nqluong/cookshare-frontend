@@ -17,6 +17,17 @@ export default function RecipeCard({ item }: RecipeCardProps) {
     router.push(`/_recipe-detail/${item.recipeId}` as any);
   };
 
+  const handleAuthorPress = (e: any) => {
+    // Ngăn event bubble lên TouchableOpacity cha
+    e.stopPropagation();
+    
+    // Navigate đến UserProfile với userId
+    if (item.userId) {
+      // Thử các route phổ biến - điều chỉnh theo cấu trúc thực tế của bạn
+      router.push(`/profile/${item.userId}` as any);
+    }
+  };
+
   return (
     <TouchableOpacity style={searchStyles.recipeCard} onPress={handlePress} activeOpacity={0.7}>   
       <Image
@@ -26,9 +37,11 @@ export default function RecipeCard({ item }: RecipeCardProps) {
       />
       <View style={searchStyles.recipeInfo}>
         {item.fullName ? (
-          <Text style={searchStyles.authorName} numberOfLines={1}>
-            {item.fullName}
-          </Text>
+          <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
+            <Text style={[searchStyles.authorName, { color: '#FF385C' }]} numberOfLines={1}>
+              {item.fullName}
+            </Text>
+          </TouchableOpacity>
         ) : null}
         <Text style={searchStyles.recipeTitle} numberOfLines={2}>
           {item.title}
