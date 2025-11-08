@@ -8,61 +8,52 @@ interface RecipeItemProps {
   recipe: AdminRecipe;
   onView: (recipe: AdminRecipe) => void;
   onEdit: (recipeId: string) => void;
-  onDelete: (recipe: string) => void;
-  onApprove?: (recipe: string) => void;
-  onReject?: (recipe: string) => void;
-  onToggleFeatured?: (recipe: string) => void;
-  onTogglePublished?: (recipe: string) => void;
+  onDelete: (recipeId: string) => void;
+  onApprove?: (recipeId: string) => void;
+  onReject?: (recipeId: string) => void;
+  onToggleFeatured?: (recipeId: string) => void;
+  onTogglePublished?: (recipeId: string) => void;
 }
 
-export default function RecipeItem({ 
-  recipe, 
-  onView, 
-  onEdit, 
-  onDelete, 
-  onApprove, 
-  onReject, 
-  onToggleFeatured, 
-  onTogglePublished 
+export default function RecipeItem({
+  recipe,
+  onView,
+  onEdit,
+  onDelete,
+  onApprove,
+  onReject,
+  onToggleFeatured,
+  onTogglePublished
 }: RecipeItemProps) {
   return (
     <View style={styles.recipeItem}>
       <View style={styles.recipeMainRow}>
-        <Image 
-          source={recipe.featuredImage ? { uri: getImageUrl(recipe.featuredImage) } : require("../../../assets/images/default-avatar.png")} 
-          style={styles.recipeImage} 
+        <Image
+          source={recipe.featuredImage ? { uri: getImageUrl(recipe.featuredImage) } : require("../../../assets/images/default-avatar.png")}
+          style={styles.recipeImage}
         />
 
         <View style={styles.recipeContent}>
           <View style={styles.recipeMainInfo}>
             <Text style={styles.recipeName}>{recipe.title || 'Không có tiêu đề'}</Text>
-            
+
             <View style={styles.statusContainer}>
               <View style={styles.statusRow}>
                 {/* Badge trạng thái dựa trên status của công thức */}
                 <View style={[
                   styles.statusBadge,
-                  { 
-                    backgroundColor: recipe.status === 'APPROVED' ? '#10b981' : 
-                                    recipe.status === 'REJECTED' ? '#ef4444' : '#f59e0b'
+                  {
+                    backgroundColor: recipe.status === 'APPROVED' ? '#10b981' :
+                      recipe.status === 'REJECTED' ? '#ef4444' : '#f59e0b'
                   }
                 ]}>
                   <Text style={styles.statusText}>
-                    {recipe.status === 'APPROVED' ? 'Đã phê duyệt' : 
-                     recipe.status === 'REJECTED' ? 'Đã từ chối' : 'Chờ phê duyệt'}
+                    {recipe.status === 'APPROVED' ? 'Đã phê duyệt' :
+                      recipe.status === 'REJECTED' ? 'Đã từ chối' : 'Chờ phê duyệt'}
                   </Text>
                 </View>
-                
-                {/* Trạng thái xuất bản */}
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: recipe.isPublished ? '#10b981' : '#6b7280' }
-                ]}>
-                  <Text style={styles.statusText}>
-                    {recipe.isPublished ? 'Đã xuất bản' : 'Chưa xuất bản'}
-                  </Text>
-                </View>
-                
+
+
                 {/* Trạng thái nổi bật */}
                 {recipe.isFeatured && (
                   <View style={[styles.statusBadge, { backgroundColor: '#f59e0b' }]}>
@@ -72,7 +63,7 @@ export default function RecipeItem({
                 )}
               </View>
             </View>
-            
+
             <View style={styles.recipeStats}>
               <View style={styles.statItem}>
                 <Ionicons name="heart" size={16} color="#ef4444" />
@@ -83,7 +74,7 @@ export default function RecipeItem({
                 <Text style={styles.statText}>{(recipe.prepTime || 0) + (recipe.cookTime || 0)}'</Text>
               </View>
             </View>
-            
+
             <Text style={styles.recipeAuthor}>
               {recipe.userFullName || recipe.username || recipe.authorName || 'Không xác định'}
             </Text>
@@ -92,69 +83,81 @@ export default function RecipeItem({
       </View>
 
       <View style={styles.recipeActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => onView(recipe)}
+          onPress={() => {
+            onView(recipe);
+          }}
         >
           <Ionicons name="eye-outline" size={18} color={Colors.text.secondary} />
         </TouchableOpacity>
-        
-        {/* Nút phê duyệt/từ chối - hiển thị dựa trên trạng thái */}
+
         {onApprove && recipe.status === 'PENDING' && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, styles.approveButton]}
-            onPress={() => onApprove(recipe.recipeId)}
+            onPress={() => {
+              onApprove(recipe.recipeId);
+            }}
           >
             <Ionicons name="checkmark-outline" size={18} color="#10b981" />
           </TouchableOpacity>
         )}
-        
+
         {onReject && recipe.status === 'PENDING' && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => onReject(recipe.recipeId)}
+            onPress={() => {
+              onReject(recipe.recipeId);
+            }}
           >
             <Ionicons name="close-outline" size={18} color="#ef4444" />
           </TouchableOpacity>
         )}
-        
-        {/* Nút chuyển đổi nổi bật - luôn hiển thị nếu có callback */}
+
         {onToggleFeatured && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, recipe.isFeatured ? styles.featuredButton : styles.actionButton]}
-            onPress={() => onToggleFeatured(recipe.recipeId)}
+            onPress={() => {
+              onToggleFeatured(recipe.recipeId);
+            }}
           >
-            <Ionicons 
-              name={recipe.isFeatured ? "star" : "star-outline"} 
-              size={18} 
-              color={recipe.isFeatured ? "#f59e0b" : Colors.text.secondary} 
+            <Ionicons
+              name={recipe.isFeatured ? "star" : "star-outline"}
+              size={18}
+              color={recipe.isFeatured ? "#f59e0b" : Colors.text.secondary}
             />
           </TouchableOpacity>
         )}
-        
-        {/* Nút chuyển đổi xuất bản - chỉ hiển thị nếu chưa xuất bản */}
-        {onTogglePublished && !recipe.isPublished && (
-          <TouchableOpacity 
+
+        {onTogglePublished && (
+          <TouchableOpacity
             style={[styles.actionButton, styles.publishedButton]}
-            onPress={() => onTogglePublished(recipe.recipeId)}
+            onPress={() => {
+              onTogglePublished(recipe.recipeId);
+            }}
           >
-            <Ionicons 
-              name="eye-outline" 
-              size={18} 
-              color="#10b981" 
+            <Ionicons
+              name={recipe.isPublished ? "eye-off-outline" : "eye-outline"}
+              size={18}
+              color="#10b981"
             />
           </TouchableOpacity>
         )}
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => onEdit(recipe.recipeId)}
+          onPress={() => {
+            onEdit(recipe.recipeId);
+          }}
         >
           <Ionicons name="create-outline" size={18} color={Colors.text.secondary} />
         </TouchableOpacity>
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => onDelete(recipe.recipeId)}
+          onPress={() => {
+            onDelete(recipe.recipeId);
+          }}
         >
           <Ionicons name="trash-outline" size={18} color="#ef4444" />
         </TouchableOpacity>

@@ -34,15 +34,15 @@ export default function AdminMenuScreen() {
       backgroundColor: "#3b82f6", // Blue
       route: "/admin/recipes",
     },
-    {
-      id: "ingredients",
-      title: "Nguyên Liệu",
-      icon: "nutrition",
-      iconLibrary: "Ionicons",
-      color: "#fff",
-      backgroundColor: "#93c5fd", // Light blue
-      route: "/admin/ingredients",
-    },
+    // {
+    //   id: "ingredients",
+    //   title: "Nguyên Liệu",
+    //   icon: "nutrition",
+    //   iconLibrary: "Ionicons",
+    //   color: "#fff",
+    //   backgroundColor: "#93c5fd", // Light blue
+    //   route: "/admin/ingredients",
+    // },
     {
       id: "users",
       title: "Người Dùng",
@@ -52,14 +52,14 @@ export default function AdminMenuScreen() {
       backgroundColor: "#93c5fd", // Light blue
       route: "/admin/users",
     },
-    {
-      id: "posts",
-      title: "Bài Đăng",
-      icon: "image",
-      iconLibrary: "Ionicons",
-      color: "#fff",
-      backgroundColor: "#93c5fd", // Light blue
-    },
+    // {
+    //   id: "posts",
+    //   title: "Bài Đăng",
+    //   icon: "image",
+    //   iconLibrary: "Ionicons",
+    //   color: "#fff",
+    //   backgroundColor: "#93c5fd", // Light blue
+    // },
     {
       id: "gifts",
       title: "Gifts",
@@ -125,7 +125,7 @@ export default function AdminMenuScreen() {
         </View>
 
         {/* Stats Cards */}
-        <View style={styles.statsContainer}>
+        {/* <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <View style={styles.statIconContainer}>
               <Ionicons name="document-text" size={20} color="#1a73e8" />
@@ -141,7 +141,7 @@ export default function AdminMenuScreen() {
             <Text style={styles.statLabel}>Người Dùng</Text>
             <Text style={[styles.statValue, { color: "#5f6368" }]}>1000</Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Menu Grid */}
         <View style={styles.menuSection}>

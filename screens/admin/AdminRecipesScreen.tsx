@@ -141,11 +141,13 @@ const handleEditRecipe = (recipeId: string) => {
 };
 
 const handleApproveRecipe = (recipeId: string) => {
-  if (!selectedRecipeDetail) return;
+  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+  if (!recipe) return;
   
   showWarning(
     'Phê duyệt công thức',
-    `Bạn có chắc chắn muốn phê duyệt công thức "${selectedRecipeDetail.title}"?`,
+    `Bạn có chắc chắn muốn phê duyệt công thức "${recipe.title}"?`,
     [
       { text: 'Hủy', style: 'cancel' },
       {
@@ -156,7 +158,9 @@ const handleApproveRecipe = (recipeId: string) => {
             setLoading(true);
             await adminRecipeService.approveRecipe(recipeId, true);
             await loadRecipes(0, searchQuery, true);
-            setShowRecipeDetailModal(false);
+            if (showRecipeDetailModal) {
+              setShowRecipeDetailModal(false);
+            }
             showSuccess('Thành công', 'Đã phê duyệt công thức thành công');
           } catch (err: any) {
             showError('Lỗi', err.message || 'Không thể phê duyệt công thức');
@@ -170,11 +174,13 @@ const handleApproveRecipe = (recipeId: string) => {
 };
 
 const handleRejectRecipe = (recipeId: string) => {
-  if (!selectedRecipeDetail) return;
+  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+  if (!recipe) return;
   
   showWarning(
     'Từ chối công thức',
-    `Bạn có chắc chắn muốn từ chối công thức "${selectedRecipeDetail.title}"?`,
+    `Bạn có chắc chắn muốn từ chối công thức "${recipe.title}"?`,
     [
       { text: 'Hủy', style: 'cancel' },
       {
@@ -185,7 +191,9 @@ const handleRejectRecipe = (recipeId: string) => {
             setLoading(true);
             await adminRecipeService.approveRecipe(recipeId, false);
             await loadRecipes(0, searchQuery, true);
-            setShowRecipeDetailModal(false);
+            if (showRecipeDetailModal) {
+              setShowRecipeDetailModal(false);
+            }
             showSuccess('Thành công', 'Đã từ chối công thức');
           } catch (error: any) {
             showError('Lỗi', error.message || 'Không thể từ chối công thức');
@@ -199,11 +207,13 @@ const handleRejectRecipe = (recipeId: string) => {
 };
 
 const handleDeleteRecipe = (recipeId: string) => {
-  if (!selectedRecipeDetail) return;
+  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+  if (!recipe) return;
   
   showError(
     'Xóa công thức',
-    `Bạn có chắc chắn muốn xóa công thức "${selectedRecipeDetail.title}"? Hành động này không thể hoàn tác.`,
+    `Bạn có chắc chắn muốn xóa công thức "${recipe.title}"? Hành động này không thể hoàn tác.`,
     [
       { text: 'Hủy', style: 'cancel' },
       {
@@ -214,7 +224,9 @@ const handleDeleteRecipe = (recipeId: string) => {
             setLoading(true);
             await adminRecipeService.deleteRecipe(recipeId);
             await loadRecipes(0, searchQuery, true);
-            setShowRecipeDetailModal(false);
+            if (showRecipeDetailModal) {
+              setShowRecipeDetailModal(false);
+            }
             showSuccess('Thành công', 'Đã xóa công thức thành công');
           } catch (err: any) {
             showError('Lỗi', err.message || 'Không thể xóa công thức');
@@ -228,18 +240,22 @@ const handleDeleteRecipe = (recipeId: string) => {
 };
 
 const handleToggleFeatured = async (recipeId: string) => {
-  if (!selectedRecipeDetail) return;
+  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+  if (!recipe) return;
   
   try {
     setLoading(true);
-    await adminRecipeService.setFeaturedRecipe(recipeId, !selectedRecipeDetail.isFeatured);
+    await adminRecipeService.setFeaturedRecipe(recipeId, !recipe.isFeatured);
     
-    // Reload recipe detail
-    const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
-    setSelectedRecipeDetail(updatedRecipe);
+    // Nếu đang mở modal, reload recipe detail
+    if (showRecipeDetailModal && selectedRecipeDetail) {
+      const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
+      setSelectedRecipeDetail(updatedRecipe);
+    }
     
     await loadRecipes(0, searchQuery, true);
-    showSuccess('Thành công', selectedRecipeDetail.isFeatured ? 'Đã bỏ nổi bật công thức' : 'Đã đặt nổi bật công thức');
+    showSuccess('Thành công', recipe.isFeatured ? 'Đã bỏ nổi bật công thức' : 'Đã đặt nổi bật công thức');
   } catch (err: any) {
     showError('Lỗi', err.message || 'Không thể thay đổi trạng thái nổi bật');
   } finally {
@@ -248,18 +264,22 @@ const handleToggleFeatured = async (recipeId: string) => {
 };
 
 const handleTogglePublished = async (recipeId: string) => {
-  if (!selectedRecipeDetail) return;
+  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+  if (!recipe) return;
   
   try {
     setLoading(true);
-    await adminRecipeService.setPublishedRecipe(recipeId, !selectedRecipeDetail.isPublished);
+    await adminRecipeService.setPublishedRecipe(recipeId, !recipe.isPublished);
     
-    // Reload recipe detail
-    const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
-    setSelectedRecipeDetail(updatedRecipe);
+    // Nếu đang mở modal, reload recipe detail
+    if (showRecipeDetailModal && selectedRecipeDetail) {
+      const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
+      setSelectedRecipeDetail(updatedRecipe);
+    }
     
     await loadRecipes(0, searchQuery, true);
-    showSuccess('Thành công', selectedRecipeDetail.isPublished ? 'Đã ẩn công thức' : 'Đã xuất bản công thức');
+    showSuccess('Thành công', recipe.isPublished ? 'Đã ẩn công thức' : 'Đã xuất bản công thức');
   } catch (err: any) {
     showError('Lỗi', err.message || 'Không thể thay đổi trạng thái xuất bản');
   } finally {

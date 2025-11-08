@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,20 +12,20 @@ import {
 import { getImageUrl } from "../../../config/api.config";
 import { Colors } from "../../../styles/colors";
 import { Recipe } from "../../../types/dish";
+import { CachedImage } from "../../ui/CachedImage";
 import RecipeSaveButton from "../RecipeSaveButton";
 
 interface NewestRecipesProps {
-  recipes: Recipe[]; // Danh sách công thức mới nhất từ API
-  onRecipePress?: (recipe: Recipe) => void; // Callback khi nhấn vào công thức
-  onLoadMore?: () => void; // Callback khi cần load thêm
-  hasMore?: boolean; // Còn data để load không
-  isLoadingMore?: boolean; // Đang load thêm không
+  recipes: Recipe[];
+  onRecipePress?: (recipe: Recipe) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
   likedRecipes?: Set<string>;
   likingRecipeId?: string | null;
   onToggleLike?: (recipeId: string) => Promise<void>;
 }
 
-// Component hiển thị danh sách công thức mới nhất (theo createdAt)
 export default function NewestRecipes({
   recipes,
   onRecipePress,
@@ -38,7 +37,7 @@ export default function NewestRecipes({
   onToggleLike,
 }: NewestRecipesProps) {
   const router = useRouter();
-  // Sử dụng collection manager hook
+  
   const {
     isSaved,
     collections,
@@ -48,7 +47,6 @@ export default function NewestRecipes({
     handleSaveRecipe: updateSavedCache,
   } = useCollectionManager();
 
-  // State để quản lý saveCount tạm thời trên UI
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
     new Map()
   );
@@ -56,12 +54,11 @@ export default function NewestRecipes({
   const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
 
-    // ✅ Kiểm tra đang loading hoặc không có callback
     if (likingRecipeId === recipeId || !onToggleLike) {
       return;
     }
 
-    await onToggleLike(recipeId); // ✅ Gọi callback từ parent
+    await onToggleLike(recipeId);
   };
 
   const getDifficultyText = (difficulty: string) => {
@@ -82,10 +79,7 @@ export default function NewestRecipes({
     collectionId: string,
     newSaveCount: number
   ) => {
-    // 1. Cập nhật saveCount trên UI
     setLocalSaveCounts((prev) => new Map(prev).set(recipeId, newSaveCount));
-
-    // 2. Cập nhật cache (savedRecipes & recipeToCollectionMap)
     updateSavedCache(recipeId, collectionId);
   };
 
@@ -94,7 +88,6 @@ export default function NewestRecipes({
   };
 
   const handleCreateNewCollection = () => {
-    // TODO: Điều hướng đến màn hình tạo bộ sưu tập
     router.push("/create-collection" as any);
   };
 
@@ -111,7 +104,7 @@ export default function NewestRecipes({
         const currentLikes = recipe.likeCount;
         const saved = isSaved(recipe.recipeId);
         const currentSaveCount =
-        localSaveCounts.get(recipe.recipeId) ?? recipe.saveCount ?? 0;
+          localSaveCounts.get(recipe.recipeId) ?? recipe.saveCount ?? 0;
 
         return (
           <TouchableOpacity
@@ -122,10 +115,22 @@ export default function NewestRecipes({
           >
             {/* Image Section */}
             <View style={styles.imageWrapper}>
-              <Image
+              {/* ✅ Thay Image bằng CachedImage */}
+              <CachedImage
                 source={{ uri: getImageUrl(recipe.featuredImage) }}
                 style={styles.image}
                 resizeMode="cover"
+                priority="normal"
+                showLoader={true}
+                placeholder={
+                  <View style={styles.imagePlaceholder}>
+                    <Ionicons 
+                      name="restaurant-outline" 
+                      size={50} 
+                      color={Colors.gray[400]} 
+                    />
+                  </View>
+                }
               />
               {/* Hàng nút ❤️ + 🔖 ở phía dưới ảnh */}
               <View style={styles.actionRow}>
@@ -293,16 +298,12 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  likeButton: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  imagePlaceholder: {
+    width: "100%",
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: Colors.gray[100],
   },
   content: {
     padding: 16,
@@ -347,32 +348,30 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   actionRow: {
-  position: "absolute",
-  bottom: 12,
-  left: 0,
-  right: 0,
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingHorizontal: 12, 
-},
-
-actionButton: {
-  width: 42,
-  height: 42,
-  borderRadius: 21,
-  backgroundColor: Colors.white,
-  justifyContent: "center",
-  alignItems: "center",
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.2,
-  shadowRadius: 3,
-  elevation: 5,
-  borderWidth: 1,
-  borderColor: "rgba(0,0,0,0.05)",
-},
-
+    position: "absolute",
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  actionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
   infoGrid: {
     marginTop: 6,
     gap: 6,

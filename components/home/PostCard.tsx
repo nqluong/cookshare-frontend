@@ -35,6 +35,7 @@ export default function PostCard({ post, onPress }: PostCardProps) {
 
       {/* Image */}
       <Image source={{ uri: post.image }} style={styles.image} resizeMode="cover" />
+      
 
       {/* Content */}
       <View style={styles.content}>

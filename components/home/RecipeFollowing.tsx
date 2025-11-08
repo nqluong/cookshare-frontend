@@ -2,10 +2,11 @@ import { useCollectionManager } from '@/hooks/useCollectionManager';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getImageUrl } from '../../config/api.config';
 import { Colors } from '../../styles/colors';
 import { Recipe } from '../../types/dish';
+import { CachedImage } from '../ui/CachedImage';
 import RecipeSaveButton from './RecipeSaveButton';
 
 interface LikedRecipesProps {
@@ -32,19 +33,19 @@ export default function LikedRecipes({
 }: LikedRecipesProps) {
   const router = useRouter();
   // Sử dụng collection manager hook
-    const {
-      isSaved,
-      collections,
-      userUUID,
-      isLoadingSaved,
-      handleUnsaveRecipe,
-      handleSaveRecipe: updateSavedCache,
-    } = useCollectionManager();
-  
-    // State để quản lý saveCount tạm thời trên UI
-    const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
-      new Map()
-    );
+  const {
+    isSaved,
+    collections,
+    userUUID,
+    isLoadingSaved,
+    handleUnsaveRecipe,
+    handleSaveRecipe: updateSavedCache,
+  } = useCollectionManager();
+
+  // State để quản lý saveCount tạm thời trên UI
+  const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
+    new Map()
+  );
   const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
     // ✅ Kiểm tra đang loading hoặc không có callback
@@ -108,122 +109,133 @@ export default function LikedRecipes({
             activeOpacity={0.7}
           >
             {/* Image Section */}
-                        <View style={styles.imageWrapper}>
-                          <Image
-                            source={{ uri: getImageUrl(recipe.featuredImage) }}
-                            style={styles.image}
-                            resizeMode="cover"
-                          />
-                          {/* Hàng nút ❤️ + 🔖 ở phía dưới ảnh */}
-                          <View style={styles.actionRow}>
-                            <TouchableOpacity
-                              style={[
-                                styles.actionButton,
-                                isLoading && styles.loadingLikeButton,
-                              ]}
-                              onPress={(e) => toggleLike(recipe.recipeId, e)}
-                              activeOpacity={0.7}
-                              disabled={isLoading}
-                            >
-                              {isLoading ? (
-                                <ActivityIndicator size={20} color={Colors.primary} />
-                              ) : (
-                                <Ionicons
-                                  name={isLiked ? "heart" : "heart-outline"}
-                                  size={25}
-                                  color={isLiked ? Colors.primary : Colors.text.light}
-                                />
-                              )}
-                            </TouchableOpacity>
-            
-                            <RecipeSaveButton
-                              recipeId={recipe.recipeId}
-                              isSaved={saved}
-                              isDisabled={isLoadingSaved}
-                              size={25}
-                              collections={collections}
-                              userUUID={userUUID}
-                              currentSaveCount={currentSaveCount}
-                              onSaveSuccess={handleSaveSuccess}
-                              onUnsaveSuccess={handleUnsaveSuccess}
-                              onUnsave={handleUnsaveRecipe}
-                              onCreateNewCollection={handleCreateNewCollection}
-                              style={styles.actionButton}
-                            />
-                          </View>
-                        </View>
+            <View style={styles.imageWrapper}>
+              <CachedImage
+                source={{ uri: getImageUrl(recipe.featuredImage) }}
+                style={styles.image}
+                resizeMode="cover"
+                priority="high" // High priority cho featured images
+                showLoader={true}
+                placeholder={
+                  <View style={styles.imagePlaceholder}>
+                    <Ionicons
+                      name="restaurant-outline"
+                      size={40}
+                      color={Colors.gray[400]}
+                    />
+                  </View>
+                }
+              />
+              {/* Hàng nút ❤️ + 🔖 ở phía dưới ảnh */}
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    isLoading && styles.loadingLikeButton,
+                  ]}
+                  onPress={(e) => toggleLike(recipe.recipeId, e)}
+                  activeOpacity={0.7}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size={20} color={Colors.primary} />
+                  ) : (
+                    <Ionicons
+                      name={isLiked ? "heart" : "heart-outline"}
+                      size={25}
+                      color={isLiked ? Colors.primary : Colors.text.light}
+                    />
+                  )}
+                </TouchableOpacity>
 
-             {/* Content Section */}
-                        <View style={styles.content}>
-                          {/* Title */}
-                          <Text style={styles.recipeName} numberOfLines={2}>
-                            {recipe.title}
-                          </Text>
-            
-                          {/* Grid thông tin 2 hàng × 3 cột */}
-                          <View style={styles.infoGrid}>
-                            {/* Hàng 1 */}
-                            <View style={styles.infoRow}>
-                              <View style={styles.infoItem}>
-                                <Ionicons
-                                  name="bar-chart-outline"
-                                  size={16}
-                                  color={Colors.text.secondary}
-                                />
-                                <Text style={styles.infoText}>
-                                  {getDifficultyText(recipe.difficulty)}
-                                </Text>
-                              </View>
-                              <View style={styles.infoItem}>
-                                <Ionicons
-                                  name="time-outline"
-                                  size={16}
-                                  color={Colors.text.secondary}
-                                />
-                                <Text style={styles.infoText}>{recipe.cookTime}p</Text>
-                              </View>
-                              <View style={styles.infoItem}>
-                                <Ionicons
-                                  name="people-outline"
-                                  size={16}
-                                  color={Colors.text.secondary}
-                                />
-                                <Text style={styles.infoText}>{recipe.servings}</Text>
-                              </View>
-                            </View>
-            
-                            {/* Hàng 2 */}
-                            <View style={styles.infoRow}>
-                              <View style={styles.infoItem}>
-                                <Ionicons name="star" size={16} color="#FFD700" />
-                                <Text style={styles.infoText}>
-                                  {recipe.averageRating.toFixed(1)}
-                                </Text>
-                                <Text style={styles.statSubText}>
-                                  ({recipe.ratingCount})
-                                </Text>
-                              </View>
-                              <View style={styles.infoItem}>
-                                <Ionicons
-                                  name="eye-outline"
-                                  size={16}
-                                  color={Colors.text.secondary}
-                                />
-                                <Text style={styles.infoText}>{recipe.viewCount}</Text>
-                              </View>
-                              <View style={styles.infoItem}>
-                                <Ionicons name="heart" size={16} color={Colors.primary} />
-                                <Text style={styles.infoText}>{currentLikes}</Text>
-                              </View>
-                              <View style={styles.infoItem}>
-                                <Ionicons name="bookmark" size={16} color="#FFD700" />
-                                <Text style={styles.infoText}>
-                                  {currentSaveCount.toLocaleString()}
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-                        </View>
+                <RecipeSaveButton
+                  recipeId={recipe.recipeId}
+                  isSaved={saved}
+                  isDisabled={isLoadingSaved}
+                  size={25}
+                  collections={collections}
+                  userUUID={userUUID}
+                  currentSaveCount={currentSaveCount}
+                  onSaveSuccess={handleSaveSuccess}
+                  onUnsaveSuccess={handleUnsaveSuccess}
+                  onUnsave={handleUnsaveRecipe}
+                  onCreateNewCollection={handleCreateNewCollection}
+                  style={styles.actionButton}
+                />
+              </View>
+            </View>
+
+            {/* Content Section */}
+            <View style={styles.content}>
+              {/* Title */}
+              <Text style={styles.recipeName} numberOfLines={2}>
+                {recipe.title}
+              </Text>
+
+              {/* Grid thông tin 2 hàng × 3 cột */}
+              <View style={styles.infoGrid}>
+                {/* Hàng 1 */}
+                <View style={styles.infoRow}>
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="bar-chart-outline"
+                      size={16}
+                      color={Colors.text.secondary}
+                    />
+                    <Text style={styles.infoText}>
+                      {getDifficultyText(recipe.difficulty)}
+                    </Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="time-outline"
+                      size={16}
+                      color={Colors.text.secondary}
+                    />
+                    <Text style={styles.infoText}>{recipe.cookTime}p</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="people-outline"
+                      size={16}
+                      color={Colors.text.secondary}
+                    />
+                    <Text style={styles.infoText}>{recipe.servings}</Text>
+                  </View>
+                </View>
+
+                {/* Hàng 2 */}
+                <View style={styles.infoRow}>
+                  <View style={styles.infoItem}>
+                    <Ionicons name="star" size={16} color="#FFD700" />
+                    <Text style={styles.infoText}>
+                      {recipe.averageRating.toFixed(1)}
+                    </Text>
+                    <Text style={styles.statSubText}>
+                      ({recipe.ratingCount})
+                    </Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="eye-outline"
+                      size={16}
+                      color={Colors.text.secondary}
+                    />
+                    <Text style={styles.infoText}>{recipe.viewCount}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Ionicons name="heart" size={16} color={Colors.primary} />
+                    <Text style={styles.infoText}>{currentLikes}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Ionicons name="bookmark" size={16} color="#FFD700" />
+                    <Text style={styles.infoText}>
+                      {currentSaveCount.toLocaleString()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
           </TouchableOpacity>
         );
       })}
@@ -324,31 +336,31 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   actionRow: {
-  position: "absolute",
-  bottom: 12,
-  left: 0,
-  right: 0,
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingHorizontal: 12, 
-},
+    position: "absolute",
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
 
-actionButton: {
-  width: 42,
-  height: 42,
-  borderRadius: 21,
-  backgroundColor: Colors.white,
-  justifyContent: "center",
-  alignItems: "center",
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.2,
-  shadowRadius: 3,
-  elevation: 5,
-  borderWidth: 1,
-  borderColor: "rgba(0,0,0,0.05)",
-},
+  actionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
 
   infoGrid: {
     marginTop: 6,
@@ -369,5 +381,12 @@ actionButton: {
   infoText: {
     fontSize: 16,
     color: Colors.text.secondary,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.gray[100],
   },
 });

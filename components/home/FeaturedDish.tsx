@@ -1,14 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
-import { Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getImageUrl } from '../../config/api.config';
 import { Colors } from '../../styles/colors';
 import { Recipe } from '../../types/dish';
+import { CachedImage } from '../ui/CachedImage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - 32; // 16px padding on each side
+const CARD_WIDTH = SCREEN_WIDTH - 32; 
 
 interface FeaturedDishProps {
-  recipes?: Recipe[]; // Đổi từ recipe sang recipes (array)
+  recipes?: Recipe[];
   onRecipePress?: (recipe: Recipe) => void;
 }
 
@@ -26,7 +28,9 @@ export default function FeaturedDish({ recipes, onRecipePress }: FeaturedDishPro
             <Text style={styles.time}>-- phút</Text>
           </View>
           <View style={styles.imageContainer}>
-            <View style={styles.image} />
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="image-outline" size={40} color={Colors.gray[400]} />
+            </View>
           </View>
         </View>
       </View>
@@ -63,10 +67,21 @@ export default function FeaturedDish({ recipes, onRecipePress }: FeaturedDishPro
           <Text style={styles.time}>{totalTime} phút</Text>
         </View>
         <View style={styles.imageContainer}>
-          <Image
+          <CachedImage
             source={{ uri: getImageUrl(recipe.featuredImage) }}
             style={styles.image}
             resizeMode="cover"
+            priority="high"
+            showLoader={true}
+            placeholder={
+              <View style={styles.imagePlaceholder}>
+                <Ionicons 
+                  name="restaurant-outline" 
+                  size={40} 
+                  color={Colors.gray[400]} 
+                />
+              </View>
+            }
           />
         </View>
       </TouchableOpacity>
@@ -161,6 +176,13 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.gray[100],
   },
   pagination: {
     flexDirection: 'row',

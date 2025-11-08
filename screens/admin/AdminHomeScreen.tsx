@@ -27,6 +27,7 @@ export default function AdminHomeScreen() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState(getDefaultDateRange());
   const [stats, setStats] = useState({
     totalRecipes: 0,
     totalUsers: 0,
@@ -48,6 +49,8 @@ export default function AdminHomeScreen() {
         adminStatisticApi.getInteractionOverview(dateRange),
         adminStatisticApi.getSearchOverview(dateRange),
       ]);
+      console.log('Interaction Data:', interactionData);
+      console.log('Search Data:', searchData);
 
       setStats({
         totalRecipes: interactionData.totalRecipes,
@@ -130,13 +133,13 @@ export default function AdminHomeScreen() {
       color: "#3b82f6",
       onPress: () => router.push('/admin/recipes' as any),
     },
-    {
-      icon: "leaf",
-      label: "Quản Lý Nguyên Liệu",
-      description: "Thêm, sửa nguyên liệu",
-      color: "#f59e0b",
-      onPress: () => router.push('/admin/ingredients' as any),
-    },
+    // {
+    //   icon: "leaf",
+    //   label: "Quản Lý Nguyên Liệu",
+    //   description: "Thêm, sửa nguyên liệu",
+    //   color: "#f59e0b",
+    //   onPress: () => router.push('/admin/ingredients' as any),
+    // },
     {
       icon: "people",
       label: "Quản Lý Người Dùng",
@@ -171,6 +174,9 @@ export default function AdminHomeScreen() {
         {/* Quick Stats Grid */}
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Tổng Quan Nhanh</Text>
+          <Text style={styles.dateRangeText}>
+            Từ {formatDate(dateRange.startDate)} đến {formatDate(dateRange.endDate)}
+          </Text>
           <View style={styles.statsGrid}>
             {quickStats.map((stat, index) => (
               <TouchableOpacity
@@ -227,10 +233,25 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
+const formatDate = (dateStr: string | undefined): string => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f9fafb",
+  },
+  dateRangeText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    marginBottom: 16,
   },
   header: {
     flexDirection: "row",
