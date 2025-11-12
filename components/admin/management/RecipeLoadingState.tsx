@@ -1,4 +1,3 @@
-// components/admin/management/RecipeLoadingState.tsx
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../../../styles/colors";
 

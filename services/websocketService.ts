@@ -5,8 +5,8 @@ import SockJS from "sockjs-client";
 
 // === CẤU HÌNH URL ===
 // const WS_URL_DEV = `${API_CONFIG}/ws-sockjs`;
-const WS_URL_DEV = "http://192.168.1.151:8080/ws-sockjs";
-const WS_URL_PROD = "wss://api.cookshare.app/ws";
+const WS_URL_DEV = "http://cookshare-app.io.vn/ws-sockjs";
+const WS_URL_PROD = "http://cookshare-app.io.vn/ws";
 const WS_URL = __DEV__ ? WS_URL_DEV : WS_URL_PROD;
 
 type EventCallback = (data: any) => void;
