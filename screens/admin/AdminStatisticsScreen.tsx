@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../styles/colors';
 
+import DateRangePicker from '../../components/admin/statistics/DateRangePicker';
 import StatisticsTabs, { StatisticsTabType } from '../../components/admin/statistics/StatisticsTabs';
 import CategoryEngagementList from '../../components/admin/statistics/interaction/CategoryEngagementList';
 import DetailedStatsCard from '../../components/admin/statistics/interaction/DetailedStatsCard';
@@ -27,6 +28,7 @@ import SearchSuccessRateCard from '../../components/admin/statistics/search/Sear
 import SearchTrendsChart from '../../components/admin/statistics/search/SearchTrendsChart';
 import ZeroResultKeywordsCard from '../../components/admin/statistics/search/ZeroResultKeywordsCard';
 import adminStatisticApi, { getDefaultDateRange } from '../../services/adminStatisticsService';
+import { DateRangeParams } from '../../types/admin/interaction.types';
 
 import type {
   DetailedInteractionStats,
@@ -46,11 +48,23 @@ import type {
   ZeroResultKeywords,
 } from '../../types/admin/search.types';
 
+const formatDateForDisplay = (dateStr: string | undefined): string => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
+
 export default function AdminStatisticsScreen() {
   
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<StatisticsTabType>('interaction');
   const [refreshing, setRefreshing] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRangeParams>(getDefaultDateRange());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Interaction data states
   const [interactionOverview, setInteractionOverview] = useState<InteractionOverview | null>(null);
@@ -73,20 +87,18 @@ export default function AdminStatisticsScreen() {
   const [loadingInteraction, setLoadingInteraction] = useState(false);
   const [loadingSearch, setLoadingSearch] = useState(false);
 
-  // Fetch data on tab change
+  // Fetch data on tab change or date range change
   useEffect(() => {
     if (activeTab === 'interaction') {
       fetchInteractionData();
     } else if (activeTab === 'search') {
       fetchSearchData();
     }
-  }, [activeTab]);
+  }, [activeTab, dateRange]);
 
   const fetchInteractionData = async () => {
     setLoadingInteraction(true);
     try {
-      const dateRange = getDefaultDateRange();
-
       const [overview, detailed, peak, comments, trends, engagement] = await Promise.all([
         adminStatisticApi.getInteractionOverview(dateRange),
         adminStatisticApi.getDetailedInteractionStats(dateRange),
@@ -112,8 +124,6 @@ export default function AdminStatisticsScreen() {
   const fetchSearchData = async () => {
     setLoadingSearch(true);
     try {
-      const dateRange = getDefaultDateRange();
-
       // Fetch all search statistics
       const [overview, keywords, ingredients, categories, successRate, zeroResults, trends] =
         await Promise.all([
@@ -155,6 +165,10 @@ export default function AdminStatisticsScreen() {
     setActiveTab(tab);
   };
 
+  const handleDateRangeChange = (newDateRange: DateRangeParams) => {
+    setDateRange(newDateRange);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -163,9 +177,20 @@ export default function AdminStatisticsScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Thống Kê Chi Tiết</Text>
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setShowDatePicker(true)}
+        >
           <Ionicons name="calendar-outline" size={24} color={Colors.text.primary} />
         </TouchableOpacity>
+      </View>
+
+      {/* Date Range Display */}
+      <View style={styles.dateRangeContainer}>
+        <Text style={styles.dateRangeText}>
+          Thống kê từ {formatDateForDisplay(dateRange.startDate)} đến{' '}
+          {formatDateForDisplay(dateRange.endDate)}
+        </Text>
       </View>
 
       {/* Tabs */}
@@ -221,6 +246,14 @@ export default function AdminStatisticsScreen() {
         {/* Bottom spacing for tab bar */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Date Range Picker Modal */}
+      <DateRangePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={handleDateRangeChange}
+        currentDateRange={dateRange}
+      />
     </SafeAreaView>
   );
 }
@@ -253,6 +286,18 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     padding: 4,
+  },
+  dateRangeContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
+  },
+  dateRangeText: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
