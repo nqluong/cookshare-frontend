@@ -1,5 +1,5 @@
 // app/admin/recipes/index.tsx
-import { AdminRecipe, AdminRecipeDetailResponse } from '@/types/admin/recipe.types';
+import { AdminRecipe, AdminRecipeDetailResponse, AdminRecipeListResponse } from '@/types/admin/recipe.types';
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -46,7 +46,7 @@ export default function AdminRecipesScreen() {
         setError(null);
       }
 
-      let response;
+      let response: AdminRecipeListResponse;
       switch (filterStatus) {
         case 'pending':
           response = await adminRecipeService.getPendingRecipes(search, page, 20, sortBy, sortDir);

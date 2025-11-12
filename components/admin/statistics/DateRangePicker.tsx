@@ -4,13 +4,17 @@ import { DateRangeParams } from '@/types/admin/interaction.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import CalendarGrid from './CalendarGrid';
+import PresetButtons from './PresetButtons';
 
 interface DateRangePickerProps {
   visible: boolean;
@@ -29,161 +33,110 @@ const formatDateForDisplay = (dateStr: string | undefined): string => {
   });
 };
 
-// Helper functions for calendar
-const getDaysInMonth = (date: Date): number => {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-};
-
-const getFirstDayOfMonth = (date: Date): number => {
-  return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-};
-
-const isSameDay = (date1: Date, date2: Date): boolean => {
-  return (
-    date1.getDate() === date2.getDate() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getFullYear() === date2.getFullYear()
-  );
-};
-
-const isDateInRange = (date: Date, startDate: Date | null, endDate: Date | null): boolean => {
-  if (!startDate || !endDate) return false;
-  return date >= startDate && date <= endDate;
-};
-
-const formatMonthYear = (date: Date): string => {
-  return date.toLocaleDateString('vi-VN', {
-    month: 'long',
-    year: 'numeric',
-  });
-};
-
 export default function DateRangePicker({
   visible,
   onClose,
   onConfirm,
   currentDateRange,
 }: DateRangePickerProps) {
-  const [selectedRange, setSelectedRange] = useState<DateRangeParams>(currentDateRange);
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [tempStartDate, setTempStartDate] = useState<Date | null>(
-    currentDateRange.startDate ? new Date(currentDateRange.startDate) : null
-  );
-  const [tempEndDate, setTempEndDate] = useState<Date | null>(
-    currentDateRange.endDate ? new Date(currentDateRange.endDate) : null
-  );
+  const [selectedRange, setSelectedRange] =
+    useState<DateRangeParams>(currentDateRange);
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => {
+    if (currentDateRange.startDate) {
+      return new Date(currentDateRange.startDate);
+    }
+    return new Date();
+  });
+  const [tempStartDate, setTempStartDate] = useState<Date | null>(() => {
+    if (currentDateRange.startDate) {
+      return new Date(currentDateRange.startDate);
+    }
+    return null;
+  });
+  const [tempEndDate, setTempEndDate] = useState<Date | null>(() => {
+    if (currentDateRange.endDate) {
+      return new Date(currentDateRange.endDate);
+    }
+    return null;
+  });
   const [selectingStart, setSelectingStart] = useState<boolean>(true);
 
   // Update when currentDateRange changes
   useEffect(() => {
     if (visible) {
-      const start = currentDateRange.startDate ? new Date(currentDateRange.startDate) : null;
-      const end = currentDateRange.endDate ? new Date(currentDateRange.endDate) : null;
+      const start = currentDateRange.startDate
+        ? new Date(currentDateRange.startDate)
+        : null;
+      const end = currentDateRange.endDate
+        ? new Date(currentDateRange.endDate)
+        : null;
+      
       setSelectedRange(currentDateRange);
       setTempStartDate(start);
       setTempEndDate(end);
-      setCurrentMonth(start || new Date());
+      
+      // Đảm bảo currentMonth luôn là Date hợp lệ
+      if (start && !isNaN(start.getTime())) {
+        setCurrentMonth(start);
+      } else {
+        setCurrentMonth(new Date());
+      }
+      
       setSelectingStart(true);
     }
   }, [visible, currentDateRange]);
 
-  const presetRanges = [
-    {
-      label: '7 ngày qua',
-      getRange: () => {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(end.getDate() - 6);
-        return {
-          startDate: formatDateForApi(start),
-          endDate: formatDateForApi(end),
-        };
-      },
-    },
-    {
-      label: '30 ngày qua',
-      getRange: () => {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(end.getDate() - 29);
-        return {
-          startDate: formatDateForApi(start),
-          endDate: formatDateForApi(end),
-        };
-      },
-    },
-    {
-      label: '90 ngày qua',
-      getRange: () => {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(end.getDate() - 89);
-        return {
-          startDate: formatDateForApi(start),
-          endDate: formatDateForApi(end),
-        };
-      },
-    },
-    {
-      label: 'Tháng này',
-      getRange: () => {
-        const end = new Date();
-        const start = new Date(end.getFullYear(), end.getMonth(), 1);
-        return {
-          startDate: formatDateForApi(start),
-          endDate: formatDateForApi(end),
-        };
-      },
-    },
-    {
-      label: 'Tháng trước',
-      getRange: () => {
-        const end = new Date();
-        const start = new Date(end.getFullYear(), end.getMonth() - 1, 1);
-        const lastDay = new Date(end.getFullYear(), end.getMonth(), 0);
-        return {
-          startDate: formatDateForApi(start),
-          endDate: formatDateForApi(lastDay),
-        };
-      },
-    },
-  ];
-
-  const handlePresetSelect = (preset: typeof presetRanges[0]) => {
-    const range = preset.getRange();
-    const start = new Date(range.startDate);
-    const end = new Date(range.endDate);
+  const handlePresetSelect = (range: DateRangeParams) => {
+    const start = new Date(range.startDate || '');
+    const end = new Date(range.endDate || '');
     setSelectedRange(range);
     setTempStartDate(start);
     setTempEndDate(end);
     setCurrentMonth(start);
     setSelectingStart(true);
+    
+    // Tự động xác nhận sau khi chọn preset
+    setTimeout(() => {
+      onConfirm(range);
+      onClose();
+    }, 300);
   };
 
   const handleDateSelect = (day: number) => {
-    const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const selectedDate = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      day
+    );
     selectedDate.setHours(0, 0, 0, 0);
-    
-    if (selectingStart) {
-      // Chọn ngày bắt đầu
+
+    // Nếu đã có cả start và end, reset và bắt đầu chọn lại
+    if (tempStartDate && tempEndDate) {
       setTempStartDate(selectedDate);
       setTempEndDate(null);
       setSelectingStart(false);
+      return;
+    }
+
+    if (!tempStartDate) {
+      // Chọn ngày đầu tiên
+      setTempStartDate(selectedDate);
+      setSelectingStart(false);
     } else {
-      // Chọn ngày kết thúc
-      if (tempStartDate && selectedDate < tempStartDate) {
-        // Nếu chọn ngày nhỏ hơn ngày bắt đầu, swap chúng
-        setTempStartDate(selectedDate);
-        setTempEndDate(tempStartDate);
-      } else {
-        setTempEndDate(selectedDate);
+      // Chọn ngày thứ hai
+      let start = tempStartDate;
+      let end = selectedDate;
+
+      // Auto swap nếu end < start
+      if (end < start) {
+        [start, end] = [end, start];
       }
+
+      setTempStartDate(start);
+      setTempEndDate(end);
       setSelectingStart(true);
-      
+
       // Update selected range
-      const start = selectedDate < tempStartDate! ? selectedDate : tempStartDate!;
-      const end = selectedDate < tempStartDate! ? tempStartDate! : selectedDate;
-      
       const newRange: DateRangeParams = {
         startDate: formatDateForApi(start),
         endDate: formatDateForApi(end),
@@ -221,191 +174,125 @@ export default function DateRangePicker({
     onClose();
   };
 
-  // Render calendar
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(currentMonth);
-    const firstDay = getFirstDayOfMonth(currentMonth);
-    const days: (number | null)[] = [];
-    
-    // Add empty cells for days before the first day of month
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
-    
-    // Add all days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
-
-    const weekDays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return (
-      <View style={styles.calendarContainer}>
-        <View style={styles.calendarHeader}>
-          <TouchableOpacity onPress={handlePrevMonth} style={styles.monthNavButton}>
-            <Ionicons name="chevron-back" size={20} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.monthYearText}>{formatMonthYear(currentMonth)}</Text>
-          <TouchableOpacity onPress={handleNextMonth} style={styles.monthNavButton}>
-            <Ionicons name="chevron-forward" size={20} color={Colors.text.primary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.weekDaysRow}>
-          {weekDays.map((day, index) => (
-            <View key={index} style={styles.weekDayCell}>
-              <Text style={styles.weekDayText}>{day}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.calendarGrid}>
-          {days.map((day, index) => {
-            if (day === null) {
-              return <View key={index} style={styles.calendarDay} />;
-            }
-
-            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-            date.setHours(0, 0, 0, 0);
-            
-            const isToday = isSameDay(date, today);
-            const isStart = tempStartDate && isSameDay(date, tempStartDate);
-            const isEnd = tempEndDate && isSameDay(date, tempEndDate);
-            const isInRange = isDateInRange(date, tempStartDate, tempEndDate);
-
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.calendarDay,
-                  isInRange && styles.calendarDayInRange,
-                  isStart && styles.calendarDayStart,
-                  isEnd && styles.calendarDayEnd,
-                ]}
-                onPress={() => handleDateSelect(day)}
-              >
-                <Text
-                  style={[
-                    styles.calendarDayText,
-                    isToday && styles.calendarDayToday,
-                    (isStart || isEnd) && styles.calendarDaySelected,
-                  ]}
-                >
-                  {day}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-    );
-  };
-
   return (
     <Modal
       visible={visible}
-      transparent
+      transparent={true}
       animationType="slide"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Chọn Khoảng Thời Gian</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.text.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView 
-            style={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContentContainer}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
           >
-            <View style={styles.presetContainer}>
-              <Text style={styles.sectionTitle}>Khoảng thời gian nhanh</Text>
-              <View style={styles.presetButtons}>
-                {presetRanges.map((preset, index) => {
-                  const range = preset.getRange();
-                  const isSelected =
-                    selectedRange.startDate === range.startDate &&
-                    selectedRange.endDate === range.endDate;
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.presetButton,
-                        isSelected && styles.presetButtonSelected,
-                      ]}
-                      onPress={() => handlePresetSelect(preset)}
-                    >
-                      <Text
-                        style={[
-                          styles.presetButtonText,
-                          isSelected && styles.presetButtonTextSelected,
-                        ]}
-                      >
-                        {preset.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chọn Khoảng Thời Gian</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color={Colors.text.primary} />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.customRangeContainer}>
-              <Text style={styles.sectionTitle}>Chọn ngày trên lịch</Text>
-              <View style={styles.calendarWrapper}>
-                {renderCalendar()}
+            {/* Content */}
+            <ScrollView
+              style={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContentContainer}
+              bounces={false}
+            >
+              {/* Preset buttons */}
+              <PresetButtons
+                selectedRange={selectedRange}
+                onPresetSelect={handlePresetSelect}
+              />
+
+              {/* Calendar */}
+              <View style={styles.customRangeContainer}>
+                <Text style={styles.sectionTitle}>Chọn ngày trên lịch</Text>
+                <View style={styles.calendarWrapper}>
+                  <CalendarGrid
+                    currentMonth={currentMonth}
+                    tempStartDate={tempStartDate}
+                    tempEndDate={tempEndDate}
+                    onDateSelect={handleDateSelect}
+                    onPrevMonth={handlePrevMonth}
+                    onNextMonth={handleNextMonth}
+                  />
+                </View>
+                {/* Hint với icon */}
+                <View style={styles.dateSelectionHint}>
+                  <View style={styles.hintIconContainer}>
+                    <Ionicons 
+                      name={!tempStartDate ? "calendar-outline" : tempEndDate ? "checkmark-circle" : "ellipse-outline"} 
+                      size={16} 
+                      color={tempEndDate ? "#10b981" : Colors.text.secondary} 
+                    />
+                  </View>
+                  <Text style={[styles.hintText, tempEndDate && styles.hintTextSuccess]}>
+                    {!tempStartDate
+                      ? '👆 Chọn ngày bắt đầu'
+                      : !tempEndDate
+                      ? `Từ ${formatDateForDisplay(formatDateForApi(tempStartDate))} - Chọn ngày kết thúc`
+                      : `✓ Đã chọn xong! Nhấn lại để chọn lại`}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.dateSelectionHint}>
-                <Text style={styles.hintText}>
-                  {selectingStart
-                    ? 'Chọn ngày bắt đầu'
-                    : tempStartDate
-                    ? `Đã chọn: ${formatDateForDisplay(formatDateForApi(tempStartDate))} - Chọn ngày kết thúc`
-                    : 'Chọn ngày bắt đầu'}
+
+              {/* Selected range display */}
+              <View style={styles.selectedRangeContainer}>
+                <Text style={styles.selectedRangeLabel}>
+                  Khoảng thời gian đã chọn:
+                </Text>
+                <Text style={styles.selectedRangeText}>
+                  {formatDateForDisplay(selectedRange.startDate)} -{' '}
+                  {formatDateForDisplay(selectedRange.endDate)}
                 </Text>
               </View>
-            </View>
+            </ScrollView>
 
-            <View style={styles.selectedRangeContainer}>
-              <Text style={styles.selectedRangeLabel}>Khoảng thời gian đã chọn:</Text>
-              <Text style={styles.selectedRangeText}>
-                {formatDateForDisplay(selectedRange.startDate)} -{' '}
-                {formatDateForDisplay(selectedRange.endDate)}
-              </Text>
+            {/* Actions */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={onClose}
+              >
+                <Text style={styles.cancelButtonText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  styles.confirmButton,
+                  (!tempStartDate || !tempEndDate) &&
+                    styles.confirmButtonDisabled,
+                ]}
+                onPress={handleConfirm}
+                disabled={!tempStartDate || !tempEndDate}
+              >
+                <Text style={styles.confirmButtonText}>Xác nhận</Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-
-          <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={onClose}
-            >
-              <Text style={styles.cancelButtonText}>Hủy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.actionButton, 
-                styles.confirmButton,
-                (!tempStartDate || !tempEndDate) && styles.confirmButtonDisabled
-              ]}
-              onPress={handleConfirm}
-              disabled={!tempStartDate || !tempEndDate}
-            >
-              <Text style={styles.confirmButtonText}>Xác nhận</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -415,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
+    height: '95%',
   },
   scrollContent: {
     flex: 1,
@@ -441,127 +328,41 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 4,
   },
-  presetContainer: {
-    marginBottom: 24,
-  },
   customRangeContainer: {
     marginBottom: 24,
   },
   calendarWrapper: {
     marginTop: 12,
   },
-  calendarContainer: {
-    backgroundColor: Colors.gray[50],
-    borderRadius: 12,
-    padding: 12,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  monthNavButton: {
-    padding: 8,
-  },
-  monthYearText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    textTransform: 'capitalize',
-  },
-  weekDaysRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  weekDayCell: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  weekDayText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text.secondary,
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  calendarDay: {
-    width: '14.28%',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  calendarDayInRange: {
-    backgroundColor: '#d1fae5',
-  },
-  calendarDayStart: {
-    backgroundColor: '#10b981',
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-  },
-  calendarDayEnd: {
-    backgroundColor: '#10b981',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  calendarDayText: {
-    fontSize: 14,
-    color: Colors.text.primary,
-  },
-  calendarDayToday: {
-    fontWeight: '700',
-    color: '#10b981',
-  },
-  calendarDaySelected: {
-    color: '#fff',
-    fontWeight: '700',
-  },
   dateSelectionHint: {
     marginTop: 12,
     padding: 12,
     backgroundColor: Colors.gray[100],
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  hintIconContainer: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   hintText: {
+    flex: 1,
     fontSize: 13,
     color: Colors.text.secondary,
-    textAlign: 'center',
+  },
+  hintTextSuccess: {
+    color: '#10b981',
+    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.text.primary,
     marginBottom: 12,
-  },
-  presetButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  presetButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: Colors.gray[100],
-    borderWidth: 1,
-    borderColor: Colors.gray[200],
-    marginBottom: 8,
-  },
-  presetButtonSelected: {
-    backgroundColor: '#10b981',
-    borderColor: '#10b981',
-  },
-  presetButtonText: {
-    fontSize: 14,
-    color: Colors.text.primary,
-  },
-  presetButtonTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
   },
   selectedRangeContainer: {
     marginTop: 16,
@@ -589,6 +390,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
+    backgroundColor: '#fff',
   },
   actionButton: {
     flex: 1,
