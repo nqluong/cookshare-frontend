@@ -10,23 +10,23 @@ const DEV_CONFIG = {
   MANUAL_IP: null as string | null, 
 
 
-  FALLBACK_IP: 'http://cookshare-app.io.vn',
+  FALLBACK_IP: 'https://cookshare-app.io.vn',
 
   // Port của backend
   PORT: 8080,
 };
 
 const PROD_CONFIG = {
-  API_URL: 'http://cookshare-app.io.vn', // Thay bằng production URL
+  API_URL: 'https://cookshare-app.io.vn', // Thay bằng production URL
 };
 
 const getPlatformSpecificHost = (): string | null => {
   if (Platform.OS === 'web') {
-    return 'http://cookshare-app.io.vn';
+    return 'https://cookshare-app.io.vn';
   }
 
   if (Platform.OS === 'android') {
-    return 'http://cookshare-app.io.vn';
+    return 'https://cookshare-app.io.vn';
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật
