@@ -18,6 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { userService } from "../../services/userService";
 import { imageUploadService } from "../../services/imageUploadService";
 import { Colors } from "../../styles/colors";
+import EmailVerificationModal from "../../components/profile/EmailVerificationModal";
 
 export default function ProfileDetailsScreen() {
     const { user, updateAuthUser } = useAuth();
@@ -26,6 +27,7 @@ export default function ProfileDetailsScreen() {
     const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [lastSyncedAvatarUrl, setLastSyncedAvatarUrl] = useState<string | null>(null);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
 
     const [formData, setFormData] = useState({
         fullName: user?.fullName || "",
@@ -496,9 +498,20 @@ export default function ProfileDetailsScreen() {
 
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Email đã xác thực</Text>
-                            <Text style={[styles.infoValue, user?.emailVerified && styles.verifiedText]}>
-                                {user?.emailVerified ? "Đã xác thực" : "Chưa xác thực"}
-                            </Text>
+                            <View style={styles.emailVerifiedContainer}>
+                                <Text style={[styles.infoValue, user?.emailVerified && styles.verifiedText]}>
+                                    {user?.emailVerified ? "Đã xác thực" : "Chưa xác thực"}
+                                </Text>
+                                {!user?.emailVerified && (
+                                    <TouchableOpacity
+                                        style={styles.verifyButton}
+                                        onPress={() => setShowVerificationModal(true)}
+                                    >
+                                        <Ionicons name="shield-checkmark" size={16} color="#fff" />
+                                        <Text style={styles.verifyButtonText}>Xác thực</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                         </View>
 
                         {user?.createdAt && (
@@ -561,6 +574,25 @@ export default function ProfileDetailsScreen() {
                     </View>
                 )}
             </ScrollView>
+
+            {/* Email Verification Modal */}
+            <EmailVerificationModal
+                visible={showVerificationModal}
+                onClose={() => setShowVerificationModal(false)}
+                onSuccess={async () => {
+                    // Refresh user data sau khi xác thực thành công
+                    try {
+                        const updatedUser = await userService.getUserByUsername(user?.username || '');
+                        await updateAuthUser({
+                            emailVerified: true,
+                        });
+                        Alert.alert('Thành công', 'Email đã được xác thực thành công!');
+                    } catch (error) {
+                        console.error('Error refreshing user data:', error);
+                    }
+                }}
+                userEmail={user?.email || ''}
+            />
         </SafeAreaView>
     );
 }
@@ -695,6 +727,25 @@ const styles = StyleSheet.create({
     },
     verifiedText: {
         color: "#10b981",
+    },
+    emailVerifiedContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    verifyButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: Colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+        gap: 4,
+    },
+    verifyButtonText: {
+        color: "#fff",
+        fontSize: 12,
+        fontWeight: "600",
     },
     statsSection: {
         backgroundColor: "#fff",
