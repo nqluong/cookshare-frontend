@@ -114,17 +114,12 @@ export default function AdminStatisticsScreen() {
       setTopComments(comments);
       setFollowTrends(trends);
       setCategoryEngagement(engagement);
-<<<<<<< HEAD
-    } catch (error) {
-      console.log('Error fetching interaction data:', error);
-=======
     } catch (error: any) {
       console.error('Error fetching interaction data:', error);
       showError(
         'Lỗi tải dữ liệu',
         error?.message || 'Không thể tải dữ liệu thống kê tương tác. Vui lòng thử lại.'
       );
->>>>>>> update-home
     } finally {
       setLoadingInteraction(false);
     }
@@ -150,18 +145,12 @@ export default function AdminStatisticsScreen() {
       setSearchSuccessRate(successRate);
       setZeroResultKeywords(zeroResults);
       setSearchTrends(trends);
-<<<<<<< HEAD
-
-    } catch (error) {
-      console.log('Error fetching search data:', error);
-=======
     } catch (error: any) {
       console.error('Error fetching search data:', error);
       showError(
         'Lỗi tải dữ liệu',
         error?.message || 'Không thể tải dữ liệu thống kê tìm kiếm. Vui lòng thử lại.'
       );
->>>>>>> update-home
     } finally {
       setLoadingSearch(false);
     }
@@ -231,21 +220,12 @@ export default function AdminStatisticsScreen() {
             <OverviewCards data={interactionOverview} loading={loadingInteraction} />
 
             <PeakHoursChart data={peakHours} loading={loadingInteraction} />
-<<<<<<< HEAD
-
-            <CategoryEngagementList
-              data={categoryEngagement?.categoryEngagements || null}
-              loading={loadingInteraction}
-            />
-
-=======
             
             {/* <CategoryEngagementList 
               data={categoryEngagement?.categoryEngagements || null} 
               loading={loadingInteraction} 
             /> */}
             
->>>>>>> update-home
             <DetailedStatsCard data={detailedStats} loading={loadingInteraction} />
 
             <TopCommentsCard data={topComments} loading={loadingInteraction} />
@@ -259,13 +239,7 @@ export default function AdminStatisticsScreen() {
           <>
             <SearchOverviewCards data={searchOverview} loading={loadingSearch} />
             <PopularKeywordsList data={popularKeywords} loading={loadingSearch} />
-<<<<<<< HEAD
-
-            <PopularIngredientsCard data={popularIngredients} loading={loadingSearch} />
-            <PopularCategoriesCard data={popularCategories} loading={loadingSearch} />
-=======
             {/* <PopularCategoriesCard data={popularCategories} loading={loadingSearch} /> */}
->>>>>>> update-home
             <SearchSuccessRateCard data={searchSuccessRate} loading={loadingSearch} />
             <ZeroResultKeywordsCard data={zeroResultKeywords} loading={loadingSearch} />
             <SearchTrendsChart data={searchTrends} loading={loadingSearch} />

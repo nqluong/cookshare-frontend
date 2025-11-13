@@ -92,17 +92,12 @@ export default function AdminDashboardScreen() {
       setTopAuthors(ta);
       setCategoryPerformance(cp);
       setCompletionStats(cs);
-<<<<<<< HEAD
-    } catch (err) {
-      console.log("Failed to fetch admin data", err);
-=======
     } catch (err: any) {
       console.error("Failed to fetch admin data", err);
       showError(
         'Lỗi tải dữ liệu',
         err?.message || 'Không thể tải dữ liệu dashboard. Vui lòng thử lại.'
       );
->>>>>>> update-home
     } finally {
       setLoading(false);
     }

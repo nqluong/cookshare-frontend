@@ -63,17 +63,12 @@ export default function AdminHomeScreen() {
         engagementRate: interactionData.engagementRate,
         searchSuccessRate: searchData.successRate,
       });
-<<<<<<< HEAD
-    } catch (error) {
-      console.log('Error fetching stats:', error);
-=======
     } catch (error: any) {
       console.error('Error fetching stats:', error);
       showError(
         'Lỗi tải dữ liệu',
         error?.message || 'Không thể tải dữ liệu thống kê. Vui lòng thử lại.'
       );
->>>>>>> update-home
     } finally {
       setLoading(false);
     }
