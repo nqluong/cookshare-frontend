@@ -34,7 +34,22 @@ class AuthService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "Đăng nhập thất bại");
+        let errorMessage = "Đăng nhập thất bại";
+
+        try {
+          const errorData = JSON.parse(errorText);
+          // Kiểm tra error code từ backend
+          if (errorData.code === 4002 || errorData.message?.includes("không hoạt động")) {
+            errorMessage = "Tài khoản này đã bị khóa";
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // Nếu không parse được JSON, dùng errorText hoặc message mặc định
+          errorMessage = errorText || errorMessage;
+        }
+
+        throw new Error(errorMessage);
       }
 
       const responseData = await response.json();
@@ -61,7 +76,8 @@ class AuthService {
         user: responseData.user,
       };
     } catch (error: any) {
-      console.error("Login error:", error);
+      // Log ngắn gọn, chỉ log message thay vì toàn bộ error object
+      console.log("❌ Login error:", error.message || error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -393,6 +409,81 @@ class AuthService {
       return await response.text();
     } catch (error: any) {
       console.error("Change password error:", error);
+      if (error.name === "AbortError") {
+        throw new Error("Timeout - Không thể kết nối đến server");
+      }
+      throw error;
+    }
+  }
+
+  // Email Verification Methods
+  async sendEmailVerificationOtp(): Promise<string> {
+    try {
+      const accessToken = await this.getAccessToken();
+      if (!accessToken) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${API_BASE_URL}/api/email-verification/send-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Gửi mã OTP thất bại");
+      }
+
+      return await response.text();
+    } catch (error: any) {
+      console.error("Send email verification OTP error:", error);
+      if (error.name === "AbortError") {
+        throw new Error("Timeout - Không thể kết nối đến server");
+      }
+      throw error;
+    }
+  }
+
+  async verifyEmailOtp(otp: string): Promise<string> {
+    try {
+      const accessToken = await this.getAccessToken();
+      if (!accessToken) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${API_BASE_URL}/api/email-verification/verify-otp/${otp}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Xác thực OTP thất bại");
+      }
+
+      return await response.text();
+    } catch (error: any) {
+      console.error("Verify email OTP error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }

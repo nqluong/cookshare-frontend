@@ -103,6 +103,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.log('✅ Got fresh user from server:', userProfile.username);
               console.log('🖼️ Avatar URL:', userProfile.avatarUrl);
 
+              // ✅ Kiểm tra tài khoản có bị khóa không
+              if (userProfile.isActive === false) {
+                console.log('⛔ Account is locked, logging out...');
+                await authService.logout();
+                Alert.alert(
+                  'Tài khoản bị khóa',
+                  'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+                );
+                dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
+                return;
+              }
+
               // Cập nhật vào AsyncStorage
               await authService.saveUserInfo(userProfile);
 
@@ -115,19 +127,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.log('⚠️ Failed to get fresh user (status:', response.status, '), using cached data');
               const userInfo = await authService.getUserInfo();
               if (userInfo) {
-                dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: token || 'cookie-based' } });
+                // ✅ Kiểm tra cached user có bị khóa không
+                if (userInfo.isActive === false) {
+                  console.log('⛔ Cached account is locked, logging out...');
+                  await authService.logout();
+                  Alert.alert(
+                    'Tài khoản bị khóa',
+                    'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+                  );
+                  dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
+                } else {
+                  dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: token || 'cookie-based' } });
+                }
               } else {
                 dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
               }
             }
           } catch (error) {
-            console.error('❌ Error fetching fresh user from server:', error);
+            console.log('❌ Error fetching fresh user from server:', error);
             // Fallback: Dùng user info từ storage
             const userInfo = await authService.getUserInfo();
             const token = await authService.getAccessToken();
             if (userInfo) {
-              console.log('⚠️ Using cached user info as fallback');
-              dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: token || 'cookie-based' } });
+              // ✅ Kiểm tra cached user có bị khóa không
+              if (userInfo.isActive === false) {
+                console.log('⛔ Cached account is locked (error fallback), logging out...');
+                await authService.logout();
+                Alert.alert(
+                  'Tài khoản bị khóa',
+                  'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+                );
+                dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
+              } else {
+                console.log('⚠️ Using cached user info as fallback');
+                dispatch({ type: 'RESTORE_TOKEN', payload: { user: userInfo, token: token || 'cookie-based' } });
+              }
             } else {
               dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
             }
@@ -204,14 +238,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setWsConnected(connected);
     };
 
+    // Handler cho tài khoản bị khóa
+    const handleAccountBanned = (data: any) => {
+      console.warn("⛔ Account banned:", data);
+      Alert.alert(
+        "Tài khoản bị khóa",
+        data.reason || "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
+        [
+          {
+            text: "OK",
+            onPress: () => logout()
+          }
+        ]
+      );
+    };
+
     websocketService.on("TOKEN_EXPIRED", handleTokenExpired);
     websocketService.on("connectionStatusChange", handleConnectionChange);
+    websocketService.on("ACCOUNT_BANNED", handleAccountBanned);
 
     // Cleanup
     return () => {
       console.log("🧹 Cleaning up WebSocket listeners");
       websocketService.off("TOKEN_EXPIRED", handleTokenExpired);
       websocketService.off("connectionStatusChange", handleConnectionChange);
+      websocketService.off("ACCOUNT_BANNED", handleAccountBanned);
 
       // ❌ KHÔNG disconnect ở đây vì có thể component re-render
       // Chỉ disconnect khi logout
@@ -252,10 +303,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
       return true;
-    } catch (error) {
-      console.error('❌ Login failed:', error);
+    } catch (error: any) {
+      // Log ngắn gọn, chỉ log message
+      console.log('❌ Login failed:', error.message || 'Unknown error');
       dispatch({ type: 'SET_LOADING', payload: false });
-      return false;
+      // Throw lại error để component có thể xử lý message
+      throw error;
     }
   };
 

@@ -23,11 +23,9 @@ type Step = {
   instruction: string;
 };
 
-type Comment = {
-  user: string;
-  text: string;
-  icon?: string;
-  time?: string;
+type Tag = {
+  name: string;
+  color?: string;
 };
 
 type Recipe = {
@@ -38,6 +36,10 @@ type Recipe = {
   author: string;
   prepTime: number;
   cookTime: number;
+  servings?: number;
+  difficulty?: "easy" | "medium" | "hard";
+  category?: string[];
+  tags?: (string | Tag)[];
   ingredients: Ingredient[];
   steps: Step[];
   video?: string;
@@ -63,8 +65,8 @@ export default function RecipeDetailView({
   currentUserAvatar,
 }: Props) {
   const [commentModalVisible, setCommentModalVisible] = useState(false);
-
   const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
+
   const totalComments = useMemo(
     () => countAllCommentsRecursive(comments),
     [comments]
@@ -85,9 +87,22 @@ export default function RecipeDetailView({
     };
 
     loadCommentCount();
-
-    console.log("Tổng số bình luận đã tải:", commentCount);
   }, [recipe?.id]);
+
+  const getDifficultyLabel = (difficulty?: string) => {
+    switch (difficulty?.toLowerCase()) {
+      case "easy":
+        return { text: "Dễ", color: "#28a745" };
+      case "medium":
+        return { text: "Trung bình", color: "#ffc107" };
+      case "hard":
+        return { text: "Khó", color: "#dc3545" };
+      default:
+        return { text: "", color: "#000" };
+    }
+  };
+
+  const difficulty = getDifficultyLabel(recipe.difficulty);
 
   return (
     <View style={styles.container}>
@@ -96,12 +111,9 @@ export default function RecipeDetailView({
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Ảnh chính */}
-        <Image
-          source={{ uri: getImageUrl(recipe.image) }}
-          style={styles.image}
-        />
+        <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.image} />
 
-        {/* Thông tin lượt thích / xem */}
+        {/* Thông tin lượt thích / xem / bình luận */}
         <View style={styles.infoRow}>
           <TouchableOpacity style={styles.infoButton}>
             <Text style={styles.infoText}>❤️ {recipe.likes ?? 0}</Text>
@@ -119,19 +131,56 @@ export default function RecipeDetailView({
           </TouchableOpacity>
         </View>
 
-        {/* Tác giả */}
+        {/* Tác giả + thời gian + khẩu phần + độ khó */}
         <View style={styles.authorRow}>
-          <Image
-            source={{ uri: getImageUrl(recipe.image) }}
-            style={styles.avatar}
-          />
-          <View>
+          <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.avatar} />
+          <View style={{ flex: 1 }}>
             <Text style={styles.author}>{recipe.author}</Text>
             <Text style={styles.time}>
               ⏱️ Chuẩn bị: {recipe.prepTime}p | Nấu: {recipe.cookTime}p
+              {recipe.servings ? ` | Khẩu phần: ${recipe.servings}` : ""}
             </Text>
           </View>
+          {difficulty.text && (
+            <View style={[styles.difficultyBadge, { backgroundColor: difficulty.color + "33" }]}>
+              <Text style={[styles.difficultyText, { color: difficulty.color }]}>
+                🔥 {difficulty.text}
+              </Text>
+            </View>
+          )}
         </View>
+
+        {/* Danh mục & Tag */}
+        {(recipe.category || (recipe.tags && recipe.tags.length > 0)) && (
+          <View style={styles.tagContainer}>
+            {/* Hiển thị danh mục */}
+            {recipe.category && recipe.category.length > 0 && (
+              <View style={styles.tagGroup}>
+                {recipe.category.map((cat, index) => (
+                  <View key={index} style={[styles.tagItem, { backgroundColor: '#FFF4E6' }]}>
+                    <Text style={[styles.tagText, { color: '#FF8C00' }]}>📂 {cat}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Hiển thị tag với màu từ database */}
+            {recipe.tags && recipe.tags.length > 0 && (
+              <View style={styles.tagGroup}>
+                {recipe.tags.map((tag, index) => {
+                  const tagName = typeof tag === 'string' ? tag : tag.name;
+                  const tagColor = typeof tag === 'object' && tag.color ? tag.color : '#3A5BA0';
+                  const bgColor = typeof tag === 'object' && tag.color ? `${tag.color}20` : '#EEF3FF';
+                  return (
+                    <View key={index} style={[styles.tagItem, { backgroundColor: bgColor }]}>
+                      <Text style={[styles.tagText, { color: tagColor }]}> #{tagName} </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Tiêu đề & mô tả */}
         <Text style={styles.title}>{recipe.title}</Text>
@@ -147,10 +196,7 @@ export default function RecipeDetailView({
           {recipe.ingredients && recipe.ingredients.length > 0 ? (
             recipe.ingredients.map((item, i) => (
               <Text key={i} style={{ marginVertical: 2 }}>
-                • {item.name}
-                {item.quantity ? ` - ${item.quantity}` : ""}
-                {item.unit ? ` ${item.unit}` : ""}
-                {item.notes ? ` (${item.notes})` : ""}
+                • {item.name} {item.quantity ? `- ${item.quantity}` : ""} {item.unit ? `${item.unit}` : ""} {item.notes ? `(${item.notes})` : ""}
               </Text>
             ))
           ) : (
@@ -181,7 +227,7 @@ export default function RecipeDetailView({
           </TouchableOpacity>
         ) : null}
 
-        {/* Comment button */}
+        {/* Nút bình luận */}
         <TouchableOpacity
           style={styles.commentButton}
           onPress={() => setCommentModalVisible(true)}
@@ -206,17 +252,11 @@ export default function RecipeDetailView({
 }
 
 function normalizeCommentsRecursive(comments: any[]): any[] {
-  return comments.map((c) => {
-    const clones: any = {
-      ...c,
-      expandedRepliesCount: 0, // KHỞI TẠO luôn = 0
-      replies:
-        c.replies && c.replies.length
-          ? normalizeCommentsRecursive(c.replies)
-          : [],
-    };
-    return clones;
-  });
+  return comments.map((c) => ({
+    ...c,
+    expandedRepliesCount: 0,
+    replies: c.replies && c.replies.length ? normalizeCommentsRecursive(c.replies) : [],
+  }));
 }
 
 function countAllCommentsRecursive(comments: any[]): number {

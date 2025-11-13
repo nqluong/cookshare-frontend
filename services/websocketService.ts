@@ -2,11 +2,14 @@
 import NetInfo from "@react-native-community/netinfo";
 import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { API_CONFIG } from '../config/api.config';
+
+export const API_BASE_URL = API_CONFIG.BASE_URL;
 
 // === CẤU HÌNH URL ===
 // const WS_URL_DEV = `${API_CONFIG}/ws-sockjs`;
-const WS_URL_DEV = "https://cookshare-app.io.vn/ws-sockjs";
-const WS_URL_PROD = "https://cookshare-app.io.vn/ws";
+const WS_URL_DEV = `${API_BASE_URL}/ws-sockjs`;
+const WS_URL_PROD = `${API_BASE_URL}/ws`;
 const WS_URL = __DEV__ ? WS_URL_DEV : WS_URL_PROD;
 
 type EventCallback = (data: any) => void;
@@ -75,10 +78,10 @@ class WebSocketService {
 
           // ✅ QUAN TRỌNG: Emit event ngay khi kết nối thành công
           this.emit("connectionStatusChange", true);
-          
+
           this.setupSubscriptions();
           this.startNetworkListener();
-          
+
           resolve();
         },
 
@@ -87,12 +90,12 @@ class WebSocketService {
           console.error("❌ STOMP ERROR:", errorMsg);
           this.isConnecting = false;
           this.connectPromise = null;
-          
+
           this.emit("connectionStatusChange", false);
-          
+
           // ✅ Tự động reconnect
           this.scheduleReconnect();
-          
+
           reject(new Error(errorMsg));
         },
 
@@ -100,9 +103,9 @@ class WebSocketService {
           console.error("❌ SOCKJS ERROR:", error);
           this.isConnecting = false;
           this.connectPromise = null;
-          
+
           this.emit("connectionStatusChange", false);
-          
+
           reject(error);
         },
 
@@ -110,10 +113,10 @@ class WebSocketService {
           console.log("🔌 SOCKJS CLOSED:", event?.code, event?.reason);
           this.isConnecting = false;
           this.connectPromise = null;
-          
+
           // ✅ Emit disconnected
           this.emit("connectionStatusChange", false);
-          
+
           // ✅ Tự động reconnect nếu không phải logout
           if (this.userId && this.accessToken) {
             this.scheduleReconnect();
@@ -169,7 +172,7 @@ class WebSocketService {
 
     this.networkListenerUnsubscribe = NetInfo.addEventListener(state => {
       console.log("📱 Network state:", state.isConnected);
-      
+
       if (state.isConnected && !this.client?.connected && this.userId && this.accessToken) {
         console.log("🌐 Network restored → reconnecting...");
         setTimeout(() => {
@@ -199,7 +202,7 @@ class WebSocketService {
           const data = JSON.parse(msg.body);
           console.log("🔔 Received notification:", data);
           this.emit("NOTIFICATION", data);
-          
+
           if (data.action === "NEW") this.emit("NEW_NOTIFICATION", data);
           if (data.action === "READ") this.emit("READ_NOTIFICATION", data);
           if (data.action === "DELETE") this.emit("DELETE_NOTIFICATION", data);
@@ -210,7 +213,25 @@ class WebSocketService {
       }
     );
 
-    // 2. Retry các recipe đang chờ
+    // 2. Trạng thái tài khoản (ban/unban)
+    this.subscribeOnce(
+      `/user/${this.userId}/queue/account-status`,
+      "account-status",
+      (msg) => {
+        try {
+          const data = JSON.parse(msg.body);
+          console.log("⚠️ Received account status:", data);
+
+          if (data.type === "ACCOUNT_BANNED") {
+            this.emit("ACCOUNT_BANNED", data);
+          }
+        } catch (e) {
+          console.error("❌ Parse account status error:", e);
+        }
+      }
+    );
+
+    // 3. Retry các recipe đang chờ
     if (this.pendingSubscriptions.size > 0) {
       console.log("🔄 Retrying pending subscriptions:", Array.from(this.pendingSubscriptions));
       this.pendingSubscriptions.forEach(recipeId => {
@@ -262,7 +283,7 @@ class WebSocketService {
         const data = JSON.parse(msg.body);
         console.log("💬 Received comment update:", data);
         this.emit("COMMENT_UPDATE", { recipeId, ...data });
-        
+
         if (data.action === "CREATE") this.emit("NEW_COMMENT", data);
         if (data.action === "UPDATE") this.emit("UPDATE_COMMENT", data);
         if (data.action === "DELETE") this.emit("DELETE_COMMENT", data);
