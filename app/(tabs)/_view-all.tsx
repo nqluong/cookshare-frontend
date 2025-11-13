@@ -57,69 +57,69 @@ export default function ViewAllScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
-  useCallback(() => {
-    fetchRecipes(0, true);
-  }, [type])
-);
+    useCallback(() => {
+      fetchRecipes(0, true);
+    }, [type])
+  );
   const fetchRecipes = async (pageNum: number, isInitial: boolean = false) => {
-  if (!hasMore && !isInitial) return;
+    if (!hasMore && !isInitial) return;
 
-  try {
-    if (isInitial) {
-      setLoading(true);
-      setRecipes([]);
-      setPage(0);
-      setHasMore(true);
-    } else {
-      setLoadingMore(true);
-    }
-
-    const apiFn = API_FUNCTIONS[type];
-    const response = await apiFn(pageNum, 20);
-
-    if (response.success && response.data) {
-      const newRecipes = response.data.content || [];
-
-      // ✅ Lấy danh sách recipeId để kiểm tra like
-      const recipeIds = newRecipes.map((r: Recipe) => r.recipeId);
-
-      // ✅ Gọi song song API kiểm tra like
-      const likeChecks = await Promise.all(
-  recipeIds.map(async (id: string) => {
     try {
-      const res = await isRecipeLiked(id);
-      return res?.result ? id : null;
-    } catch {
-      return null;
-    }
-  })
-);
-      const likedIds = likeChecks.filter(Boolean) as string[];
-
-      // ✅ Cập nhật state likedRecipes
-      setLikedRecipes((prev) => {
-        const updated = new Set(isInitial ? [] : prev);
-        likedIds.forEach((id) => updated.add(id));
-        return updated;
-      });
-
       if (isInitial) {
-        setRecipes(newRecipes);
+        setLoading(true);
+        setRecipes([]);
+        setPage(0);
+        setHasMore(true);
       } else {
-        setRecipes((prev) => [...prev, ...newRecipes]);
+        setLoadingMore(true);
       }
 
-      setPage(pageNum);
-      setHasMore(!response.data.last);
+      const apiFn = API_FUNCTIONS[type];
+      const response = await apiFn(pageNum, 20);
+
+      if (response.success && response.data) {
+        const newRecipes = response.data.content || [];
+
+        // ✅ Lấy danh sách recipeId để kiểm tra like
+        const recipeIds = newRecipes.map((r: Recipe) => r.recipeId);
+
+        // ✅ Gọi song song API kiểm tra like
+        const likeChecks = await Promise.all(
+          recipeIds.map(async (id: string) => {
+            try {
+              const res = await isRecipeLiked(id);
+              return res?.result ? id : null;
+            } catch {
+              return null;
+            }
+          })
+        );
+        const likedIds = likeChecks.filter(Boolean) as string[];
+
+        // ✅ Cập nhật state likedRecipes
+        setLikedRecipes((prev) => {
+          const updated = new Set(isInitial ? [] : prev);
+          likedIds.forEach((id) => updated.add(id));
+          return updated;
+        });
+
+        if (isInitial) {
+          setRecipes(newRecipes);
+        } else {
+          setRecipes((prev) => [...prev, ...newRecipes]);
+        }
+
+        setPage(pageNum);
+        setHasMore(!response.data.last);
+      }
+    } catch (err: any) {
+      console.log('Error fetching recipes:', err);
+      setError(err.message || 'Không thể tải dữ liệu');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-  } catch (err: any) {
-    console.error('Error fetching recipes:', err);
-    setError(err.message || 'Không thể tải dữ liệu');
-  } finally {
-    setLoading(false);
-    setLoadingMore(false);
-  }
-};
+  };
 
 
   const handleLoadMore = () => {
@@ -274,8 +274,8 @@ export default function ViewAllScreen() {
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={() => canGoBack ? router.back() : router.replace('/(tabs)/home')} 
+          <TouchableOpacity
+            onPress={() => canGoBack ? router.back() : router.replace('/(tabs)/home')}
             style={styles.backButton}
           >
             <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />

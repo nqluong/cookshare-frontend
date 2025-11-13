@@ -46,7 +46,7 @@ export default function SearchBar({
           setSuggestions(results);
           setShowSuggestionList(true);
         } catch (error) {
-          console.error('Error fetching suggestions:', error);
+          console.log('Error fetching suggestions:', error);
           setSuggestions([]);
         } finally {
           setIsLoadingSuggestions(false);
@@ -66,14 +66,14 @@ export default function SearchBar({
   }, [searchQuery, onGetSuggestions, showSuggestions]);
 
   const handleSelectSuggestion = (suggestion: string) => {
-  setSearchQuery(suggestion);
-  setShowSuggestionList(false);
-  setSuggestions([]);
-  Keyboard.dismiss();
+    setSearchQuery(suggestion);
+    setShowSuggestionList(false);
+    setSuggestions([]);
+    Keyboard.dismiss();
 
-  // Truyền trực tiếp suggestion thay vì dựa vào state
-  onSearch(true,undefined, suggestion);
-};
+    // Truyền trực tiếp suggestion thay vì dựa vào state
+    onSearch(true, undefined, suggestion);
+  };
 
   const handleSearch = () => {
     setShowSuggestionList(false);

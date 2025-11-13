@@ -44,7 +44,7 @@ export default function AdminHomeScreen() {
   const fetchQuickStats = async () => {
     try {
       const dateRange = getDefaultDateRange();
-      
+
       const [interactionData, searchData] = await Promise.all([
         adminStatisticApi.getInteractionOverview(dateRange),
         adminStatisticApi.getSearchOverview(dateRange),
@@ -61,7 +61,7 @@ export default function AdminHomeScreen() {
         searchSuccessRate: searchData.successRate,
       });
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.log('Error fetching stats:', error);
     } finally {
       setLoading(false);
     }

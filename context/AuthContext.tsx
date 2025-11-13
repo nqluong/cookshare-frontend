@@ -171,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
         }
       } catch (error) {
-        console.error('❌ Error restoring session:', error);
+        console.log('❌ Error restoring session:', error);
         dispatch({ type: 'RESTORE_TOKEN', payload: { user: null, token: null } });
       }
     };
@@ -193,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserProfile(profile);
         console.log("✅ Profile loaded:", profile.username);
       } catch (error: any) {
-        console.error("❌ Error loading profile:", error);
+        console.log("❌ Error loading profile:", error);
         Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
       }
     };
@@ -222,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setWsConnected(true);
       })
       .catch(err => {
-        console.error("❌ WebSocket connection failed:", err);
+        console.log("❌ WebSocket connection failed:", err);
         setWsConnected(false);
       });
 
@@ -353,7 +353,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('✅ Social login successful!');
       return true;
     } catch (error: any) {
-      console.error('❌ Social login failed:', error);
+      console.log('❌ Social login failed:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       return false;
     }
@@ -372,7 +372,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return loginSuccess;
     } catch (error) {
-      console.error('❌ Registration failed:', error);
+      console.log('❌ Registration failed:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       return false;
     }
@@ -395,7 +395,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log("✅ Logout complete");
     } catch (error) {
-      console.error('❌ Logout error:', error);
+      console.log('❌ Logout error:', error);
 
       // Force cleanup ngay cả khi có lỗi
       websocketService.disconnect();

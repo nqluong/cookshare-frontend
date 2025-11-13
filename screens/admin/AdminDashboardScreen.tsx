@@ -90,7 +90,7 @@ export default function AdminDashboardScreen() {
       setCategoryPerformance(cp);
       setCompletionStats(cs);
     } catch (err) {
-      console.error("Failed to fetch admin data", err);
+      console.log("Failed to fetch admin data", err);
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,7 @@ export default function AdminDashboardScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <DashboardHeader onExitAdmin={handleExitAdmin} />
-      
+
       <TabNavigation selectedTab={selectedTab} onTabChange={setSelectedTab} />
 
       <ScrollView

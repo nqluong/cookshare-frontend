@@ -82,7 +82,7 @@ export default function RecipeDetailView({
         const normalized = normalizeCommentsRecursive(data);
         setComments(normalized);
       } catch (error) {
-        console.error("Lỗi tải số bình luận:", error);
+        console.log("Lỗi tải số bình luận:", error);
       }
     };
 

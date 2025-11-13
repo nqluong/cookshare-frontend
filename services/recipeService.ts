@@ -22,7 +22,7 @@ api.interceptors.request.use(async (config) => {
 
 // Common error handler
 const handleError = (error: any) => {
-  console.error("API Error:", {
+  console.log("API Error:", {
     code: error.code,
     message: error.message,
     response: error.response?.data,
@@ -111,7 +111,7 @@ export const createRecipe = async (formData: FormData) => {
 
     // Make API request (use sanitized form)
     const res = await api.post("", uploadForm, {
-      headers: { 
+      headers: {
         "Content-Type": "multipart/form-data",
         "Accept": "application/json"
       },
@@ -126,10 +126,10 @@ export const createRecipe = async (formData: FormData) => {
       title: res.data.title,
       imageUrl: res.data.featuredImage
     });
-    
+
     return res.data;
   } catch (error: any) {
-    console.error("❌ Recipe creation failed:", {
+    console.log("❌ Recipe creation failed:", {
       error: error.message,
       response: error.response?.data
     });

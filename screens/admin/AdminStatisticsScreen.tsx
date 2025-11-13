@@ -59,7 +59,7 @@ const formatDateForDisplay = (dateStr: string | undefined): string => {
 };
 
 export default function AdminStatisticsScreen() {
-  
+
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<StatisticsTabType>('interaction');
   const [refreshing, setRefreshing] = useState(false);
@@ -115,7 +115,7 @@ export default function AdminStatisticsScreen() {
       setFollowTrends(trends);
       setCategoryEngagement(engagement);
     } catch (error) {
-      console.error('Error fetching interaction data:', error);
+      console.log('Error fetching interaction data:', error);
     } finally {
       setLoadingInteraction(false);
     }
@@ -145,7 +145,7 @@ export default function AdminStatisticsScreen() {
       setSearchTrends(trends);
 
     } catch (error) {
-      console.error('Error fetching search data:', error);
+      console.log('Error fetching search data:', error);
     } finally {
       setLoadingSearch(false);
     }
@@ -211,20 +211,20 @@ export default function AdminStatisticsScreen() {
       >
         {activeTab === 'interaction' && (
           <>
-            
+
             <OverviewCards data={interactionOverview} loading={loadingInteraction} />
-            
+
             <PeakHoursChart data={peakHours} loading={loadingInteraction} />
-            
-            <CategoryEngagementList 
-              data={categoryEngagement?.categoryEngagements || null} 
-              loading={loadingInteraction} 
+
+            <CategoryEngagementList
+              data={categoryEngagement?.categoryEngagements || null}
+              loading={loadingInteraction}
             />
-            
+
             <DetailedStatsCard data={detailedStats} loading={loadingInteraction} />
 
             <TopCommentsCard data={topComments} loading={loadingInteraction} />
-            
+
 
             <FollowTrendsChart data={followTrends} loading={loadingInteraction} />
           </>
@@ -234,7 +234,7 @@ export default function AdminStatisticsScreen() {
           <>
             <SearchOverviewCards data={searchOverview} loading={loadingSearch} />
             <PopularKeywordsList data={popularKeywords} loading={loadingSearch} />
-            
+
             <PopularIngredientsCard data={popularIngredients} loading={loadingSearch} />
             <PopularCategoriesCard data={popularCategories} loading={loadingSearch} />
             <SearchSuccessRateCard data={searchSuccessRate} loading={loadingSearch} />

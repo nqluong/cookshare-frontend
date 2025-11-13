@@ -95,11 +95,11 @@ export default function AddRecipeScreen({ navigation }: any) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedIngredients, setSelectedIngredients] = useState<SelectedIngredient[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  
+
   // ingredientInputs stores per-ingredient temporary inputs shown inside the modal
-  const [ingredientInputs, setIngredientInputs] = useState<Record<string, { 
-    quantity: string; 
-    unit: string; 
+  const [ingredientInputs, setIngredientInputs] = useState<Record<string, {
+    quantity: string;
+    unit: string;
     selected: boolean;
   }>>({});
 
@@ -142,7 +142,7 @@ export default function AddRecipeScreen({ navigation }: any) {
           IngredientService.getAllIngredients(),
           TagService.getAllTags(),
         ]);
-        
+
         // Map dữ liệu từ API để khớp với interface ListItem
         const mappedCategories = ((cat as CategoryResponse[]) || []).map((c) => ({
           id: c.categoryId,
@@ -180,15 +180,15 @@ export default function AddRecipeScreen({ navigation }: any) {
         aspect: [4, 3],
         base64: false
       });
-      
+
       if (result.canceled) return;
-      
+
       const uri = result.assets?.[0]?.uri;
       if (!uri) {
         console.log("No image URI received");
         return;
       }
-      
+
       console.log("Image picked:", uri);
 
       if (index !== undefined) {
@@ -285,7 +285,7 @@ export default function AddRecipeScreen({ navigation }: any) {
       Alert.alert("Lỗi", "Vui lòng nhập tên!");
       return;
     }
-    
+
     try {
       let created = false;
 
@@ -304,7 +304,7 @@ export default function AddRecipeScreen({ navigation }: any) {
           setSelectedCategories(prev => [...prev, newCategory.id]);
           created = true;
         }
-      } 
+      }
       else if (modalType === "ingredient") {
         const ingredientRes = await IngredientService.createIngredient({ name: searchTerm });
         if (ingredientRes && ingredientRes.ingredientId) {
@@ -314,26 +314,26 @@ export default function AddRecipeScreen({ navigation }: any) {
             description: ingredientRes.description || undefined
           };
           setIngredients(prev => [newIngredient, ...prev]);
-          
+
           // Scroll to top để hiển thị nguyên liệu mới (nếu có FlatList ref)
           Alert.alert(
             "✅ Đã tạo nguyên liệu",
             `"${searchTerm}" đã được thêm vào danh sách. Vui lòng nhập số lượng và đơn vị, sau đó nhấn "Chọn".`,
             [{ text: "OK" }]
           );
-          
+
           // Tự động focus vào nguyên liệu mới với input rỗng
           setIngredientInputs(prev => ({
             ...prev,
             [newIngredient.id]: { quantity: '', unit: '', selected: false }
           }));
-          
+
           // Clear search để hiển thị nguyên liệu vừa tạo ở đầu danh sách
           setSearchTerm("");
-          
+
           created = true;
         }
-      } 
+      }
       else if (modalType === "tag") {
         const tagRes = await TagService.createTag({ name: searchTerm, color: extraField || "#ccc" });
         if (tagRes && tagRes.tagId) {
@@ -400,20 +400,20 @@ export default function AddRecipeScreen({ navigation }: any) {
       const ingredientExists = ingredients.find((i: ListItem) => i.id === ingredient.id);
       const hasQuantity = ingredient.quantity && ingredient.quantity.trim() !== '';
       const hasUnit = ingredient.unit && ingredient.unit.trim() !== '';
-      
+
       if (ingredientExists && (!hasQuantity || !hasUnit)) {
         Alert.alert("Thiếu thông tin", `Vui lòng nhập đầy đủ số lượng và đơn vị cho nguyên liệu: ${ingredientExists.name}`);
         return false;
       }
-      
+
       return ingredientExists != null && hasQuantity && hasUnit;
     });
-    
+
     if (validIngredients.length === 0) {
       Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu hợp lệ và nhập đầy đủ số lượng, đơn vị!");
       return;
     }
-    
+
     // Validate tags (optional)
     const validTags = selectedTags.filter(id => {
       const tag = tags.find(t => t.id === id);
@@ -456,7 +456,7 @@ export default function AddRecipeScreen({ navigation }: any) {
         })),
         steps: stepsWithImages
       };
-      
+
       // Append recipe data as a JSON string
       formData.append('data', JSON.stringify(recipeData));
 
@@ -478,9 +478,9 @@ export default function AddRecipeScreen({ navigation }: any) {
         if (step.image) {
           const filename = step.image.split("/").pop()!;
           const ext = filename.split(".").pop()!.toLowerCase();
-          const stepFile = { 
-            uri: step.image, 
-            type: `image/${ext}`, 
+          const stepFile = {
+            uri: step.image,
+            type: `image/${ext}`,
             name: `step_${i + 1}.${ext}` // stepNumber trong tên file
           } as any;
           console.log(`Appending step image for step ${i + 1}:`, stepFile);
@@ -527,7 +527,7 @@ export default function AddRecipeScreen({ navigation }: any) {
                   });
                 }
               } catch (e) {
-                console.error("Error navigating to profile:", e);
+                console.log("Error navigating to profile:", e);
               }
             },
           },
@@ -556,8 +556,8 @@ export default function AddRecipeScreen({ navigation }: any) {
             {modalType === "category"
               ? "Chọn danh mục"
               : modalType === "ingredient"
-              ? "Chọn nguyên liệu"
-              : "Chọn tag"}
+                ? "Chọn nguyên liệu"
+                : "Chọn tag"}
           </Text>
 
           <TextInput
@@ -688,12 +688,12 @@ export default function AddRecipeScreen({ navigation }: any) {
 
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Tên món ăn <Text style={styles.required}>*</Text></Text>
-          <TextInput 
-            placeholder="VD: Phở bò Hà Nội" 
+          <TextInput
+            placeholder="VD: Phở bò Hà Nội"
             placeholderTextColor={defaultPlaceholderColor}
-            value={title} 
-            onChangeText={setTitle} 
-            style={styles.input} 
+            value={title}
+            onChangeText={setTitle}
+            style={styles.input}
           />
         </View>
 
@@ -742,7 +742,7 @@ export default function AddRecipeScreen({ navigation }: any) {
                 <View style={styles.radioButton}>
                   {difficulty === option.value && <View style={styles.radioButtonInner} />}
                 </View>
-                <Text 
+                <Text
                   style={[
                     styles.difficultyButtonText,
                     difficulty === option.value && styles.difficultyButtonTextSelected
@@ -782,14 +782,14 @@ export default function AddRecipeScreen({ navigation }: any) {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>🧂 Nguyên liệu</Text>
-            <TouchableOpacity 
-              onPress={() => openModal("ingredient")} 
+            <TouchableOpacity
+              onPress={() => openModal("ingredient")}
               style={styles.addButton}
             >
               <Text style={styles.addButtonText}>+ Thêm</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.ingredientsList}>
             {selectedIngredients.length > 0 ? (
               selectedIngredients.map((item: SelectedIngredient, index: number) => {
@@ -799,7 +799,7 @@ export default function AddRecipeScreen({ navigation }: any) {
                     <Text style={styles.ingredientText}>
                       • {ingredient.name} - {item.quantity} {item.unit}
                     </Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => {
                         setSelectedIngredients(prev => prev.filter(i => i.id !== item.id));
                       }}
@@ -832,8 +832,8 @@ export default function AddRecipeScreen({ navigation }: any) {
 
         <TouchableOpacity onPress={() => pickImage()} style={styles.imagePicker}>
           {image ? (
-            <Image 
-              source={{ uri: image }} 
+            <Image
+              source={{ uri: image }}
               style={{ width: "100%", height: "100%", borderRadius: 10 }}
               resizeMode="cover"
             />
@@ -869,8 +869,8 @@ export default function AddRecipeScreen({ navigation }: any) {
 
             <TouchableOpacity onPress={() => pickImage(i)} style={styles.imagePickerSmall}>
               {s.image ? (
-                <Image 
-                  source={{ uri: s.image }} 
+                <Image
+                  source={{ uri: s.image }}
                   style={{ width: "100%", height: "100%", borderRadius: 10 }}
                   resizeMode="cover"
                 />

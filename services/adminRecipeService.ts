@@ -51,12 +51,12 @@ class AdminRecipeService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Error fetching ${status} recipes:`, response.status, errorText);
+        console.log(`Error fetching ${status} recipes:`, response.status, errorText);
         throw new Error(`Failed to fetch ${status} recipes: ${response.status}`);
       }
 
       const result: ApiResponse<AdminRecipeListResponse> = await response.json();
-      
+
       // Kiểm tra và xử lý response
       if (!result || !result.data || !result.data.content) {
         console.warn(`Invalid response format for ${status} recipes:`, result);
@@ -73,11 +73,11 @@ class AdminRecipeService {
           sorted: false
         };
       }
-      
+
       console.log(`Successfully fetched ${status} recipes:`, result.data.content.length, 'items');
       return result.data;
     } catch (error) {
-      console.error(`Error in getRecipesByStatus(${status}):`, error);
+      console.log(`Error in getRecipesByStatus(${status}):`, error);
       throw error;
     }
   }
@@ -133,7 +133,7 @@ class AdminRecipeService {
       }
 
       const result: ApiResponse<AdminRecipeListResponse> = await response.json();
-      
+
       // Kiểm tra và xử lý response
       if (!result || !result.data || !result.data.content) {
         console.warn('Invalid response format for all recipes:', result);
@@ -150,11 +150,11 @@ class AdminRecipeService {
           sorted: false
         };
       }
-      
+
       console.log('Get all recipes successful, count:', result.data.content.length);
       return result.data;
     } catch (error: any) {
-      console.error('Get all recipes error:', error);
+      console.log('Get all recipes error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -192,7 +192,7 @@ class AdminRecipeService {
       console.log('Get recipe detail successful:', result.data.title);
       return result.data;
     } catch (error: any) {
-      console.error('Get recipe detail error:', error);
+      console.log('Get recipe detail error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -231,7 +231,7 @@ class AdminRecipeService {
       console.log('Update recipe successful');
       return result.data;
     } catch (error: any) {
-      console.error('Update recipe error:', error);
+      console.log('Update recipe error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -268,7 +268,7 @@ class AdminRecipeService {
 
       console.log('Approve recipe successful');
     } catch (error: any) {
-      console.error('Approve recipe error:', error);
+      console.log('Approve recipe error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -304,7 +304,7 @@ class AdminRecipeService {
 
       console.log('Delete recipe successful');
     } catch (error: any) {
-      console.error('Delete recipe error:', error);
+      console.log('Delete recipe error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -356,7 +356,7 @@ class AdminRecipeService {
       }
 
       const result: ApiResponse<AdminRecipeListResponse> = await response.json();
-      
+
       // Kiểm tra và xử lý response
       if (!result || !result.data || !result.data.content) {
         console.warn('Invalid response format for pending recipes:', result);
@@ -373,11 +373,11 @@ class AdminRecipeService {
           sorted: false
         };
       }
-      
+
       console.log('Get pending recipes successful, count:', result.data.content.length);
       return result.data;
     } catch (error: any) {
-      console.error('Get pending recipes error:', error);
+      console.log('Get pending recipes error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -429,7 +429,7 @@ class AdminRecipeService {
       }
 
       const result: ApiResponse<AdminRecipeListResponse> = await response.json();
-      
+
       // Kiểm tra và xử lý response
       if (!result || !result.data || !result.data.content) {
         console.warn('Invalid response format for approved recipes:', result);
@@ -446,11 +446,11 @@ class AdminRecipeService {
           sorted: false
         };
       }
-      
+
       console.log('Get approved recipes successful, count:', result.data.content.length);
       return result.data;
     } catch (error: any) {
-      console.error('Get approved recipes error:', error);
+      console.log('Get approved recipes error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -502,7 +502,7 @@ class AdminRecipeService {
       }
 
       const result: ApiResponse<AdminRecipeListResponse> = await response.json();
-      
+
       // Kiểm tra và xử lý response
       if (!result || !result.data || !result.data.content) {
         console.warn('Invalid response format for rejected recipes:', result);
@@ -519,11 +519,11 @@ class AdminRecipeService {
           sorted: false
         };
       }
-      
+
       console.log('Get rejected recipes successful, count:', result.data.content.length);
       return result.data;
     } catch (error: any) {
-      console.error('Get rejected recipes error:', error);
+      console.log('Get rejected recipes error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -559,7 +559,7 @@ class AdminRecipeService {
 
       console.log('Set featured recipe successful');
     } catch (error: any) {
-      console.error('Set featured recipe error:', error);
+      console.log('Set featured recipe error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -595,7 +595,7 @@ class AdminRecipeService {
 
       console.log('Set published recipe successful');
     } catch (error: any) {
-      console.error('Set published recipe error:', error);
+      console.log('Set published recipe error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }

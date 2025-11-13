@@ -54,7 +54,7 @@ class NotificationService {
         },
       };
     } catch (error: any) {
-      console.error('Error fetching notifications:', error);
+      console.log('Error fetching notifications:', error);
       throw error;
     }
   }
@@ -75,7 +75,7 @@ class NotificationService {
       const data = await response.json();
       return data.unreadCount;
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      console.log('Error fetching unread count:', error);
       return 0;
     }
   }
@@ -96,7 +96,7 @@ class NotificationService {
       if (!response.ok) throw new Error(await response.text() || 'Không thể cập nhật thông báo');
       return await response.json();
     } catch (error: any) {
-      console.error('Error marking notification as read:', error);
+      console.log('Error marking notification as read:', error);
       throw error;
     }
   }
@@ -116,7 +116,7 @@ class NotificationService {
 
       if (!response.ok) throw new Error(await response.text() || 'Không thể cập nhật thông báo');
     } catch (error: any) {
-      console.error('Error marking all as read:', error);
+      console.log('Error marking all as read:', error);
       throw error;
     }
   }
@@ -134,7 +134,7 @@ class NotificationService {
 
       if (!response.ok) throw new Error(await response.text() || 'Không thể xóa thông báo');
     } catch (error: any) {
-      console.error('Error deleting notification:', error);
+      console.log('Error deleting notification:', error);
       throw error;
     }
   }

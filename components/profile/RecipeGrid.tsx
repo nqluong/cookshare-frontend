@@ -34,7 +34,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
       const list: Recipe[] = data || [];
       setRecipes(sortRecipes(list, sortOption));
     } catch (error) {
-      console.error("Failed to fetch recipes:", error);
+      console.log("Failed to fetch recipes:", error);
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
     <View style={styles.card}>
       <Image
-        source={{ 
+        source={{
           uri: getImageUrl(item.featuredImage)
         }}
         style={styles.image}

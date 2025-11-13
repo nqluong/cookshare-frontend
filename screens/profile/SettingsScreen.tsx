@@ -335,7 +335,7 @@ export default function SettingsScreen() {
                 contentFit="cover"
                 transition={200}
                 onError={(error) => {
-                  console.error('❌ Lỗi load avatar trong Settings:', error);
+                  console.log('❌ Lỗi load avatar trong Settings:', error);
                 }}
                 onLoad={() => {
                   console.log('✅ Avatar loaded trong Settings (from cache or network)');

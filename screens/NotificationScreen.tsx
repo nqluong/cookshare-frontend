@@ -54,7 +54,7 @@ export default function NotificationsScreen() {
       setHasMore(!result.pagination.isLast);
       setPage(pageNum);
     } catch (error: any) {
-      console.error('❌ Error fetching notifications:', error);
+      console.log('❌ Error fetching notifications:', error);
       Alert.alert('Lỗi', error.message || 'Không thể tải thông báo');
     } finally {
       setLoading(false);
@@ -71,7 +71,7 @@ export default function NotificationsScreen() {
       const count = await notificationService.getUnreadCount(userId);
       setUnreadCount(count);
     } catch (error: any) {
-      console.error('❌ Error fetching unread count:', error);
+      console.log('❌ Error fetching unread count:', error);
     }
   };
 
@@ -193,7 +193,7 @@ export default function NotificationsScreen() {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error: any) {
-      console.error('❌ Error marking as read:', error);
+      console.log('❌ Error marking as read:', error);
     }
   };
 
@@ -212,7 +212,7 @@ export default function NotificationsScreen() {
 
       Alert.alert('Thành công', `Đã đánh dấu ${updatedCount} thông báo là đã đọc`);
     } catch (error: any) {
-      console.error('❌ Error marking all as read:', error);
+      console.log('❌ Error marking all as read:', error);
       Alert.alert('Lỗi', error.message || 'Không thể cập nhật thông báo');
     }
   };
@@ -239,7 +239,7 @@ export default function NotificationsScreen() {
               return prev.filter((notif) => notif.notificationId !== notificationId);
             });
           } catch (error: any) {
-            console.error('❌ Error deleting notification:', error);
+            console.log('❌ Error deleting notification:', error);
             Alert.alert('Lỗi', error.message || 'Không thể xóa thông báo');
           }
         },
@@ -432,7 +432,7 @@ export default function NotificationsScreen() {
             </Text>
           </TouchableOpacity>
 
-          
+
         </View>
       )}
 

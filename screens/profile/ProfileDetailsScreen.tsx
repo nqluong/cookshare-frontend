@@ -151,7 +151,7 @@ export default function ProfileDetailsScreen() {
                 },
             ]);
         } catch (error: any) {
-            console.error("Update profile error:", error);
+            console.log("Update profile error:", error);
             Alert.alert("Lỗi", error.message || "Không thể cập nhật thông tin");
         } finally {
             setIsSaving(false);
@@ -203,7 +203,7 @@ export default function ProfileDetailsScreen() {
                 ]
             );
         } catch (error) {
-            console.error('❌ Lỗi yêu cầu quyền truy cập:', error);
+            console.log('❌ Lỗi yêu cầu quyền truy cập:', error);
             Alert.alert("Lỗi", "Không thể truy cập thư viện ảnh");
         }
     };
@@ -221,7 +221,7 @@ export default function ProfileDetailsScreen() {
                 await uploadAvatar(result.assets[0].uri);
             }
         } catch (error) {
-            console.error('❌ Lỗi chọn ảnh:', error);
+            console.log('❌ Lỗi chọn ảnh:', error);
             Alert.alert("Lỗi", "Không thể chọn ảnh");
         }
     };
@@ -249,7 +249,7 @@ export default function ProfileDetailsScreen() {
                 await uploadAvatar(result.assets[0].uri);
             }
         } catch (error) {
-            console.error('❌ Lỗi camera:', error);
+            console.log('❌ Lỗi camera:', error);
             Alert.alert("Lỗi", "Không thể mở camera");
         }
     };
@@ -312,7 +312,7 @@ export default function ProfileDetailsScreen() {
             }
 
         } catch (error: any) {
-            console.error('❌ Lỗi upload avatar:', error);
+            console.log('❌ Lỗi upload avatar:', error);
             Alert.alert("Lỗi", error.message || "Không thể upload ảnh");
         } finally {
             setIsUploadingImage(false);
@@ -329,7 +329,7 @@ export default function ProfileDetailsScreen() {
             updateAuthUser(updatedUser);
             Alert.alert("Thành công", "Ảnh đại diện đã được cập nhật");
         } catch (error: any) {
-            console.error('❌ Lỗi cập nhật avatar:', error);
+            console.log('❌ Lỗi cập nhật avatar:', error);
             Alert.alert("Lỗi", error.message || "Không thể cập nhật ảnh đại diện");
         } finally {
             setIsSaving(false);
@@ -379,7 +379,7 @@ export default function ProfileDetailsScreen() {
                                 contentFit="cover"
                                 transition={200}
                                 onError={(error) => {
-                                    console.error('❌ Lỗi load avatar trong ProfileDetails:', error);
+                                    console.log('❌ Lỗi load avatar trong ProfileDetails:', error);
                                     console.log('URL gây lỗi:', avatarUrl);
                                 }}
                                 onLoad={() => {
@@ -588,7 +588,7 @@ export default function ProfileDetailsScreen() {
                         });
                         Alert.alert('Thành công', 'Email đã được xác thực thành công!');
                     } catch (error) {
-                        console.error('Error refreshing user data:', error);
+                        console.log('Error refreshing user data:', error);
                     }
                 }}
                 userEmail={user?.email || ''}
