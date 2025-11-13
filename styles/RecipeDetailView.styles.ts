@@ -90,6 +90,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#666',
   },
+  tagContainer: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  marginHorizontal: 12,
+  marginBottom: 8,
+  alignItems: "center",
+},
+tagGroup: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  marginLeft: 8,
+},
+tagItem: {
+  backgroundColor: "#EEF3FF",
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 12,
+  marginRight: 6,
+  marginBottom: 6,
+},
+tagText: {
+  fontSize: 12,
+  color: "#3A5BA0",
+  fontWeight: "500",
+},
+difficultyBadge: {
+  paddingHorizontal: 8,
+  paddingVertical: 2,
+  borderRadius: 8,
+  alignSelf: 'flex-start',
+  marginLeft: 8,
+},
+difficultyText: {
+  fontWeight: 'bold',
+},
+
+
 });
 
 export default styles;
