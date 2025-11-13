@@ -91,7 +91,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
     <View style={styles.card}>
       <Image
         source={{ 
-          uri: getImageUrl(item.featuredImage) + '?t=' + new Date().getTime()
+          uri: getImageUrl(item.featuredImage)
         }}
         style={styles.image}
         resizeMode="cover"

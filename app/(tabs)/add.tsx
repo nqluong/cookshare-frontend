@@ -300,8 +300,8 @@ export default function AddRecipeScreen({ navigation }: any) {
             name: categoryRes.name,
             description: categoryRes.description
           };
-          setCategories(prev => [...prev, newCategory]);
-          setSelectedCategories([newCategory.id]);
+          setCategories(prev => [newCategory, ...prev]);
+          setSelectedCategories(prev => [...prev, newCategory.id]);
           created = true;
         }
       } 
@@ -313,39 +313,24 @@ export default function AddRecipeScreen({ navigation }: any) {
             name: ingredientRes.name,
             description: ingredientRes.description || undefined
           };
-          setIngredients(prev => [...prev, newIngredient]);
-          // Hiển thị modal để nhập số lượng và đơn vị cho nguyên liệu mới
-          Alert.prompt(
-            "Thêm số lượng",
-            "Nhập số lượng và đơn vị (VD: 100 gram)",
-            [
-              {
-                text: "Hủy",
-                style: "cancel"
-              },
-              {
-                text: "OK",
-                onPress: (text: string | undefined) => {
-                  if (text) {
-                    const [quantity, unit] = text.split(' ');
-                    if (!isNaN(Number(quantity)) && unit) {
-                      setSelectedIngredients(prev => [
-                        ...prev,
-                        {
-                          id: newIngredient.id,
-                          quantity: quantity,
-                          unit: unit
-                        }
-                      ]);
-                    } else {
-                      Alert.alert("Lỗi", "Vui lòng nhập đúng định dạng: số lượng đơn vị");
-                    }
-                  }
-                }
-              }
-            ],
-            'plain-text'
+          setIngredients(prev => [newIngredient, ...prev]);
+          
+          // Scroll to top để hiển thị nguyên liệu mới (nếu có FlatList ref)
+          Alert.alert(
+            "✅ Đã tạo nguyên liệu",
+            `"${searchTerm}" đã được thêm vào danh sách. Vui lòng nhập số lượng và đơn vị, sau đó nhấn "Chọn".`,
+            [{ text: "OK" }]
           );
+          
+          // Tự động focus vào nguyên liệu mới với input rỗng
+          setIngredientInputs(prev => ({
+            ...prev,
+            [newIngredient.id]: { quantity: '', unit: '', selected: false }
+          }));
+          
+          // Clear search để hiển thị nguyên liệu vừa tạo ở đầu danh sách
+          setSearchTerm("");
+          
           created = true;
         }
       } 
@@ -357,18 +342,16 @@ export default function AddRecipeScreen({ navigation }: any) {
             name: tagRes.name,
             color: tagRes.color
           };
-          setTags(prev => [...prev, newTag]);
-          setSelectedTags([newTag.id]);
+          setTags(prev => [newTag, ...prev]);
+          setSelectedTags(prev => [...prev, newTag.id]);
           created = true;
         }
       }
 
-      if (created) {
+      if (created && modalType !== "ingredient") {
         Alert.alert("✅ Thành công", `Đã thêm mới ${searchTerm}`);
         setSearchTerm("");
         setExtraField("");
-        // Close modal so user sees the selection applied immediately
-        setModalVisible(false);
       }
     } catch (err: any) {
       Alert.alert("Lỗi", err.message || "Không thể tạo mới!");
@@ -406,25 +389,32 @@ export default function AddRecipeScreen({ navigation }: any) {
       return;
     }
 
-    // Validate categories
+    // Validate categories (optional - không bắt buộc)
     const validCategories = selectedCategories.filter(id => {
       const category = categories.find(c => c.id === id);
       return category != null;
     });
-    if (validCategories.length === 0) {
-      Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một danh mục hợp lệ!");
+
+    // Validate ingredients with quantity and unit
+    const validIngredients = selectedIngredients.filter(ingredient => {
+      const ingredientExists = ingredients.find((i: ListItem) => i.id === ingredient.id);
+      const hasQuantity = ingredient.quantity && ingredient.quantity.trim() !== '';
+      const hasUnit = ingredient.unit && ingredient.unit.trim() !== '';
+      
+      if (ingredientExists && (!hasQuantity || !hasUnit)) {
+        Alert.alert("Thiếu thông tin", `Vui lòng nhập đầy đủ số lượng và đơn vị cho nguyên liệu: ${ingredientExists.name}`);
+        return false;
+      }
+      
+      return ingredientExists != null && hasQuantity && hasUnit;
+    });
+    
+    if (validIngredients.length === 0) {
+      Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu hợp lệ và nhập đầy đủ số lượng, đơn vị!");
       return;
     }
-
-    // Validate ingredients
-      const validIngredients = selectedIngredients.filter(ingredient => {
-              const ingredientExists = ingredients.find((i: ListItem) => i.id === ingredient.id);
-              return ingredientExists != null;
-            });
-            if (validIngredients.length === 0) {
-              Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu hợp lệ!");
-              return;
-            }    // Validate tags (optional)
+    
+    // Validate tags (optional)
     const validTags = selectedTags.filter(id => {
       const tag = tags.find(t => t.id === id);
       return tag != null;
@@ -439,6 +429,13 @@ export default function AddRecipeScreen({ navigation }: any) {
         Alert.alert("Lỗi", "Bạn cần đăng nhập lại!");
         return;
       }
+
+      // Cập nhật steps với imageUrl trước khi gửi
+      const stepsWithImages = steps.map((step, index) => ({
+        instruction: step.description,
+        stepNumber: index + 1,
+        imageUrl: step.image ? `PLACEHOLDER_${index + 1}` : null // Đánh dấu tạm
+      }));
 
       const recipeData = {
         title,
@@ -457,11 +454,7 @@ export default function AddRecipeScreen({ navigation }: any) {
           quantity: parseFloat(ing.quantity),
           unit: ing.unit
         })),
-        steps: steps.map((step, index) => ({
-          instruction: step.description,
-          stepNumber: index + 1,
-          imageUrl: null // Will be updated by backend when stepImages are processed
-        }))
+        steps: stepsWithImages
       };
       
       // Append recipe data as a JSON string
@@ -480,47 +473,20 @@ export default function AddRecipeScreen({ navigation }: any) {
         formData.append("image", fileObj);
       }
 
-      // Append step images
+      // Append step images with correct stepNumber mapping
       steps.forEach((step: Step, i: number) => {
         if (step.image) {
           const filename = step.image.split("/").pop()!;
           const ext = filename.split(".").pop()!.toLowerCase();
-          const stepFile = { uri: step.image, type: `image/${ext}`, name: `step_${i}.${ext}` } as any;
-          console.log(`Appending step image ${i} to FormData:`, stepFile);
+          const stepFile = { 
+            uri: step.image, 
+            type: `image/${ext}`, 
+            name: `step_${i + 1}.${ext}` // stepNumber trong tên file
+          } as any;
+          console.log(`Appending step image for step ${i + 1}:`, stepFile);
           formData.append("stepImages", stepFile);
         }
       });
-      // Append main recipe image if exists
-      if (image) {
-        const filename = image.split("/").pop()!;
-        const ext = filename.split(".").pop()!.toLowerCase();
-        const fileObj = {
-          uri: image,
-          type: `image/${ext}`,
-          name: `recipe.${ext}`,
-        } as any;
-        formData.append("image", fileObj);
-      }
-
-      // Append step images if they exist
-      const stepImages: any[] = [];
-      steps.forEach((step: Step) => {
-        if (step.image) {
-          const filename = step.image.split("/").pop()!;
-          const ext = filename.split(".").pop()!.toLowerCase();
-          stepImages.push({
-            uri: step.image,
-            type: `image/${ext}`,
-            name: `step-${stepImages.length + 1}.${ext}`,
-          });
-        }
-      });
-      
-      if (stepImages.length > 0) {
-        stepImages.forEach((img) => {
-          formData.append("stepImages", img);
-        });
-      }
 
       const response = await RecipeService.createRecipe(formData);
       console.log('Recipe creation response:', response);
@@ -553,10 +519,11 @@ export default function AddRecipeScreen({ navigation }: any) {
             text: "Xem trang của tôi",
             onPress: () => {
               try {
-                if (router && typeof router.push === 'function' && user?.userId) {
+                if (router && typeof router.push === 'function') {
+                  // Navigate to own profile tab instead of public profile view
                   router.push({
-                    pathname: '/profile/[userId]',
-                    params: { userId: user.userId }
+                    pathname: "/(tabs)/profile",
+                    params: { reload: Date.now().toString() }
                   });
                 }
               } catch (e) {
@@ -930,4 +897,3 @@ export default function AddRecipeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-

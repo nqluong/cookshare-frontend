@@ -7,13 +7,13 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import { CachedImage } from "../../ui/CachedImage";
 import RecipeSaveButton from "../RecipeSaveButton";
 
 interface TrendingRecipesProps {
@@ -143,10 +143,20 @@ export default function TrendingRecipes({
             >
               <View style={styles.imageWrapper}>
                 <View style={styles.imageContainer}>
-                  <Image
+                <CachedImage
                     source={{ uri: dish.image }}
                     style={styles.image}
                     resizeMode="cover"
+                    priority={'normal'}
+                    placeholder={
+                      <View style={styles.imagePlaceholder}>
+                        <Ionicons 
+                          name="image-outline" 
+                          size={40} 
+                          color={Colors.gray[400]} 
+                        />
+                      </View>
+                    }
                   />
                   {index < 3 && (
                     <View style={styles.rankBadge}>
@@ -247,6 +257,13 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   image: { width: "100%", height: "100%" },
+   imagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.gray[100],
+  },
   rankBadge: {
     position: "absolute",
     top: -4,

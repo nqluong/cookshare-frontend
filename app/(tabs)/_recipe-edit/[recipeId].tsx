@@ -10,9 +10,9 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   Modal,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,12 +20,28 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface IngredientDetail {
   ingredientId: string;
   quantity: number;
   unit: string;
 }
+
+interface ListItem {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+}
+
+interface SelectedIngredient {
+  id: string;
+  quantity: string;
+  unit: string;
+}
+
+const defaultPlaceholderColor = "#999";
 
 const styles = StyleSheet.create({
   container: { 
@@ -73,6 +89,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginTop: 5,
+    fontSize: 14,
   },
   image: {
     width: "100%",
@@ -140,52 +157,32 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    maxHeight: "80%",
-  },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
     textAlign: "center",
   },
-  ingredientSelector: {
-    maxHeight: 150,
-    marginBottom: 15,
-  },
-  ingredientOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
-  },
-  modalButton: {
-    flex: 1,
-    marginHorizontal: 5,
-    paddingVertical: 12,
+  createBtn: {
+    backgroundColor: "#4CAF50",
+    padding: 12,
     borderRadius: 8,
     alignItems: "center",
+    marginVertical: 10,
   },
-  cancelButton: {
-    backgroundColor: "#eee",
+  closeBtn: {
+    backgroundColor: "#FF385C",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
   },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+  listItem: {
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: "#eee",
   },
   saveButton: {
     marginTop: 25,
@@ -199,6 +196,92 @@ const styles = StyleSheet.create({
     color: "#fff", 
     fontWeight: "bold", 
     fontSize: 16 
+  },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  removeStepBtn: {
+    backgroundColor: "#ff4444",
+    padding: 8,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  removeStepText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  imagePickerSmall: {
+    height: 120,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  selectedItems: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+  selectedItem: {
+    backgroundColor: "#FF385C20",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#FF385C",
+  },
+  selectedItemText: {
+    color: "#FF385C",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  selectBtn: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 10,
+  },
+  card: {
+    backgroundColor: "#f8f8f8",
+    borderRadius: 12,
+    padding: 15,
+    marginVertical: 10,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  ingredientsList: {
+    gap: 8,
+  },
+  ingredientRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 8,
+  },
+  ingredientText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#999",
+    fontStyle: "italic",
+    padding: 15,
   },
 });
 
@@ -214,20 +297,28 @@ export default function EditRecipeScreen() {
   const [description, setDescription] = useState("");
   const [featuredImage, setFeaturedImage] = useState<string | null>(null);
   const [steps, setSteps] = useState<any[]>([]);
-  const [categoryIds, setCategoryIds] = useState<string[]>([]);
-  const [tagIds, setTagIds] = useState<string[]>([]);
-  const [ingredientDetails, setIngredientDetails] = useState<IngredientDetail[]>([]);
-  const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState("");
-  const [unit, setUnit] = useState("");
-  const [showIngredientModal, setShowIngredientModal] = useState(false);
   const [servings, setServings] = useState("");
   const [prepTime, setPrepTime] = useState("");
   const [cookTime, setCookTime] = useState("");
 
-  const [categories, setCategories] = useState<any[]>([]);
-  const [ingredients, setIngredients] = useState<any[]>([]);
-  const [tags, setTags] = useState<any[]>([]);
+  const [categories, setCategories] = useState<ListItem[]>([]);
+  const [ingredients, setIngredients] = useState<ListItem[]>([]);
+  const [tags, setTags] = useState<ListItem[]>([]);
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedIngredients, setSelectedIngredients] = useState<SelectedIngredient[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  const [ingredientInputs, setIngredientInputs] = useState<Record<string, { 
+    quantity: string; 
+    unit: string; 
+    selected: boolean;
+  }>>({});
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<"category" | "ingredient" | "tag" | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [extraField, setExtraField] = useState("");
 
   useEffect(() => {
     fetchRecipe();
@@ -240,24 +331,46 @@ export default function EditRecipeScreen() {
       setTitle(data.title);
       setDescription(data.description);
       setFeaturedImage(data.featuredImage);
-      // Normalize steps: backend returns objects with 'instruction' and 'imageUrl'
-      setSteps((data.steps || []).map((s: any) => ({
+      
+      // Normalize steps with proper image handling
+      const normalizedSteps = (data.steps || []).map((s: any) => ({
         instruction: s.instruction ?? s.description ?? '',
         image: s.imageUrl ?? s.image ?? null,
         stepNumber: s.stepNumber ?? null,
-      })));
-      setCategoryIds(data.categories.map((c: any) => c.categoryId));
-      setIngredientDetails(
-        data.ingredients.map((i: any) => ({
-          ingredientId: i.ingredientId,
-          quantity: i.quantity || 0,
-          unit: i.unit || '',
-        }))
-      );
-      setTagIds(data.tags.map((t: any) => t.tagId));
+      }));
+      setSteps(normalizedSteps.length > 0 ? normalizedSteps : [{ instruction: '', image: null, stepNumber: 1 }]);
+      
+      // Set selected categories
+      setSelectedCategories(data.categories?.map((c: any) => c.categoryId) || []);
+      
+      // Set selected ingredients with quantity and unit
+      const ingredientDetails = (data.ingredients || []).map((i: any) => ({
+        id: i.ingredientId,
+        quantity: String(i.quantity || 0),
+        unit: i.unit || '',
+      }));
+      setSelectedIngredients(ingredientDetails);
+      
+      // Initialize ingredient inputs for all selected ingredients
+      const inputs: Record<string, any> = {};
+      ingredientDetails.forEach((item: any) => {
+        inputs[item.id] = {
+          quantity: item.quantity,
+          unit: item.unit,
+          selected: true,
+        };
+      });
+      setIngredientInputs(inputs);
+      
+      // Set selected tags
+      setSelectedTags(data.tags?.map((t: any) => t.tagId) || []);
+      
       setServings(data.servings ? String(data.servings) : "");
       setPrepTime(data.prepTime ? String(data.prepTime) : "");
       setCookTime(data.cookTime ? String(data.cookTime) : "");
+      
+      console.log('Loaded recipe with steps:', normalizedSteps);
+      console.log('Loaded ingredients:', ingredientDetails);
     } catch (err: any) {
       Alert.alert("❌ Lỗi tải công thức", err.message);
     } finally {
@@ -272,9 +385,24 @@ export default function EditRecipeScreen() {
         IngredientService.getAllIngredients(),
         TagService.getAllTags(),
       ]);
-      setCategories(catRes || []);
-      setIngredients(ingRes || []);
-      setTags(tagRes || []);
+      
+      setCategories((catRes || []).map((c: any) => ({
+        id: c.categoryId,
+        name: c.name,
+        description: c.description,
+      })));
+      
+      setIngredients((ingRes || []).map((i: any) => ({
+        id: i.ingredientId,
+        name: i.name,
+        description: i.description || undefined,
+      })));
+      
+      setTags((tagRes || []).map((t: any) => ({
+        id: t.tagId,
+        name: t.name,
+        color: t.color,
+      })));
     } catch (err) {
       console.error("Error loading metadata:", err);
     }
@@ -318,34 +446,194 @@ export default function EditRecipeScreen() {
 
   const removeStepLocal = (idx: number) => {
     setSteps(prev => {
+      if (prev.length <= 1) {
+        return [{ instruction: '', image: null, stepNumber: 1 }];
+      }
       const copy = [...prev];
       copy.splice(idx, 1);
-      // Re-number steps
       return copy.map((s, i) => ({ ...s, stepNumber: i + 1 }));
     });
   };
 
+  const openModal = (type: "category" | "ingredient" | "tag") => {
+    setModalType(type);
+    setSearchTerm("");
+    setExtraField("");
+    setModalVisible(true);
+  };
+
+  const handleIngredientInputChange = (id: string, field: 'quantity' | 'unit', value: string) => {
+    setIngredientInputs((prev) => {
+      const cur = prev[id] || { quantity: '', unit: '', selected: false };
+      const next = { ...cur, [field]: value };
+
+      if (next.selected) {
+        setSelectedIngredients((siPrev) => {
+          const entry = {
+            id,
+            quantity: next.quantity || '',
+            unit: next.unit || '',
+          };
+          const exists = siPrev.find((s) => s.id === id);
+          if (exists) {
+            return siPrev.map((s) => (s.id === id ? entry : s));
+          }
+          return [...siPrev, entry];
+        });
+      }
+
+      return { ...prev, [id]: next };
+    });
+  };
+
+  const handleSelectItem = (item: ListItem) => {
+    if (!item?.id) {
+      console.log('Invalid item:', item);
+      return;
+    }
+
+    switch (modalType) {
+      case "category":
+        setSelectedCategories((prev) =>
+          prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]
+        );
+        break;
+
+      case "ingredient":
+        setIngredientInputs((prev) => {
+          const cur = prev[item.id] || { quantity: "", unit: "", selected: false };
+          const nextSelected = !cur.selected;
+          const next = { ...prev, [item.id]: { ...cur, selected: nextSelected } };
+
+          if (nextSelected) {
+            setSelectedIngredients((siPrev) => {
+              const exists = siPrev.find((s) => s.id === item.id);
+              const newEntry = {
+                id: item.id,
+                quantity: cur.quantity,
+                unit: cur.unit,
+              };
+              if (exists) {
+                return siPrev.map((s) => (s.id === item.id ? newEntry : s));
+              }
+              return [...siPrev, newEntry];
+            });
+          } else {
+            setSelectedIngredients((siPrev) => siPrev.filter((s) => s.id !== item.id));
+          }
+
+          return next;
+        });
+        break;
+
+      case "tag":
+        setSelectedTags((prev) => (prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]));
+        break;
+    }
+  };
+
+  const handleCreateNew = async () => {
+    if (!searchTerm.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập tên!");
+      return;
+    }
+    
+    try {
+      let created = false;
+
+      if (modalType === "category") {
+        const categoryRes = await CategoryService.createCategory({
+          name: searchTerm,
+          description: extraField || "",
+        });
+        if (categoryRes && categoryRes.categoryId) {
+          const newCategory: ListItem = {
+            id: categoryRes.categoryId,
+            name: categoryRes.name,
+            description: categoryRes.description
+          };
+          setCategories(prev => [newCategory, ...prev]);
+          setSelectedCategories(prev => [...prev, newCategory.id]);
+          created = true;
+        }
+      } 
+      else if (modalType === "ingredient") {
+        const ingredientRes = await IngredientService.createIngredient({ name: searchTerm });
+        if (ingredientRes && ingredientRes.ingredientId) {
+          const newIngredient: ListItem = {
+            id: ingredientRes.ingredientId,
+            name: ingredientRes.name,
+            description: ingredientRes.description || undefined
+          };
+          setIngredients(prev => [newIngredient, ...prev]);
+          
+          Alert.alert(
+            "✅ Đã tạo nguyên liệu",
+            `"${searchTerm}" đã được thêm vào danh sách. Vui lòng nhập số lượng và đơn vị, sau đó nhấn "Chọn".`,
+            [{ text: "OK" }]
+          );
+          
+          setIngredientInputs(prev => ({
+            ...prev,
+            [newIngredient.id]: { quantity: '', unit: '', selected: false }
+          }));
+          
+          setSearchTerm("");
+          created = true;
+        }
+      } 
+      else if (modalType === "tag") {
+        const tagRes = await TagService.createTag({ name: searchTerm, color: extraField || "#ccc" });
+        if (tagRes && tagRes.tagId) {
+          const newTag: ListItem = {
+            id: tagRes.tagId,
+            name: tagRes.name,
+            color: tagRes.color
+          };
+          setTags(prev => [newTag, ...prev]);
+          setSelectedTags(prev => [...prev, newTag.id]);
+          created = true;
+        }
+      }
+
+      if (created && modalType !== "ingredient") {
+        Alert.alert("✅ Thành công", `Đã thêm mới ${searchTerm}`);
+        setSearchTerm("");
+        setExtraField("");
+      }
+    } catch (err: any) {
+      Alert.alert("Lỗi", err.message || "Không thể tạo mới!");
+    }
+  };
+
   const handleSave = async () => {
     if (!title.trim()) return Alert.alert("Vui lòng nhập tiêu đề");
-    if (!description || !description.trim()) return Alert.alert("Vui lòng nhập mô tả (không được để trống)");
+    if (!description || !description.trim()) return Alert.alert("Vui lòng nhập mô tả");
     if (!user?.userId) return Alert.alert("Bạn cần đăng nhập để cập nhật công thức");
+
+    const validIngredients = selectedIngredients.filter(ingredient => {
+      const ingredientExists = ingredients.find((i: ListItem) => i.id === ingredient.id);
+      const hasQuantity = ingredient.quantity && ingredient.quantity.trim() !== '';
+      const hasUnit = ingredient.unit && ingredient.unit.trim() !== '';
+      
+      if (ingredientExists && (!hasQuantity || !hasUnit)) {
+        Alert.alert("Thiếu thông tin", `Vui lòng nhập đầy đủ số lượng và đơn vị cho nguyên liệu: ${ingredientExists.name}`);
+        return false;
+      }
+      
+      return ingredientExists != null && hasQuantity && hasUnit;
+    });
+    
+    if (validIngredients.length === 0) {
+      Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu hợp lệ!");
+      return;
+    }
 
     try {
       setUpdating(true);
 
-      // Tạo FormData với toàn bộ thông tin công thức
       const formData = new FormData();
       
-      // Thêm ảnh nếu có
-      if (featuredImage?.startsWith('file://')) {
-        formData.append('image', {
-          uri: featuredImage,
-          type: 'image/jpeg',
-          name: 'recipe_image.jpg'
-        } as any);
-      }
-
-      // Chuẩn bị dữ liệu theo đúng format API mong đợi
       const recipeData = {
         title,
         description: description.trim(),
@@ -354,15 +642,13 @@ export default function EditRecipeScreen() {
           stepNumber: index + 1,
           imageUrl: step.image && typeof step.image === 'string' && step.image.startsWith('file://') ? null : step.image
         })).filter(step => step.instruction.trim() !== ''),
-        categoryIds: categoryIds.filter(Boolean), // Lọc bỏ giá trị null/undefined
-        ingredientDetails: ingredientDetails
-          .filter(i => i.ingredientId && i.quantity > 0) // Chỉ gửi các nguyên liệu hợp lệ
-          .map(i => ({
-            ingredientId: i.ingredientId,
-            quantity: parseFloat(String(i.quantity)),
-            unit: i.unit
-          })),
-        tagIds: tagIds.filter(Boolean), // Lọc bỏ giá trị null/undefined
+        categoryIds: selectedCategories.filter(Boolean),
+        ingredientDetails: validIngredients.map((ing: SelectedIngredient) => ({
+          ingredientId: ing.id,
+          quantity: parseFloat(ing.quantity),
+          unit: ing.unit
+        })),
+        tagIds: selectedTags.filter(Boolean),
         featuredImage: featuredImage?.startsWith('file://') ? null : featuredImage,
         servings: servings ? parseInt(servings) : null,
         prepTime: prepTime ? parseInt(prepTime) : null,
@@ -370,10 +656,8 @@ export default function EditRecipeScreen() {
         userId: user.userId
       };
 
-      // Append recipe data
       formData.append('data', JSON.stringify(recipeData));
 
-      // Append main image if it's a new local file
       if (featuredImage?.startsWith('file://')) {
         const filename = featuredImage.split("/").pop()!;
         const ext = filename.split(".").pop()!.toLowerCase();
@@ -385,7 +669,6 @@ export default function EditRecipeScreen() {
         formData.append("image", fileObj);
       }
 
-      // Append step images for any new local files
       const stepImages: any[] = [];
       steps.forEach((step, index) => {
         if (typeof step.image === 'string' && step.image.startsWith('file://')) {
@@ -407,36 +690,51 @@ export default function EditRecipeScreen() {
 
       const response = await RecipeService.updateRecipe(recipeId!, formData);
       
-      // Cập nhật lại state với dữ liệu mới từ server
       if (response) {
         setTitle(response.title);
         setDescription(response.description);
-        setFeaturedImage(response.featuredImage);  // Lấy URL ảnh từ server
-        // Normalize steps from response
-        setSteps((response.steps || []).map((s: any) => ({
+        setFeaturedImage(response.featuredImage);
+        
+        // Normalize steps with proper image handling
+        const normalizedSteps = (response.steps || []).map((s: any) => ({
           instruction: s.instruction ?? s.description ?? '',
           image: s.imageUrl ?? s.image ?? null,
           stepNumber: s.stepNumber ?? null,
-        })));
-        setCategoryIds(response.categories.map((c: any) => c.categoryId));
-        setIngredientDetails(
-          response.ingredients.map((i: any) => ({
-            ingredientId: i.ingredientId,
-            quantity: i.quantity || 0,
-            unit: i.unit || '',
-          }))
-        );
-        setTagIds(response.tags.map((t: any) => t.tagId));
+        }));
+        setSteps(normalizedSteps.length > 0 ? normalizedSteps : [{ instruction: '', image: null, stepNumber: 1 }]);
+        
+        setSelectedCategories(response.categories?.map((c: any) => c.categoryId) || []);
+        
+        const ingredientDetails = (response.ingredients || []).map((i: any) => ({
+          id: i.ingredientId,
+          quantity: String(i.quantity || 0),
+          unit: i.unit || '',
+        }));
+        setSelectedIngredients(ingredientDetails);
+        
+        // Re-initialize ingredient inputs
+        const inputs: Record<string, any> = {};
+        ingredientDetails.forEach((item: any) => {
+          inputs[item.id] = {
+            quantity: item.quantity,
+            unit: item.unit,
+            selected: true,
+          };
+        });
+        setIngredientInputs(inputs);
+        
+        setSelectedTags(response.tags?.map((t: any) => t.tagId) || []);
         setServings(response.servings ? String(response.servings) : "");
         setPrepTime(response.prepTime ? String(response.prepTime) : "");
         setCookTime(response.cookTime ? String(response.cookTime) : "");
+        
+        console.log('Updated recipe with steps:', normalizedSteps);
       }
 
       Alert.alert("✅ Cập nhật thành công!", "", [
         {
           text: "OK",
           onPress: () => {
-            // Navigate về profile với param reload=true để trigger reload data
             router.replace({
               pathname: '/(tabs)/profile' as any,
               params: { reload: 'true' }
@@ -451,39 +749,143 @@ export default function EditRecipeScreen() {
     }
   };
 
-  const addIngredientDetail = () => {
-    if (!selectedIngredient || !quantity || !unit) {
-      Alert.alert("Vui lòng nhập đầy đủ thông tin nguyên liệu");
-      return;
-    }
+  const renderModal = () => {
+    const data =
+      modalType === "category" ? categories : modalType === "ingredient" ? ingredients : tags;
 
-    setIngredientDetails(prev => [
-      ...prev,
-      {
-        ingredientId: selectedIngredient,
-        quantity: parseFloat(quantity),
-        unit
-      }
-    ]);
-
-    setSelectedIngredient(null);
-    setQuantity("");
-    setUnit("");
-    setShowIngredientModal(false);
-  };
-
-  const removeIngredientDetail = (ingredientId: string) => {
-    setIngredientDetails(prev => 
-      prev.filter(item => item.ingredientId !== ingredientId)
+    const filtered = data.filter((item) =>
+      item.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  };
 
-  const toggleSelect = (list: string[], id: string, setList: Function) => {
-    if (list.includes(id)) {
-      setList(list.filter((x) => x !== id));
-    } else {
-      setList([...list, id]);
-    }
+    return (
+      <Modal visible={modalVisible} animationType="slide">
+        <View style={{ flex: 1, padding: 16 }}>
+          <Text style={styles.modalTitle}>
+            {modalType === "category"
+              ? "Chọn danh mục"
+              : modalType === "ingredient"
+              ? "Chọn nguyên liệu"
+              : "Chọn tag"}
+          </Text>
+
+          <TextInput
+            placeholder="Tên mới hoặc tìm kiếm..."
+            placeholderTextColor={defaultPlaceholderColor}
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            style={styles.input}
+          />
+
+          {modalType === "category" && (
+            <TextInput
+              placeholder="Mô tả danh mục"
+              placeholderTextColor={defaultPlaceholderColor}
+              value={extraField}
+              onChangeText={setExtraField}
+              style={styles.input}
+            />
+          )}
+
+          {modalType === "tag" && (
+            <TextInput
+              placeholder="Màu sắc (vd: #ff0000)"
+              placeholderTextColor={defaultPlaceholderColor}
+              value={extraField}
+              onChangeText={setExtraField}
+              style={styles.input}
+            />
+          )}
+
+          <TouchableOpacity onPress={handleCreateNew} style={styles.createBtn}>
+            <Text style={{ color: "white", fontWeight: "600" }}>➕ Tạo mới</Text>
+          </TouchableOpacity>
+
+          <FlatList
+            data={filtered}
+            keyExtractor={(item, index) => (item?.id ? item.id.toString() : index.toString())}
+            renderItem={({ item }) => {
+              if (modalType === 'ingredient') {
+                const inputs = ingredientInputs[item.id] || { quantity: '', unit: '', selected: false };
+                return (
+                  <View
+                    style={[
+                      styles.listItem,
+                      { backgroundColor: inputs.selected ? '#cce5ff' : 'white' },
+                    ]}
+                  >
+                    <Text style={{ fontWeight: '600' }}>{item.name}</Text>
+
+                    <View style={{ flexDirection: 'row', marginTop: 8, alignItems: 'center' }}>
+                      <TextInput
+                        placeholder="Số lượng"
+                        placeholderTextColor={defaultPlaceholderColor}
+                        value={inputs.quantity}
+                        onChangeText={(text) => handleIngredientInputChange(item.id, 'quantity', text)}
+                        keyboardType="numeric"
+                        style={[styles.input, { flex: 1, marginRight: 8, marginTop: 0 }]}
+                      />
+
+                      <TextInput
+                        placeholder="Đơn vị"
+                        placeholderTextColor={defaultPlaceholderColor}
+                        value={inputs.unit}
+                        onChangeText={(text) => handleIngredientInputChange(item.id, 'unit', text)}
+                        style={[styles.input, { flex: 1, marginRight: 8, marginTop: 0 }]}
+                      />
+
+                      <TouchableOpacity onPress={() => handleSelectItem(item)} style={styles.addButton}>
+                        <Text style={styles.addButtonText}>{inputs.selected ? 'Bỏ chọn' : 'Chọn'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              }
+
+              return (
+                <TouchableOpacity
+                  onPress={() => handleSelectItem(item)}
+                  style={[
+                    styles.listItem,
+                    {
+                      backgroundColor: (() => {
+                        switch (modalType) {
+                          case 'category':
+                            return selectedCategories.includes(item.id) ? '#cce5ff' : 'white';
+                          case 'tag':
+                            return selectedTags.includes(item.id) ? '#cce5ff' : 'white';
+                          default:
+                            return 'white';
+                        }
+                      })(),
+                    },
+                  ]}
+                >
+                  <Text style={{ fontWeight: '600' }}>{item.name}</Text>
+                  {modalType === 'category' && !!item.description && (
+                    <Text style={{ fontSize: 12, color: '#555' }}>{item.description}</Text>
+                  )}
+                  {modalType === 'tag' && !!item.color && (
+                    <View
+                      style={{
+                        width: 16,
+                        height: 16,
+                        backgroundColor: item.color,
+                        borderRadius: 8,
+                        marginTop: 4,
+                      }}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            }}
+          />
+
+          <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+            <Text style={{ color: "white", fontWeight: "700" }}>Xong</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    );
   };
 
   if (loading) {
@@ -512,259 +914,214 @@ export default function EditRecipeScreen() {
 
       <ScrollView style={styles.container}>
         <Text style={styles.label}>Ảnh đại diện</Text>
-      <TouchableOpacity onPress={handlePickImage}>
-        {featuredImage ? (
-          <Image
-            source={{ uri: featuredImage.startsWith('file://') ? featuredImage : getImageUrl(featuredImage) }}
-            style={styles.image}
-            onError={() => {
-              Alert.alert("Không tải được ảnh", "Đường dẫn ảnh không hợp lệ hoặc server không phản hồi.");
-            }}
-          />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Text>Chọn ảnh</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      <Text style={styles.label}>Tên công thức</Text>
-      <TextInput
-        style={styles.input}
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Nhập tên công thức..."
-      />
-
-      <Text style={styles.label}>Mô tả</Text>
-      <TextInput
-        style={[styles.input, { height: 100 }]}
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        placeholder="Nhập mô tả..."
-      />
-
-      <Text style={styles.label}>Khẩu phần</Text>
-      <TextInput
-        style={styles.input}
-        value={servings}
-        onChangeText={setServings}
-        keyboardType="numeric"
-        placeholder="Nhập số khẩu phần..."
-      />
-
-      <Text style={styles.label}>Thời gian chuẩn bị (phút)</Text>
-      <TextInput
-        style={styles.input}
-        value={prepTime}
-        onChangeText={setPrepTime}
-        keyboardType="numeric"
-        placeholder="Nhập thời gian chuẩn bị..."
-      />
-
-      <Text style={styles.label}>Thời gian nấu (phút)</Text>
-      <TextInput
-        style={styles.input}
-        value={cookTime}
-        onChangeText={setCookTime}
-        keyboardType="numeric"
-        placeholder="Nhập thời gian nấu..."
-      />
-
-      <Text style={styles.label}>Danh mục</Text>
-      <View style={styles.multiContainer}>
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat.categoryId}
-            style={[
-              styles.option,
-              categoryIds.includes(cat.categoryId) && styles.optionSelected,
-            ]}
-            onPress={() =>
-              toggleSelect(categoryIds, cat.categoryId, setCategoryIds)
-            }
-          >
-            <Text>{cat.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.label}>Nguyên liệu</Text>
-      <View style={styles.multiContainer}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowIngredientModal(true)}
-        >
-          <Text style={styles.addButtonText}>+ Thêm nguyên liệu</Text>
+        <TouchableOpacity onPress={handlePickImage}>
+          {featuredImage ? (
+            <Image
+              source={{ uri: featuredImage.startsWith('file://') ? featuredImage : getImageUrl(featuredImage) }}
+              style={styles.image}
+              onError={() => {
+                Alert.alert("Không tải được ảnh", "Đường dẫn ảnh không hợp lệ hoặc server không phản hồi.");
+              }}
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Text>📸 Chọn ảnh món</Text>
+            </View>
+          )}
         </TouchableOpacity>
-      </View>
-      
-      <View style={styles.ingredientList}>
-        {ingredientDetails.map((detail) => {
-          const ingredient = ingredients.find(i => i.ingredientId === detail.ingredientId);
-          return (
-            <View key={detail.ingredientId} style={styles.ingredientItem}>
-              <Text style={styles.ingredientName}>
-                {ingredient?.name} - {detail.quantity} {detail.unit}
-              </Text>
-              <TouchableOpacity
-                onPress={() => removeIngredientDetail(detail.ingredientId)}
-                style={styles.removeButton}
-              >
-                <Text style={styles.removeButtonText}>×</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })}
-      </View>
 
-      <Modal
-        visible={showIngredientModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowIngredientModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Thêm nguyên liệu</Text>
-            
-            <Text style={styles.label}>Chọn nguyên liệu</Text>
-            <ScrollView style={styles.ingredientSelector}>
-              {ingredients.map((ing) => (
-                <TouchableOpacity
-                  key={ing.ingredientId}
-                  style={[
-                    styles.ingredientOption,
-                    selectedIngredient === ing.ingredientId && styles.optionSelected
-                  ]}
-                  onPress={() => setSelectedIngredient(ing.ingredientId)}
-                >
-                  <Text>{ing.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+        <Text style={styles.label}>Tên công thức</Text>
+        <TextInput
+          style={styles.input}
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Nhập tên công thức..."
+          placeholderTextColor={defaultPlaceholderColor}
+        />
 
-            <Text style={styles.label}>Số lượng</Text>
-            <TextInput
-              style={styles.input}
-              value={quantity}
-              onChangeText={setQuantity}
-              keyboardType="decimal-pad"
-              placeholder="Nhập số lượng..."
-            />
+        <Text style={styles.label}>Mô tả</Text>
+        <TextInput
+          style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          placeholder="Nhập mô tả..."
+          placeholderTextColor={defaultPlaceholderColor}
+        />
 
-            <Text style={styles.label}>Đơn vị</Text>
-            <TextInput
-              style={styles.input}
-              value={unit}
-              onChangeText={setUnit}
-              placeholder="Nhập đơn vị (g, ml, muỗng,...)..."
-            />
+        <Text style={styles.label}>Khẩu phần</Text>
+        <TextInput
+          style={styles.input}
+          value={servings}
+          onChangeText={setServings}
+          keyboardType="numeric"
+          placeholder="Nhập số khẩu phần..."
+          placeholderTextColor={defaultPlaceholderColor}
+        />
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowIngredientModal(false)}
-              >
-                <Text style={styles.modalButtonText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.addButton]}
-                onPress={addIngredientDetail}
-              >
-                <Text style={styles.modalButtonText}>Thêm</Text>
-              </TouchableOpacity>
-            </View>
+        <Text style={styles.label}>Thời gian chuẩn bị (phút)</Text>
+        <TextInput
+          style={styles.input}
+          value={prepTime}
+          onChangeText={setPrepTime}
+          keyboardType="numeric"
+          placeholder="Nhập thời gian chuẩn bị..."
+          placeholderTextColor={defaultPlaceholderColor}
+        />
+
+        <Text style={styles.label}>Thời gian nấu (phút)</Text>
+        <TextInput
+          style={styles.input}
+          value={cookTime}
+          onChangeText={setCookTime}
+          keyboardType="numeric"
+          placeholder="Nhập thời gian nấu..."
+          placeholderTextColor={defaultPlaceholderColor}
+        />
+
+        <TouchableOpacity onPress={() => openModal("category")} style={styles.selectBtn}>
+          <Text style={styles.label}>Danh mục đã chọn:</Text>
+          <View style={styles.selectedItems}>
+            {selectedCategories.map((id: string, index: number) => {
+              const category = categories.find((c: ListItem) => c.id === id);
+              return category ? (
+                <View key={`category-${id || index}`} style={styles.selectedItem}>
+                  <Text style={styles.selectedItemText}>{category.name}</Text>
+                </View>
+              ) : null;
+            })}
+            {selectedCategories.length === 0 && (
+              <Text style={styles.emptyText}>Chưa có danh mục nào</Text>
+            )}
           </View>
-        </View>
-      </Modal>
+        </TouchableOpacity>
 
-      <Text style={styles.label}>Các bước thực hiện</Text>
-      {steps.map((step, index) => (
-        <View key={index} style={[styles.ingredientItem, { flexDirection: 'column', gap: 10 }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontWeight: 'bold' }}>Bước {index + 1}</Text>
-            <TouchableOpacity
-              onPress={() => removeStepLocal(index)}
-              style={styles.removeButton}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>🧂 Nguyên liệu</Text>
+            <TouchableOpacity 
+              onPress={() => openModal("ingredient")} 
+              style={styles.addButton}
             >
-              <Text style={styles.removeButtonText}>×</Text>
+              <Text style={styles.addButtonText}>+ Thêm</Text>
             </TouchableOpacity>
           </View>
           
-          <TextInput
-            style={[styles.input, { marginVertical: 0 }]}
-            value={step.instruction}
-            onChangeText={(text) => {
-              const newSteps = [...steps];
-              newSteps[index] = { ...step, instruction: text };
-              setSteps(newSteps);
-            }}
-            multiline
-            placeholder="Nhập hướng dẫn cho bước này..."
-          />
-
-          <TouchableOpacity 
-            onPress={() => pickStepImage(index)}
-            style={{ alignItems: 'center', marginTop: 5 }}
-          >
-            {step.image ? (
-              <Image
-                source={{ 
-                  uri: step.image.startsWith('file://') 
-                    ? step.image 
-                    : `${getImageUrl(step.image)}`
-                }}
-                style={{ width: '100%', height: 150, borderRadius: 8 }}
-                resizeMode="cover"
-              />
+          <View style={styles.ingredientsList}>
+            {selectedIngredients.length > 0 ? (
+              selectedIngredients.map((item: SelectedIngredient, index: number) => {
+                const ingredient = ingredients.find((i: ListItem) => i.id === item.id);
+                return ingredient ? (
+                  <View key={`ingredient-${item.id || index}`} style={styles.ingredientRow}>
+                    <Text style={styles.ingredientText}>
+                      • {ingredient.name} - {item.quantity} {item.unit}
+                    </Text>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setSelectedIngredients(prev => prev.filter(i => i.id !== item.id));
+                        setIngredientInputs(prev => ({
+                          ...prev,
+                          [item.id]: { ...prev[item.id], selected: false }
+                        }));
+                      }}
+                      style={styles.removeButton}
+                    >
+                      <Text style={styles.removeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null;
+              })
             ) : (
-              <View style={[styles.imagePlaceholder, { height: 80, marginVertical: 0 }]}>
-                <Text>+ Thêm ảnh cho bước này</Text>
-              </View>
+              <Text style={styles.emptyText}>Chưa có nguyên liệu nào được chọn</Text>
             )}
-          </TouchableOpacity>
+          </View>
         </View>
-      ))}
-      
-      <TouchableOpacity
-        style={[styles.addButton, { marginVertical: 15 }]}
-        onPress={addStepLocal}
-      >
-        <Text style={styles.addButtonText}>+ Thêm bước</Text>
-      </TouchableOpacity>
 
-      <Text style={styles.label}>Tags</Text>
-      <View style={styles.multiContainer}>
-        {tags.map((tag) => (
-          <TouchableOpacity
-            key={tag.tagId}
-            style={[
-              styles.option,
-              tagIds.includes(tag.tagId) && styles.optionSelected,
-            ]}
-            onPress={() => toggleSelect(tagIds, tag.tagId, setTagIds)}
-          >
-            <Text>{tag.name}</Text>
-          </TouchableOpacity>
+        <TouchableOpacity onPress={() => openModal("tag")} style={styles.selectBtn}>
+          <Text style={styles.label}>Tag đã chọn:</Text>
+          <View style={styles.selectedItems}>
+            {selectedTags.map((id: string, index: number) => {
+              const tag = tags.find((t: ListItem) => t.id === id);
+              return tag ? (
+                <View key={`tag-${id || index}`} style={[styles.selectedItem, { backgroundColor: tag.color || '#ccc' }]}>
+                  <Text style={[styles.selectedItemText, { color: 'white' }]}>{tag.name}</Text>
+                </View>
+              ) : null;
+            })}
+            {selectedTags.length === 0 && (
+              <Text style={styles.emptyText}>Chưa có tag nào</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <Text style={styles.label}>Các bước thực hiện</Text>
+        {steps.map((step, index) => (
+          <View key={index} style={{ marginBottom: 10 }}>
+            <View style={styles.stepRow}>
+              <TextInput
+                placeholder={`Bước ${index + 1}`}
+                placeholderTextColor={defaultPlaceholderColor}
+                value={step.instruction}
+                onChangeText={(text) => {
+                  const newSteps = [...steps];
+                  newSteps[index] = { ...step, instruction: text };
+                  setSteps(newSteps);
+                }}
+                multiline
+                style={[styles.input, { flex: 1, marginRight: 8 }]}
+              />
+
+              <TouchableOpacity
+                onPress={() => removeStepLocal(index)}
+                style={styles.removeStepBtn}
+                accessibilityLabel={`Xóa bước ${index + 1}`}
+              >
+                <Text style={styles.removeStepText}>✖</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              onPress={() => pickStepImage(index)}
+              style={styles.imagePickerSmall}
+            >
+              {step.image ? (
+                <Image
+                  source={{ 
+                    uri: step.image.startsWith('file://') 
+                      ? step.image 
+                      : getImageUrl(step.image)
+                  }}
+                  style={{ width: '100%', height: '100%', borderRadius: 10 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text>🖼 Ảnh bước {index + 1}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         ))}
-      </View>
+        
+        <TouchableOpacity
+          style={[styles.addButton, { marginVertical: 15, alignSelf: 'flex-start' }]}
+          onPress={addStepLocal}
+        >
+          <Text style={styles.addButtonText}>+ Thêm bước</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.saveButton}
-        onPress={handleSave}
-        disabled={updating}
-      >
-        {updating ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.saveText}>💾 Lưu thay đổi</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSave}
+          disabled={updating}
+        >
+          {updating ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveText}>💾 Lưu thay đổi</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+
+      {renderModal()}
     </SafeAreaView>
   );
 }
-
-

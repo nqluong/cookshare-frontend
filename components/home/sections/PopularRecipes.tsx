@@ -4,16 +4,16 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { Colors } from "../../../styles/colors";
 import { Recipe } from "../../../types/dish";
 import { recipeToDish } from "../../../utils/recipeHelpers";
+import { CachedImage, ImagePriority } from "../../ui/CachedImage";
 import RecipeSaveButton from "../RecipeSaveButton";
 
 interface PopularRecipesProps {
@@ -158,13 +158,23 @@ export default function PopularRecipes({
             >
               <View style={styles.imageWrapper}>
                 <View style={styles.imageContainer}>
-                  <Image
+                 <CachedImage
                     source={{ uri: dish.image }}
                     style={styles.image}
                     resizeMode="cover"
+                    priority={ImagePriority.normal}
+                    placeholder={
+                      <View style={styles.imagePlaceholder}>
+                        <Ionicons 
+                          name="image-outline" 
+                          size={40} 
+                          color={Colors.gray[400]} 
+                        />
+                      </View>
+                    }
                   />
                 </View>
-                {/* Hàng nút ❤️ + 🔖 ở phía dưới ảnh */}
+
                 <View style={styles.actionRow}>
                   <TouchableOpacity
                     style={[
@@ -392,5 +402,12 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 11,
     color: Colors.text.secondary,
+  },
+   imagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.gray[100],
   },
 });

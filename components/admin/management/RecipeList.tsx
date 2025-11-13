@@ -16,11 +16,11 @@ interface RecipeListProps {
   onLoadMore: () => void;
   onViewRecipe: (recipe: AdminRecipe) => void;
   onEditRecipe: (recipeId: string) => void;
-  onDeleteRecipe: (recipe: string) => void;
-  onApproveRecipe?: (recipe: string) => void;
-  onRejectRecipe?: (recipe: string) => void;
-  onToggleFeatured?: (recipe: string) => void;
-  onTogglePublished?: (recipe: string) => void;
+  onDeleteRecipe: (recipeId: string) => void;
+  onApproveRecipe?: (recipeId: string) => void;
+  onRejectRecipe?: (recipeId: string) => void;
+  onToggleFeatured?: (recipeId: string) => void;
+  onTogglePublished?: (recipeId: string) => void;
 }
 
 export default function RecipeList({

@@ -1,40 +1,38 @@
 import { Platform } from 'react-native';
 
-// 🌐 Configuration priorities (theo thứ tự ưu tiên):
+// Configuration priorities (theo thứ tự ưu tiên):
 // 1. EXPO_PUBLIC_API_HOST từ .env
 // 2. Manual override trong DEV_CONFIG
 // 3. Auto-detected IP (chỉ trong development)
 // 4. Production URL
 
 const DEV_CONFIG = {
-  // Set manual IP nếu auto-detect không work
-  MANUAL_IP: null as string | null, // Ví dụ: 'http://192.168.1.151:8080'
+  MANUAL_IP: null as string | null, 
 
-  // Fallback IP nếu auto-detect fail ( điền ip thật ở đây )
 
-  FALLBACK_IP: 'http://172.20.10.4:8080',
+  FALLBACK_IP: 'https://cookshare-app.io.vn',
 
   // Port của backend
   PORT: 8080,
 };
 
 const PROD_CONFIG = {
-  API_URL: 'https://api.cookshare.com', // Thay bằng production URL
+  API_URL: 'https://cookshare-app.io.vn', // Thay bằng production URL
 };
 
 const getPlatformSpecificHost = (): string | null => {
   if (Platform.OS === 'web') {
-    return 'http://localhost:8080';
+    return 'https://cookshare-app.io.vn';
   }
 
   if (Platform.OS === 'android') {
-    return 'http://172.20.10.4:8080';
+    return 'https://cookshare-app.io.vn';
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật
 };
 
-// 🔍 Get API Host với priority order
+// Get API Host với priority order
 const getApiHost = (): string => {
   if (process.env.EXPO_PUBLIC_API_HOST) {
     return process.env.EXPO_PUBLIC_API_HOST;
@@ -74,14 +72,13 @@ export const API_CONFIG = {
   API_V1_URL: `${API_HOST}${API_VERSION.V1}`,
   API_V2_URL: `${API_HOST}${API_VERSION.V2}`,
 
-  TIMEOUT: 3000, // 3 giây
+  TIMEOUT: 3000, 
 
   DEFAULT_HEADERS: {
     'Content-Type': 'application/json',
   },
 };
 
-// 🖼️ Helper function để tạo URL cho ảnh
 export const getImageUrl = (imagePath: string | null | undefined): string => {
   if (!imagePath) {
     return 'https://via.placeholder.com/400';
@@ -89,25 +86,21 @@ export const getImageUrl = (imagePath: string | null | undefined): string => {
 
   const trimmed = imagePath.toString().trim();
 
-  // Nếu là URL Firebase Storage hoặc URL khác, trả về nguyên gốc
-  if (trimmed.startsWith('http') || trimmed.startsWith('//')) {
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('//')) {
     return trimmed;
   }
 
-  // Nếu là đường dẫn local (từ image picker)
   if (trimmed.startsWith('file://')) {
     return trimmed;
   }
 
-  // Cho các trường hợp khác, thêm base URL và timestamp để tránh cache
   const normalizedPath = trimmed.replace(/\\/g, '/').replace(/^\/+/, '');
   return `${API_CONFIG.BASE_URL}/${normalizedPath}?t=${Date.now()}`;
 };
 
-// 📊 Debug helper - log API config khi khởi động
 if (__DEV__) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔧 API Configuration');'['
+  console.log('🔧 API Configuration');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`📱 Platform: ${Platform.OS}`);
   console.log(`🌐 API Host: ${API_HOST}`);
@@ -118,5 +111,3 @@ if (__DEV__) {
 
 // WebSocket URL sẽ tự động được tạo từ API_BASE_URL
 export const WS_BASE_URL = API_CONFIG.BASE_URL.replace('http', 'ws').replace('/api', '');
-
-
