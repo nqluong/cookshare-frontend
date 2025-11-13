@@ -27,7 +27,9 @@ export default function PopularCategoriesCard({ data, loading }: PopularCategori
     );
   }
 
-  const maxViewCount = Math.max(...data.categories.map((item) => item.viewCount));
+  // Check if we have any meaningful view data
+  const hasViewData = data.totalCategoryViews > 0;
+  const maxRecipeCount = Math.max(...data.categories.map((item) => item.recipeCount));
 
   const getCategoryColor = (index: number) => {
     const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
@@ -38,15 +40,16 @@ export default function PopularCategoriesCard({ data, loading }: PopularCategori
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Danh Mục Phổ Biến</Text>
+          <Text style={styles.title}>Danh Mục Công Thức</Text>
           <Text style={styles.subtitle}>
-            {formatNumber(data.totalCategoryViews)} lượt xem tổng
+            {data.categories.length} danh mục
+            {hasViewData && ` • ${formatNumber(data.totalCategoryViews)} lượt xem`}
           </Text>
         </View>
       </View>
 
       {data.categories.map((category, index) => {
-        const percentage = (category.viewCount / maxViewCount) * 100;
+        const percentage = (category.recipeCount / maxRecipeCount) * 100;
         const categoryColor = getCategoryColor(index);
 
         return (
@@ -58,8 +61,9 @@ export default function PopularCategoriesCard({ data, loading }: PopularCategori
               <Text style={styles.categoryName} numberOfLines={1}>
                 {category.categoryName}
               </Text>
-              <View style={styles.shareBadge}>
-                <Text style={styles.shareText}>{category.viewShare.toFixed(1)}%</Text>
+              <View style={styles.countBadge}>
+                <Ionicons name="document-text" size={12} color="#fff" />
+                <Text style={styles.countText}>{category.recipeCount}</Text>
               </View>
             </View>
 
@@ -72,42 +76,26 @@ export default function PopularCategoriesCard({ data, loading }: PopularCategori
                   ]}
                 />
               </View>
+              <Text style={styles.progressLabel}>
+                {((category.recipeCount / maxRecipeCount) * 100).toFixed(1)}% tổng công thức
+              </Text>
             </View>
 
-            <View style={styles.statsGrid}>
-              <View style={styles.statBox}>
-                <Ionicons name="eye-outline" size={16} color={Colors.text.secondary} />
-                <Text style={styles.statLabel}>Lượt xem</Text>
-                <Text style={styles.statValue}>{formatNumber(category.viewCount)}</Text>
+            {/* Only show view stats if there's data */}
+            {hasViewData && category.viewCount > 0 && (
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Ionicons name="eye-outline" size={14} color={Colors.text.secondary} />
+                  <Text style={styles.statText}>{formatNumber(category.viewCount)} lượt xem</Text>
+                </View>
+                {category.uniqueUsers > 0 && (
+                  <View style={styles.statItem}>
+                    <Ionicons name="people-outline" size={14} color={Colors.text.secondary} />
+                    <Text style={styles.statText}>{formatNumber(category.uniqueUsers)} người</Text>
+                  </View>
+                )}
               </View>
-
-              <View style={styles.statBox}>
-                <Ionicons name="people-outline" size={16} color={Colors.text.secondary} />
-                <Text style={styles.statLabel}>Người dùng</Text>
-                <Text style={styles.statValue}>{formatNumber(category.uniqueUsers)}</Text>
-              </View>
-
-              <View style={styles.statBox}>
-                <Ionicons name="document-text-outline" size={16} color={Colors.text.secondary} />
-                <Text style={styles.statLabel}>Công thức</Text>
-                <Text style={styles.statValue}>{formatNumber(category.recipeCount)}</Text>
-              </View>
-            </View>
-
-            <View style={styles.metricsRow}>
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Thời gian TB:</Text>
-                <Text style={styles.metricValue}>
-                  {(category.averageTimeSpent / 60).toFixed(1)} phút
-                </Text>
-              </View>
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>CTR:</Text>
-                <Text style={styles.metricValue}>
-                  {category.clickThroughRate.toFixed(1)}%
-                </Text>
-              </View>
-            </View>
+            )}
           </View>
         );
       })}
@@ -173,71 +161,53 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     flex: 1,
   },
-  shareBadge: {
+  countBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#10b981',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
-  shareText: {
-    fontSize: 11,
+  countText: {
+    fontSize: 12,
     fontWeight: '700',
     color: '#fff',
   },
   progressBarContainer: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   progressBar: {
     height: 6,
     backgroundColor: Colors.gray[200],
     borderRadius: 3,
     overflow: 'hidden',
+    marginBottom: 4,
   },
   progressFill: {
     height: '100%',
     borderRadius: 3,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 6,
-    padding: 8,
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 10,
+  progressLabel: {
+    fontSize: 11,
     color: Colors.text.secondary,
-    marginTop: 4,
+    textAlign: 'right',
   },
-  statValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    marginTop: 2,
-  },
-  metricsRow: {
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    gap: 12,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
   },
-  metricItem: {
+  statItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
-  metricLabel: {
-    fontSize: 11,
+  statText: {
+    fontSize: 12,
     color: Colors.text.secondary,
-    marginBottom: 2,
-  },
-  metricValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.text.primary,
   },
 });

@@ -11,17 +11,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../styles/colors';
+import CustomAlert from '../../components/ui/CustomAlert';
+import { useCustomAlert } from '../../hooks/useCustomAlert';
 
 import DateRangePicker from '../../components/admin/statistics/DateRangePicker';
 import StatisticsTabs, { StatisticsTabType } from '../../components/admin/statistics/StatisticsTabs';
-import CategoryEngagementList from '../../components/admin/statistics/interaction/CategoryEngagementList';
 import DetailedStatsCard from '../../components/admin/statistics/interaction/DetailedStatsCard';
 import FollowTrendsChart from '../../components/admin/statistics/interaction/FollowTrendsChart';
 import OverviewCards from '../../components/admin/statistics/interaction/OverviewCards';
 import PeakHoursChart from '../../components/admin/statistics/interaction/PeakHoursChart';
 import TopCommentsCard from '../../components/admin/statistics/interaction/TopCommentsCard';
-import PopularCategoriesCard from '../../components/admin/statistics/search/PopularCategoriesCard';
-import PopularIngredientsCard from '../../components/admin/statistics/search/PopularIngredientsCard';
 import PopularKeywordsList from '../../components/admin/statistics/search/PopularKeywordsList';
 import SearchOverviewCards from '../../components/admin/statistics/search/SearchOverviewCards';
 import SearchSuccessRateCard from '../../components/admin/statistics/search/SearchSuccessRateCard';
@@ -61,6 +60,7 @@ const formatDateForDisplay = (dateStr: string | undefined): string => {
 export default function AdminStatisticsScreen() {
 
   const router = useRouter();
+  const { alert, showError, hideAlert } = useCustomAlert();
   const [activeTab, setActiveTab] = useState<StatisticsTabType>('interaction');
   const [refreshing, setRefreshing] = useState(false);
   const [dateRange, setDateRange] = useState<DateRangeParams>(getDefaultDateRange());
@@ -114,8 +114,17 @@ export default function AdminStatisticsScreen() {
       setTopComments(comments);
       setFollowTrends(trends);
       setCategoryEngagement(engagement);
+<<<<<<< HEAD
     } catch (error) {
       console.log('Error fetching interaction data:', error);
+=======
+    } catch (error: any) {
+      console.error('Error fetching interaction data:', error);
+      showError(
+        'Lỗi tải dữ liệu',
+        error?.message || 'Không thể tải dữ liệu thống kê tương tác. Vui lòng thử lại.'
+      );
+>>>>>>> update-home
     } finally {
       setLoadingInteraction(false);
     }
@@ -125,12 +134,11 @@ export default function AdminStatisticsScreen() {
     setLoadingSearch(true);
     try {
       // Fetch all search statistics
-      const [overview, keywords, ingredients, categories, successRate, zeroResults, trends] =
+      const [overview, keywords, /* categories, */ successRate, zeroResults, trends] =
         await Promise.all([
           adminStatisticApi.getSearchOverview(dateRange),
           adminStatisticApi.getPopularKeywords(20, dateRange),
-          adminStatisticApi.getPopularIngredients(30, dateRange),
-          adminStatisticApi.getPopularCategories(dateRange),
+          // adminStatisticApi.getPopularCategories(dateRange), 
           adminStatisticApi.getSearchSuccessRate(dateRange),
           adminStatisticApi.getZeroResultKeywords(30, dateRange),
           adminStatisticApi.getSearchTrends({ ...dateRange, groupBy: 'DAY' }),
@@ -138,14 +146,22 @@ export default function AdminStatisticsScreen() {
 
       setSearchOverview(overview);
       setPopularKeywords(keywords);
-      setPopularIngredients(ingredients);
-      setPopularCategories(categories);
+      // setPopularCategories(categories); 
       setSearchSuccessRate(successRate);
       setZeroResultKeywords(zeroResults);
       setSearchTrends(trends);
+<<<<<<< HEAD
 
     } catch (error) {
       console.log('Error fetching search data:', error);
+=======
+    } catch (error: any) {
+      console.error('Error fetching search data:', error);
+      showError(
+        'Lỗi tải dữ liệu',
+        error?.message || 'Không thể tải dữ liệu thống kê tìm kiếm. Vui lòng thử lại.'
+      );
+>>>>>>> update-home
     } finally {
       setLoadingSearch(false);
     }
@@ -215,12 +231,21 @@ export default function AdminStatisticsScreen() {
             <OverviewCards data={interactionOverview} loading={loadingInteraction} />
 
             <PeakHoursChart data={peakHours} loading={loadingInteraction} />
+<<<<<<< HEAD
 
             <CategoryEngagementList
               data={categoryEngagement?.categoryEngagements || null}
               loading={loadingInteraction}
             />
 
+=======
+            
+            {/* <CategoryEngagementList 
+              data={categoryEngagement?.categoryEngagements || null} 
+              loading={loadingInteraction} 
+            /> */}
+            
+>>>>>>> update-home
             <DetailedStatsCard data={detailedStats} loading={loadingInteraction} />
 
             <TopCommentsCard data={topComments} loading={loadingInteraction} />
@@ -234,9 +259,13 @@ export default function AdminStatisticsScreen() {
           <>
             <SearchOverviewCards data={searchOverview} loading={loadingSearch} />
             <PopularKeywordsList data={popularKeywords} loading={loadingSearch} />
+<<<<<<< HEAD
 
             <PopularIngredientsCard data={popularIngredients} loading={loadingSearch} />
             <PopularCategoriesCard data={popularCategories} loading={loadingSearch} />
+=======
+            {/* <PopularCategoriesCard data={popularCategories} loading={loadingSearch} /> */}
+>>>>>>> update-home
             <SearchSuccessRateCard data={searchSuccessRate} loading={loadingSearch} />
             <ZeroResultKeywordsCard data={zeroResultKeywords} loading={loadingSearch} />
             <SearchTrendsChart data={searchTrends} loading={loadingSearch} />
@@ -253,6 +282,16 @@ export default function AdminStatisticsScreen() {
         onClose={() => setShowDatePicker(false)}
         onConfirm={handleDateRangeChange}
         currentDateRange={dateRange}
+      />
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        buttons={alert.buttons}
+        onClose={hideAlert}
       />
     </SafeAreaView>
   );

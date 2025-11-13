@@ -50,7 +50,9 @@ export default function OverviewCards({ data, loading }: OverviewCardsProps) {
     {
       icon: 'trending-up' as const,
       label: 'Tỷ Lệ Tương Tác',
-      value: `${data.engagementRate.toFixed(1)}%`,
+      value: data.engagementRate !== null && data.engagementRate !== undefined
+        ? `${data.engagementRate.toFixed(1)}%`
+        : 'N/A',
       color: '#10b981',
       bgColor: '#d1fae5',
     },
@@ -71,7 +73,8 @@ export default function OverviewCards({ data, loading }: OverviewCardsProps) {
   );
 }
 
-const formatNumber = (num: number): string => {
+const formatNumber = (num: number | null | undefined): string => {
+  if (num === null || num === undefined) return 'N/A';
   if (num >= 1000000) {
     return `${(num / 1000000).toFixed(1)}M`;
   }
