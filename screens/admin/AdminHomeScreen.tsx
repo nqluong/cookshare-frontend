@@ -9,6 +9,8 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CustomAlert from "../../components/ui/CustomAlert";
+import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { useAuth } from "../../context/AuthContext";
 import adminStatisticApi, { getDefaultDateRange } from "../../services/adminStatisticsService";
 import { Colors } from "../../styles/colors";
@@ -25,6 +27,7 @@ interface QuickStat {
 export default function AdminHomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const { alert, showError, hideAlert } = useCustomAlert();
 
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
@@ -60,8 +63,12 @@ export default function AdminHomeScreen() {
         engagementRate: interactionData.engagementRate,
         searchSuccessRate: searchData.successRate,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching stats:', error);
+      showError(
+        'Lỗi tải dữ liệu',
+        error?.message || 'Không thể tải dữ liệu thống kê. Vui lòng thử lại.'
+      );
     } finally {
       setLoading(false);
     }
@@ -219,6 +226,16 @@ export default function AdminHomeScreen() {
         {/* Bottom Spacing */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        buttons={alert.buttons}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 }

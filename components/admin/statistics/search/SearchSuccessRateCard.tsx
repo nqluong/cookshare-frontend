@@ -8,6 +8,17 @@ interface SearchSuccessRateCardProps {
   loading: boolean;
 }
 
+const getSearchTypeLabel = (searchType: string): string => {
+  const typeMap: { [key: string]: string } = {
+    'GENERAL': 'Tìm kiếm chung',
+    'category': 'Danh mục',
+    'ingredient': 'Nguyên liệu',
+    'recipe': 'Công thức',
+    'user': 'Người dùng',
+  };
+  return typeMap[searchType] || searchType;
+};
+
 export default function SearchSuccessRateCard({ data, loading }: SearchSuccessRateCardProps) {
   if (loading) {
     return (
@@ -39,7 +50,11 @@ export default function SearchSuccessRateCard({ data, loading }: SearchSuccessRa
       <View style={styles.mainStats}>
         <View style={styles.successContainer}>
           <View style={styles.successCircle}>
-            <Text style={styles.successPercentage}>{data.successRate.toFixed(1)}%</Text>
+            <Text style={styles.successPercentage}>
+              {data.successRate !== null && data.successRate !== undefined
+                ? `${data.successRate.toFixed(1)}%`
+                : 'N/A'}
+            </Text>
             <Text style={styles.successLabel}>Thành công</Text>
           </View>
         </View>
@@ -70,11 +85,13 @@ export default function SearchSuccessRateCard({ data, loading }: SearchSuccessRa
           {data.successByType.map((type, index) => (
             <View key={index} style={styles.typeCard}>
               <View style={styles.typeHeader}>
-                <Text style={styles.typeName}>{type.searchType}</Text>
+                <Text style={styles.typeName}>{getSearchTypeLabel(type.searchType)}</Text>
                 <Text style={[styles.typeRate, { 
                   color: type.successRate > 80 ? '#10b981' : type.successRate > 50 ? '#f59e0b' : '#ef4444' 
                 }]}>
-                  {type.successRate.toFixed(1)}%
+                  {type.successRate !== null && type.successRate !== undefined
+                    ? `${type.successRate.toFixed(1)}%`
+                    : 'N/A'}
                 </Text>
               </View>
               <View style={styles.progressBar}>

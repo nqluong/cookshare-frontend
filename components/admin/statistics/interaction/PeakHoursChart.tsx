@@ -75,8 +75,8 @@ export default function PeakHoursChart({ data, loading }: PeakHoursChartProps) {
           </Text>
           <Text style={styles.peakValue}>
             {mode === 'hourly' 
-              ? `${data.peakHour}:00` 
-              : data.peakDayOfWeek}
+              ? (data.peakHour !== null && data.peakHour !== undefined ? `${data.peakHour}h` : 'Không có')
+              : (data.peakDayOfWeek || 'Không có')}
           </Text>
         </View>
       </View>
@@ -109,7 +109,9 @@ export default function PeakHoursChart({ data, loading }: PeakHoursChartProps) {
               })
             : data.dailyStats.map((item, index) => {
                 const height = (item.totalInteractions / maxValue) * 120;
-                const shortDay = item.dayOfWeek.replace('Thứ ', 'T');
+                const shortDay = item.dayOfWeek
+                  .replace('Thứ ', 'T')
+                  .replace('Chủ nhật', 'CN');
                 return (
                   <View key={index} style={styles.barColumn}>
                     <View style={styles.barWrapper}>

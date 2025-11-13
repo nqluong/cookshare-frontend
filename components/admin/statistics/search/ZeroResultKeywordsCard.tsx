@@ -95,7 +95,7 @@ export default function ZeroResultKeywordsCard({ data, loading }: ZeroResultKeyw
             </View>
           </View>
 
-          {keyword.suggestedActions && keyword.suggestedActions.length > 0 && (
+          {/* {keyword.suggestedActions && keyword.suggestedActions.length > 0 && (
             <View style={styles.actionsContainer}>
               <Text style={styles.actionsTitle}>Đề xuất:</Text>
               {keyword.suggestedActions.map((action, idx) => (
@@ -105,7 +105,7 @@ export default function ZeroResultKeywordsCard({ data, loading }: ZeroResultKeyw
                 </View>
               ))}
             </View>
-          )}
+          )} */}
         </View>
       ))}
 

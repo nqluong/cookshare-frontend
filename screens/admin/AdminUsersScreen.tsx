@@ -56,7 +56,6 @@ export default function AdminUsersScreen() {
       setHasMore(!response.last);
       setTotalElements(response.totalElements);
     } catch (err: any) {
-      console.error('Error loading users:', err);
       setError(err.message || 'Không thể tải danh sách người dùng');
     } finally {
       setLoading(false);
