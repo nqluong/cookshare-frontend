@@ -12,7 +12,7 @@ const DEV_CONFIG = {
 
   // Fallback IP nếu auto-detect fail ( điền ip thật ở đây )
 
-  FALLBACK_IP: 'http://192.168.21.102:8080',
+  FALLBACK_IP: 'http://172.20.10.4:8080',
 
   // Port của backend
   PORT: 8080,
@@ -28,7 +28,7 @@ const getPlatformSpecificHost = (): string | null => {
   }
 
   if (Platform.OS === 'android') {
-    return 'http://192.168.21.102:8080';
+    return 'http://172.20.10.4:8080';
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật

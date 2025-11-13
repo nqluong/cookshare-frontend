@@ -95,7 +95,7 @@ const router = useRouter();
       <Text style={styles.title}>Công thức yêu thích</Text>
 
       {recipes.map((recipe) => {
-        const isLiked = likedRecipes.has(recipe.recipeId);
+        const isLiked = true;
         const isLoading = likingRecipeId === recipe.recipeId;
         const currentLikes = recipe.likeCount;
         const saved = isSaved(recipe.recipeId);

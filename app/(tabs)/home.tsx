@@ -14,6 +14,7 @@ import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
 import TabBar from '../../components/home/TabBar';
 import RecipeCard from '../../components/Search/RecipeCard';
 import {
+  checkMultipleLikes,
   getHomeSuggestions,
   getLikedRecipes,
   getNewestRecipes,
@@ -21,10 +22,10 @@ import {
   getRecipebyFollowing,
   getTopRatedRecipes,
   getTrendingRecipes,
-  isRecipeLiked,
+  getUserSuggestions,
   likeRecipe,
   searchRecipeByUser,
-  unlikeRecipe,
+  unlikeRecipe
 } from '../../services/homeService';
 import { Colors } from '../../styles/colors';
 import { searchStyles } from '../../styles/SearchStyles';
@@ -163,55 +164,86 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
     setLoading(false);
   }
 };
-
-  const fetchHomeSuggestions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await getHomeSuggestions();
-      
-      if (response.success && response.data) {
-        const { trendingRecipes, popularRecipes, newestRecipes, topRatedRecipes, featuredRecipes, dailyRecommendations } = response.data;
-        
-        const allRecipeIds = [
-          ...(trendingRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(popularRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(newestRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(topRatedRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(featuredRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(dailyRecommendations || []).map((r: DishRecipe) => r.recipeId),
-        ];
-
-        const likePromises = allRecipeIds.map(async (recipeId: string) => {
-          try {
-            const response = await isRecipeLiked(recipeId);
-            console.log(`Recipe ${recipeId} is liked:`, response.result);
-            return { recipeId, isLiked: response.result };
-          } catch (error) {
-            console.error(`Lỗi khi kiểm tra like cho recipeId ${recipeId}:`, error);
-            return { recipeId, isLiked: false };
-          }
-        });
-
-        const likeResults = await Promise.all(likePromises);
-        const likedSet = new Set(likeResults.filter(r => r.isLiked).map(r => r.recipeId));
-        
-        setLikedRecipes(likedSet);
-        setFeaturedRecipes(featuredRecipes || []);
-        setPopularRecipes(popularRecipes || []);
-        setNewestRecipes(newestRecipes || []);
-        setTopRatedRecipes(topRatedRecipes || []);
-        setTrendingRecipes(trendingRecipes || []);
-        setDailyRecommendations(dailyRecommendations || []);
-      }
-    } catch (err: any) {
-      console.error('Error fetching home suggestions:', err);
-      setError(err.message || 'Không thể tải dữ liệu');
-    } finally {
-      setLoading(false);
+const fetchUserSuggestions = async (query: string): Promise<string[]> => {
+  try {
+    const response = await getUserSuggestions(query, 5);
+    if (response.code === 1000 && response.result) {
+      return response.result;
     }
-  };
+    return [];
+  } catch (error) {
+    console.error('Error fetching user suggestions:', error);
+    return [];
+  }
+};
+const handleQueryChange = (query: string) => {
+  setSearchQuery(query);
+  if (hasSearched) {
+    setHasSearched(false);
+    setRecipes([]);
+    setError(null);
+  }
+};
+  const fetchHomeSuggestions = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+
+    const response = await getHomeSuggestions();
+    
+    if (response.success && response.data) {
+      const { 
+        trendingRecipes, 
+        popularRecipes, 
+        newestRecipes, 
+        topRatedRecipes, 
+        featuredRecipes, 
+        dailyRecommendations 
+      } = response.data;
+      
+      // ✅ Thu thập và loại bỏ duplicate recipeIds
+      const allRecipeIds = Array.from(new Set([
+        ...(trendingRecipes || []).map((r: DishRecipe) => r.recipeId),
+        ...(popularRecipes || []).map((r: DishRecipe) => r.recipeId),
+        ...(newestRecipes || []).map((r: DishRecipe) => r.recipeId),
+        ...(topRatedRecipes || []).map((r: DishRecipe) => r.recipeId),
+        ...(featuredRecipes || []).map((r: DishRecipe) => r.recipeId),
+        ...(dailyRecommendations || []).map((r: DishRecipe) => r.recipeId),
+      ])).filter(Boolean); // Loại bỏ null/undefined
+
+      console.log(`Checking likes for ${allRecipeIds.length} unique recipes`);
+
+      // ✅ Gọi 1 request duy nhất thay vì N requests
+      if (allRecipeIds.length > 0) {
+        const likeCheckResponse = await checkMultipleLikes(allRecipeIds);
+        
+        if (likeCheckResponse.code === 1000 && likeCheckResponse.result) {
+          const likedSet = new Set(
+            Object.entries(likeCheckResponse.result)
+              .filter(([_, isLiked]) => isLiked)
+              .map(([recipeId, _]) => recipeId)
+          );
+          
+          console.log(`Found ${likedSet.size} liked recipes`);
+          setLikedRecipes(likedSet);
+        }
+      }
+      
+      // Set các recipes
+      setFeaturedRecipes(featuredRecipes || []);
+      setPopularRecipes(popularRecipes || []);
+      setNewestRecipes(newestRecipes || []);
+      setTopRatedRecipes(topRatedRecipes || []);
+      setTrendingRecipes(trendingRecipes || []);
+      setDailyRecommendations(dailyRecommendations || []);
+    }
+  } catch (err: any) {
+    console.error('Error fetching home suggestions:', err);
+    setError(err.message || 'Không thể tải dữ liệu');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleOpenDetail = (recipe: DishRecipe) => {
     router.push(`/_recipe-detail/${recipe.recipeId}` as any);
@@ -342,8 +374,9 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
   likeTimersRef.current.set(recipeId, timer);
 };
 
-  const handleSearch = async (reset = true, requestedPage?: number) => {
-    if (reset && !searchQuery.trim()) {
+  const handleSearch = async (reset = true, requestedPage?: number, queryOverride?: string) => {
+    const queryToSearch = queryOverride?.trim() || searchQuery.trim();
+    if (reset && !queryToSearch) {
       setError('Vui lòng nhập tên người dùng cần tìm kiếm');
       return;
     }
@@ -354,7 +387,7 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
 
     try {
       const currentPage = reset ? 0 : requestedPage ?? page;
-      const data = await searchRecipeByUser(searchQuery, currentPage, 10);
+      const data = await searchRecipeByUser(queryToSearch, currentPage, 10);
       
       if ('code' in data && data.code !== 1000) {
         setError(data.message || 'Lỗi từ server');
@@ -629,8 +662,10 @@ const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
     <SafeAreaView style={styles.container}>
       <SearchBar 
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        setSearchQuery={handleQueryChange}
         onSearch={handleSearch}
+        onGetSuggestions={fetchUserSuggestions}
+        showSuggestions={!hasSearched}
       />
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} onPress={() => setHasSearched(false)} />
       {hasSearched ? (
