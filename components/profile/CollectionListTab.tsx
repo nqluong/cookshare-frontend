@@ -77,7 +77,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
       const data = await collectionService.getUserCollections(uuid, 0, 100);
       setCollections(data.data.content || []);
     } catch (error) {
-      console.error("Error loading collections:", error);
+      console.log("Error loading collections:", error);
       Alert.alert("Lỗi", "Không thể tải danh sách collections");
     } finally {
       setLoading(false);
@@ -120,7 +120,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
         await uploadImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error("Error picking image:", error);
+      console.log("Error picking image:", error);
       Alert.alert("Lỗi", "Không thể chọn ảnh");
     }
   };
@@ -150,7 +150,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
         Alert.alert("Thành công", "Tải ảnh lên thành công");
       }
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.log("Error uploading image:", error);
       Alert.alert("Lỗi", "Không thể tải ảnh lên");
     } finally {
       setIsUploadingImage(false);
@@ -179,7 +179,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
       setShowCreateModal(false);
       Alert.alert("Thành công", "Collection đã được tạo");
     } catch (error) {
-      console.error("Error creating collection:", error);
+      console.log("Error creating collection:", error);
       Alert.alert("Lỗi", "Không thể tạo collection");
     } finally {
       setIsSubmitting(false);
@@ -222,7 +222,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
       setSelectedCollection(null);
       Alert.alert("Thành công", "Collection đã được cập nhật");
     } catch (error) {
-      console.error("Error updating collection:", error);
+      console.log("Error updating collection:", error);
       Alert.alert("Lỗi", "Không thể cập nhật collection");
     } finally {
       setIsSubmitting(false);
@@ -255,7 +255,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
               setSelectedCollection(null);
               Alert.alert("Thành công", "Collection đã được xóa");
             } catch (error) {
-              console.error("Error deleting collection:", error);
+              console.log("Error deleting collection:", error);
               Alert.alert("Lỗi", "Không thể xóa collection");
             }
           },

@@ -132,7 +132,7 @@ class AdminUserService {
       console.log('Get all users successful, count:', result.data.content.length);
       return result.data;
     } catch (error: any) {
-      console.error('Get all users error:', error);
+      console.log('Get all users error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -170,7 +170,7 @@ class AdminUserService {
       console.log('Get user detail successful:', result.data.username);
       return result.data;
     } catch (error: any) {
-      console.error('Get user detail error:', error);
+      console.log('Get user detail error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -207,7 +207,7 @@ class AdminUserService {
 
       console.log('Ban user successful');
     } catch (error: any) {
-      console.error('Ban user error:', error);
+      console.log('Ban user error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -243,7 +243,7 @@ class AdminUserService {
 
       console.log('Unban user successful');
     } catch (error: any) {
-      console.error('Unban user error:', error);
+      console.log('Unban user error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -279,7 +279,7 @@ class AdminUserService {
 
       console.log('Delete user successful');
     } catch (error: any) {
-      console.error('Delete user error:', error);
+      console.log('Delete user error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }

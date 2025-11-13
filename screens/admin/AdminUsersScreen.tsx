@@ -56,7 +56,7 @@ export default function AdminUsersScreen() {
       setHasMore(!response.last);
       setTotalElements(response.totalElements);
     } catch (err: any) {
-      console.error('Error loading users:', err);
+      console.log('Error loading users:', err);
       setError(err.message || 'Không thể tải danh sách người dùng');
     } finally {
       setLoading(false);
@@ -345,18 +345,18 @@ export default function AdminUsersScreen() {
               <View style={styles.modalUserHeader}>
                 <View style={styles.modalUserAvatar}>
                   {selectedUser.avatarUrl ? (
-                              <Image
-                                source={{ uri: selectedUser.avatarUrl }}
-                                style={styles.modalAvatar}
-                                contentFit="cover"
-                              />
-                            ) : (
-                              <Image
-                                source={require("../../assets/images/default-avatar.png")}
-                                style={styles.modalAvatar}
-                                contentFit="cover"
-                              />
-                            )}
+                    <Image
+                      source={{ uri: selectedUser.avatarUrl }}
+                      style={styles.modalAvatar}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Image
+                      source={require("../../assets/images/default-avatar.png")}
+                      style={styles.modalAvatar}
+                      contentFit="cover"
+                    />
+                  )}
                 </View>
                 <View style={styles.modalUserInfo}>
                   <Text style={styles.modalUserName}>{selectedUser.fullName}</Text>

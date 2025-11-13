@@ -52,7 +52,7 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
       const profile = await userService.getUserByUsername(currentUser.username);
       setCurrentUserId(profile.userId);
     } catch (error) {
-      console.error("Error loading current user:", error);
+      console.log("Error loading current user:", error);
     }
   };
 
@@ -62,27 +62,27 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
     }
 
     const isViewingOwnFollowing = type === "following" && currentUserId === userId;
-    
+
     if (isViewingOwnFollowing) {
-        return userList.map(user => ({ 
-            ...user, 
-            isFollowing: user.userId !== currentUserId 
-        }));
+      return userList.map(user => ({
+        ...user,
+        isFollowing: user.userId !== currentUserId
+      }));
     }
 
     const checkPromises = userList.map(async (user) => {
-        if (user.userId === currentUserId) return { ...user, isFollowing: false };
+      if (user.userId === currentUserId) return { ...user, isFollowing: false };
 
-        try {
-            const response = await followService.checkFollowStatus(
-                currentUserId, 
-                user.userId
-            );
-            return { ...user, isFollowing: response.data };
-        } catch (error) {
-            console.error(`Error checking follow status for ${user.username}:`, error);
-            return { ...user, isFollowing: false }; 
-        }
+      try {
+        const response = await followService.checkFollowStatus(
+          currentUserId,
+          user.userId
+        );
+        return { ...user, isFollowing: response.data };
+      } catch (error) {
+        console.log(`Error checking follow status for ${user.username}:`, error);
+        return { ...user, isFollowing: false };
+      }
     });
 
     return Promise.all(checkPromises);
@@ -116,7 +116,7 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
       setHasMore(!response.data.last);
       setPage((prev) => (refresh ? 1 : prev + 1));
     } catch (error) {
-      console.error("Error loading users:", error);
+      console.log("Error loading users:", error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -152,30 +152,30 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
       }
 
       const updateUser = (user: FollowUser) => {
-          if (user.userId === targetUserId) {
-              return { ...user, isFollowing: !isFollowing };
-          }
-          return user;
+        if (user.userId === targetUserId) {
+          return { ...user, isFollowing: !isFollowing };
+        }
+        return user;
       }
 
       setUsers((prev) => prev.map(updateUser));
       setFilteredUsers((prev) => prev.map(updateUser));
 
-        const currentCount = currentUser?.followingCount ?? 0;
-        const newFollowingCount = isFollowing ? currentCount - 1 : currentCount + 1;
+      const currentCount = currentUser?.followingCount ?? 0;
+      const newFollowingCount = isFollowing ? currentCount - 1 : currentCount + 1;
 
-        updateAuthUser({ followingCount: newFollowingCount });
+      updateAuthUser({ followingCount: newFollowingCount });
 
-        // 3. THÔNG BÁO CHO COMPONENT CHA (PROFILE) CẬP NHẬT FOLLOWER COUNT CỦA NGƯỜI BỊ ẢNH HƯỞNG
-        if (onCountUpdate) {
-            const change = isFollowing ? -1 : 1;
-            onCountUpdate(change); 
-        }
-      
+      // 3. THÔNG BÁO CHO COMPONENT CHA (PROFILE) CẬP NHẬT FOLLOWER COUNT CỦA NGƯỜI BỊ ẢNH HƯỞNG
+      if (onCountUpdate) {
+        const change = isFollowing ? -1 : 1;
+        onCountUpdate(change);
+      }
+
     } catch (error) {
-      console.error("Error toggling follow:", error);
-    }finally {
-        setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false }));
+      console.log("Error toggling follow:", error);
+    } finally {
+      setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false }));
     }
   };
 

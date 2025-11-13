@@ -93,6 +93,7 @@ export default function HomeScreen() {
       setHistory,
       setIsLikedTabLoaded,
       setIsFollowingTabLoaded,
+      setSearchQuery,
     },
     {
       likeHook,
@@ -127,11 +128,19 @@ export default function HomeScreen() {
     router.push(`/_recipe-detail/${recipe.recipeId}` as any);
   };
 
-  const handleSearch = (reset = true, requestedPage?: number) => {
+ const handleSearch = (
+  reset = true,
+  requestedPage?: number,
+  queryOverride?: string
+) => {
+  if (queryOverride !== undefined) {
+    viewModel.updateCurrentStates({ searchQuery: queryOverride });
+    viewModel.handleSearch(reset, requestedPage, queryOverride);
+  } else {
     viewModel.updateCurrentStates({ searchQuery, searchPage });
     viewModel.handleSearch(reset, requestedPage);
-  };
-
+  }
+};
   const handleToggleLike = (recipeId: string) => {
     viewModel.updateCurrentStates({ activeTab });
     viewModel.toggleLike(recipeId, dailyRecommendations, featuredRecipes);
@@ -166,7 +175,13 @@ export default function HomeScreen() {
   // Main Content
   return (
     <SafeAreaView style={styles.container}>
-      <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearch} />
+      <SearchBar
+        searchQuery={searchQuery}
+        setSearchQuery={(query) => viewModel.handleQueryChange(query, hasSearched)}
+        onSearch={handleSearch}
+        onGetSuggestions={(query) => viewModel.fetchUserSuggestions(query)}
+        showSuggestions={!hasSearched}
+/>
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} onPress={() => setHasSearched(false)} />
 
       {hasSearched ? (

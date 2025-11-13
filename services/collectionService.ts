@@ -60,7 +60,7 @@ class CollectionService {
       console.log("Create collection successful");
       return result;
     } catch (error: any) {
-      console.error("Create collection error:", error);
+      console.log("Create collection error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -108,7 +108,7 @@ class CollectionService {
       );
       return result;
     } catch (error: any) {
-      console.error("Get collections error:", error);
+      console.log("Get collections error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -155,7 +155,7 @@ class CollectionService {
       console.log("Get public collections successful");
       return result;
     } catch (error: any) {
-      console.error("Get public collections error:", error);
+      console.log("Get public collections error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -199,7 +199,7 @@ class CollectionService {
       console.log("Get collection detail successful");
       return result;
     } catch (error: any) {
-      console.error("Get collection detail error:", error);
+      console.log("Get collection detail error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -245,7 +245,7 @@ class CollectionService {
       console.log("Update collection successful");
       return result;
     } catch (error: any) {
-      console.error("Update collection error:", error);
+      console.log("Update collection error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -284,7 +284,7 @@ class CollectionService {
 
       console.log("Delete collection successful");
     } catch (error: any) {
-      console.error("Delete collection error:", error);
+      console.log("Delete collection error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -314,7 +314,7 @@ class CollectionService {
       const data = await response.json();
       return data.data;
     } catch (error) {
-      console.error("Error fetching collection recipes:", error);
+      console.log("Error fetching collection recipes:", error);
       throw error;
     }
   }
@@ -355,7 +355,7 @@ class CollectionService {
 
       console.log("Add recipe successful");
     } catch (error: any) {
-      console.error("Add recipe error:", error);
+      console.log("Add recipe error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -398,7 +398,7 @@ class CollectionService {
 
       console.log("Remove recipe successful");
     } catch (error: any) {
-      console.error("Remove recipe error:", error);
+      console.log("Remove recipe error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -429,7 +429,7 @@ class CollectionService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Upload error response:", errorText);
+        console.log("Upload error response:", errorText);
         throw new Error(errorText || "Không thể upload ảnh bìa");
       }
 
@@ -437,7 +437,7 @@ class CollectionService {
       console.log("Upload successful:", data);
       return data;
     } catch (error: any) {
-      console.error("Error uploading cover image:", error);
+      console.log("Error uploading cover image:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }

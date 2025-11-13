@@ -19,35 +19,35 @@ class CommentService {
 
   // 📜 Lấy danh sách bình luận theo recipe (phân trang)
   async getCommentsByRecipe(recipeId: string, page: number = 0, size: number = 20): Promise<CommentResponse[]> {
-  try {
-    const token = await this.getAuthToken();
-    const url = `${BASE_URL}/comments/recipe/${recipeId}?page=${page}&size=${size}`;
+    try {
+      const token = await this.getAuthToken();
+      const url = `${BASE_URL}/comments/recipe/${recipeId}?page=${page}&size=${size}`;
 
-    const response = await this.fetchWithTimeout(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-    });
+      const response = await this.fetchWithTimeout(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
 
-    if (!response.ok) throw new Error(await response.text() || 'Không thể tải bình luận');
-    const data: PaginatedComments = await response.json();
+      if (!response.ok) throw new Error(await response.text() || 'Không thể tải bình luận');
+      const data: PaginatedComments = await response.json();
 
-    // CHUẨN HÓA: replies: null → []
-    const normalizeReplies = (comments: CommentResponse[]): CommentResponse[] => {
-      return comments.map(comment => ({
-        ...comment,
-        replies: comment.replies ? normalizeReplies(comment.replies) : [],
-      }));
-    };
+      // CHUẨN HÓA: replies: null → []
+      const normalizeReplies = (comments: CommentResponse[]): CommentResponse[] => {
+        return comments.map(comment => ({
+          ...comment,
+          replies: comment.replies ? normalizeReplies(comment.replies) : [],
+        }));
+      };
 
-    return normalizeReplies(data.content);
-  } catch (error: any) {
-    console.error('Error fetching comments:', error);
-    throw error;
+      return normalizeReplies(data.content);
+    } catch (error: any) {
+      console.log('Error fetching comments:', error);
+      throw error;
+    }
   }
-}
 
   // 💬 Lấy danh sách trả lời (replies)
   async getReplies(commentId: string): Promise<CommentResponse[]> {
@@ -64,7 +64,7 @@ class CommentService {
       if (!response.ok) throw new Error(await response.text() || 'Không thể tải trả lời');
       return await response.json();
     } catch (error: any) {
-      console.error('Error fetching replies:', error);
+      console.log('Error fetching replies:', error);
       throw error;
     }
   }
@@ -85,7 +85,7 @@ class CommentService {
       if (!response.ok) throw new Error(await response.text() || 'Không thể tạo bình luận');
       return await response.json();
     } catch (error: any) {
-      console.error('Error creating comment:', error);
+      console.log('Error creating comment:', error);
       throw error;
     }
   }
@@ -106,7 +106,7 @@ class CommentService {
       if (!response.ok) throw new Error(await response.text() || 'Không thể cập nhật bình luận');
       return await response.json();
     } catch (error: any) {
-      console.error('Error updating comment:', error);
+      console.log('Error updating comment:', error);
       throw error;
     }
   }
@@ -124,7 +124,7 @@ class CommentService {
 
       if (!response.ok) throw new Error(await response.text() || 'Không thể xóa bình luận');
     } catch (error: any) {
-      console.error('Error deleting comment:', error);
+      console.log('Error deleting comment:', error);
       throw error;
     }
   }

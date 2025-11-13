@@ -59,7 +59,7 @@ export default function RecipeDetailScreen() {
 
   const recipeId = id || "";
 
-useEffect(() => {
+  useEffect(() => {
     if (user?.username) {
       loadProfile();
     }
@@ -72,7 +72,7 @@ useEffect(() => {
       const profile = await userService.getUserByUsername(user.username);
       setUserProfile(profile);
     } catch (error: any) {
-      console.error("Error loading profile:", error);
+      console.log("Error loading profile:", error);
       Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
     } finally {
       setLoading(false);
@@ -85,14 +85,13 @@ useEffect(() => {
         setLoading(true);
         const token = await AsyncStorage.getItem('authToken');
         const data = await fetchWithTimeout(getRecipeById(recipeId), 7000);
-        // Debug: log recipe payload so we can see which author field is present
+        // Debug: log recipe payload
         try {
-          // eslint-disable-next-line no-console
           console.log('Recipe detail payload:', data);
-        } catch (e) {}
+        } catch (e) { }
         setRecipe(data);
       } catch (err: any) {
-        console.error("Lỗi API:", err.message);
+        console.log("Lỗi API:", err.message);
         setError(err.message);
 
         if (err.message.includes('401')) {
@@ -140,12 +139,11 @@ useEffect(() => {
   const ingredients: Ingredient[] = recipe.ingredients || [];
   const steps: Step[] = recipe.steps
     ? recipe.steps.map((s: any) => ({
-        stepId: `step-${s.stepNumber}`,
-        stepNumber: s.stepNumber,
-        instruction: s.instruction,
-      }))
+      stepId: `step-${s.stepNumber}`,
+      stepNumber: s.stepNumber,
+      instruction: s.instruction,
+    }))
     : [];
-  //const comments: Promise<CommentResponse[]> = commentService.getCommentsByRecipe(recipe.recipeId);
 
   return (
     <View style={styles.container}>
@@ -159,10 +157,34 @@ useEffect(() => {
           title: recipe.title,
           description: recipe.description,
           image: recipe.featuredImage,
-          // Prefer full name from recipe details, then createdBy, then logged-in username, then fallback
           author: recipe.fullName || recipe.createdBy || user?.username || "",
           prepTime: recipe.prepTime ?? 0,
           cookTime: recipe.cookTime ?? 0,
+          servings: recipe.servings ?? 1,
+          difficulty: recipe.difficulty || recipe.level || "Không rõ",
+          // Xử lý category - lấy name từ array of objects
+          category: (() => {
+            const catField = recipe.categories || recipe.categoryName || recipe.category;
+
+            if (!catField) return [];
+
+            // Nếu là array of objects → lấy name
+            if (Array.isArray(catField)) {
+              return catField.map(cat =>
+                typeof cat === 'string' ? cat : cat.name
+              );
+            }
+
+            // Nếu là string
+            if (typeof catField === 'string') return [catField];
+
+            // Nếu là object với name property
+            if (catField?.name) return [catField.name];
+
+            return [];
+          })(),
+          // Giữ nguyên object tag từ API để có màu
+          tags: recipe.tags ?? [],
           ingredients,
           steps,
           video: recipe.videoUrl || "",

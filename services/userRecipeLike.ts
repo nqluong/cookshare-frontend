@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 export const useRecipeLike = () => {
   const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
   const [likingRecipeId, setLikingRecipeId] = useState<string | null>(null);
-  
+
   const likeTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const likeStatesRef = useRef<Map<string, { initialState: boolean; clickCount: number }>>(new Map());
 
@@ -24,7 +24,7 @@ export const useRecipeLike = () => {
         const response = await isRecipeLiked(recipeId);
         return { recipeId, isLiked: response.result };
       } catch (error) {
-        console.error(`Lỗi khi kiểm tra like cho recipeId ${recipeId}:`, error);
+        console.log(`Lỗi khi kiểm tra like cho recipeId ${recipeId}:`, error);
         return { recipeId, isLiked: false };
       }
     });
@@ -38,7 +38,7 @@ export const useRecipeLike = () => {
   // Optimistic update
   const optimisticToggleLike = (recipeId: string, onUpdateCount: (delta: number) => void) => {
     const isCurrentlyLiked = likedRecipes.has(recipeId);
-    
+
     setLikedRecipes(prev => {
       const newSet = new Set(prev);
       if (isCurrentlyLiked) {
@@ -48,18 +48,18 @@ export const useRecipeLike = () => {
       }
       return newSet;
     });
-    
+
     onUpdateCount(isCurrentlyLiked ? -1 : +1);
   };
 
   // Toggle like với debounce
   const toggleLike = async (
-    recipeId: string, 
+    recipeId: string,
     onUpdateCount: (delta: number) => void,
     onSuccess?: (recipeId: string, isLiked: boolean) => void
   ) => {
     let likeState = likeStatesRef.current.get(recipeId);
-    
+
     if (!likeState) {
       likeState = {
         initialState: likedRecipes.has(recipeId),
@@ -129,7 +129,7 @@ export const useRecipeLike = () => {
           }
         }
       } catch (error: any) {
-        console.error('Lỗi khi xử lý like/unlike:', error.message || error);
+        console.log('Lỗi khi xử lý like/unlike:', error.message || error);
       } finally {
         likeTimersRef.current.delete(recipeId);
         likeStatesRef.current.delete(recipeId);

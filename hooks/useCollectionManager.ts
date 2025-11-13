@@ -19,7 +19,7 @@ interface UseCollectionManagerReturn {
 
 export function useCollectionManager(): UseCollectionManagerReturn {
   const { user } = useAuth();
-  
+
   const [savedRecipes, setSavedRecipes] = useState<Set<string>>(new Set());
   const [recipeToCollectionMap, setRecipeToCollectionMap] = useState<Map<string, string>>(new Map());
   const [collections, setCollections] = useState<CollectionUserDto[]>([]);
@@ -66,7 +66,7 @@ export function useCollectionManager(): UseCollectionManagerReturn {
         setSavedRecipes(savedSet);
         setRecipeToCollectionMap(map);
       } catch (error) {
-        console.error("Error loading saved recipes:", error);
+        console.log("Error loading saved recipes:", error);
       } finally {
         setIsLoadingSaved(false);
       }
@@ -93,7 +93,7 @@ export function useCollectionManager(): UseCollectionManagerReturn {
         await loadSavedRecipes(userId, newCollections);
       }
     } catch (error) {
-      console.error("Error initializing:", error);
+      console.log("Error initializing:", error);
     }
   };
 
@@ -114,7 +114,7 @@ export function useCollectionManager(): UseCollectionManagerReturn {
   const handleSaveRecipe = (recipeId: string, collectionId: string) => {
     // Cập nhật savedRecipes
     setSavedRecipes((prev) => new Set([...prev, recipeId]));
-    
+
     // Cập nhật recipeToCollectionMap
     setRecipeToCollectionMap((prev) => new Map(prev).set(recipeId, collectionId));
   };
@@ -153,7 +153,7 @@ export function useCollectionManager(): UseCollectionManagerReturn {
       onSuccess?.(currentSaveCount - 1);
       Alert.alert("Đã gỡ", "Công thức đã được xóa khỏi bộ sưu tập.");
     } catch (error: any) {
-      console.error("Lỗi xóa công thức:", error);
+      console.log("Lỗi xóa công thức:", error);
       Alert.alert("Lỗi", error.message || "Không thể xóa công thức.");
     }
   };
@@ -163,17 +163,17 @@ export function useCollectionManager(): UseCollectionManagerReturn {
    */
   const refreshCollections = async () => {
     if (!userUUID) return;
-    
+
     try {
       const data = await collectionService.getUserCollections(userUUID);
       const newCollections = data.data.content || [];
       setCollections(newCollections);
-      
+
       if (newCollections.length > 0) {
         await loadSavedRecipes(userUUID, newCollections);
       }
     } catch (error) {
-      console.error("Error refreshing collections:", error);
+      console.log("Error refreshing collections:", error);
     }
   };
 
