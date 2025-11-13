@@ -80,6 +80,37 @@ export const useSocialLogin = () => {
                     return result;
                 }
 
+                // ✅ Kiểm tra HTTP 401 - backend trả về error result từ authErrors map
+                if (response.status === 401) {
+                    try {
+                        const errorData = await response.json();
+                        console.log(`🚨 ${provider} auth error received:`, errorData);
+                        
+                        // Throw error để dừng polling và trigger catch block
+                        const errorMessage = errorData.message || 'Xác thực thất bại';
+                        throw new Error(errorMessage);
+                    } catch (e: any) {
+                        // Re-throw để dừng polling
+                        throw e;
+                    }
+                }
+
+                // Kiểm tra lỗi từ backend (ví dụ: tài khoản bị khóa)
+                if (response.status === 400 || response.status === 403) {
+                    try {
+                        const errorData = await response.json();
+                        // Nếu là lỗi USER_NOT_ACTIVE, throw ngay để dừng polling
+                        if (errorData.code === 4002 || errorData.message?.includes('không hoạt động') || errorData.message?.includes('bị khóa')) {
+                            throw new Error('Tài khoản này đã bị khóa');
+                        }
+                    } catch (e: any) {
+                        // Nếu parse lỗi hoặc là lỗi tài khoản bị khóa, throw ra ngoài
+                        if (e.message === 'Tài khoản này đã bị khóa') {
+                            throw e;
+                        }
+                    }
+                }
+
                 // Wait 1 second before next attempt
                 if (attempt < maxAttempts) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -88,6 +119,16 @@ export const useSocialLogin = () => {
                 if (error.name === 'AbortError') {
                     console.log(`⚠️ ${provider} polling aborted (fetch error)`);
                     return null;
+                }
+
+                // ✅ Nếu là lỗi xác thực (từ HTTP 401 hoặc logic khác), throw ngay ra ngoài
+                if (error.message && (
+                    error.message.includes('bị khóa') || 
+                    error.message.includes('không hoạt động') ||
+                    error.message.includes('Xác thực thất bại')
+                )) {
+                    console.log(`🚨 ${provider} auth error detected, stop polling:`, error.message);
+                    throw error; // Throw ra ngoài để dừng hoàn toàn
                 }
 
                 console.error(`❌ ${provider} polling attempt ${attempt} failed:`, error);
@@ -122,6 +163,10 @@ export const useSocialLogin = () => {
 
             // Create AbortController để có thể hủy polling
             const controller = new AbortController();
+            
+            // ✅ Track xem browser có bị đóng sớm không
+            let browserDismissed = false;
+            let authCompleted = false;
 
             // Mở browser (non-blocking)
             const browserPromise = WebBrowser.openBrowserAsync(authUrl).catch(e => {
@@ -129,11 +174,16 @@ export const useSocialLogin = () => {
                 return null as any;
             });
 
-            // Xử lý khi user đóng browser
+            // Xử lý khi user đóng browser hoặc redirect về app
             browserPromise.then((result: any) => {
+                console.log(`📱 Browser result:`, result);
+                
                 const type = result?.type ? String(result.type).toLowerCase() : '';
+                
+                // Browser bị đóng (có thể do user hoặc do error page tự đóng)
                 if (!result || type === 'dismiss' || type === 'cancel' || type === 'closed') {
-                    console.log(`✖️ User dismissed ${provider} browser`);
+                    console.log(`✖️ ${provider} browser dismissed/closed`);
+                    browserDismissed = true;
                     try { controller.abort(); } catch (e) { /* ignore */ }
                     setLoading(false);
                 }
@@ -147,6 +197,9 @@ export const useSocialLogin = () => {
             if (authResult) {
                 console.log(`🎉 ${provider} auth result received!`);
                 console.log('👤 User:', authResult.user.username);
+                
+                // ✅ Đánh dấu auth đã hoàn thành
+                authCompleted = true;
 
                 // Lưu tokens và user info
                 const success = await loginWithSocialTokens(
@@ -175,13 +228,40 @@ export const useSocialLogin = () => {
                 }
             } else {
                 console.log(`❌ No ${provider} auth result found`);
-                try { await WebBrowser.dismissBrowser(); } catch (e) { /* ignore */ }
-                Alert.alert('Lỗi', `Không nhận được thông tin đăng nhập từ ${provider}`);
+                
+                // ✅ Nếu browser bị đóng sớm, có thể là lỗi backend (ví dụ: tài khoản bị ban)
+                if (browserDismissed) {
+                    console.log('🚫 Browser was dismissed early - checking for error...');
+                    Alert.alert(
+                        'Đăng nhập thất bại', 
+                        'Tài khoản này có thể đã bị khóa hoặc có lỗi xảy ra. Vui lòng thử lại sau.'
+                    );
+                } else {
+                    // Browser vẫn mở nhưng timeout
+                    try { await WebBrowser.dismissBrowser(); } catch (e) { /* ignore */ }
+                    Alert.alert('Lỗi', `Không nhận được thông tin đăng nhập từ ${provider}`);
+                }
             }
 
         } catch (error: any) {
             console.error(`❌ Error in ${provider} login:`, error);
-            Alert.alert('Lỗi', error.message || `Không thể đăng nhập với ${provider}`);
+
+            // Đóng browser NGAY trước khi hiển thị alert
+            try {
+                await WebBrowser.dismissBrowser();
+                console.log(`🚪 Browser dismissed for ${provider}`);
+            } catch (e) {
+                console.warn('Could not dismiss browser:', e);
+            }
+
+            // Xử lý message cụ thể cho lỗi tài khoản bị khóa
+            const errorMessage = error.message || `Không thể đăng nhập với ${provider}`;
+
+            if (errorMessage.includes('bị khóa')) {
+                Alert.alert('Tài khoản bị khóa', errorMessage);
+            } else {
+                Alert.alert('Lỗi', errorMessage);
+            }
         } finally {
             setLoading(false);
         }
