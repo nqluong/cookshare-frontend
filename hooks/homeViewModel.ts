@@ -1,9 +1,11 @@
 import { Dispatch, SetStateAction } from 'react';
 import {
-    getHomeSuggestions,
-    getLikedRecipes,
-    getRecipebyFollowing,
-    searchRecipeByUser,
+  checkMultipleLikes,
+  getHomeSuggestions,
+  getLikedRecipes,
+  getRecipebyFollowing,
+  getUserSuggestions,
+  searchRecipeByUser,
 } from '../services/homeService';
 import { useRecipePagination } from '../services/useRecipePagination';
 import { useRecipeLike } from '../services/userRecipeLike';
@@ -24,7 +26,7 @@ export class HomeViewModel {
   private setHistory: (updater: (prev: SearchHistoryItem[]) => SearchHistoryItem[]) => void;
   private setIsLikedTabLoaded: (loaded: boolean) => void;
   private setIsFollowingTabLoaded: (loaded: boolean) => void;
-
+  private setSearchQuery: (query: string) => void;
   // Hooks
   public likeHook: ReturnType<typeof useRecipeLike>;
   public newestPagination: ReturnType<typeof useRecipePagination>;
@@ -33,7 +35,8 @@ export class HomeViewModel {
   public topRatedPagination: ReturnType<typeof useRecipePagination>;
   public likedPagination: ReturnType<typeof useRecipePagination>;
   public followingPagination: ReturnType<typeof useRecipePagination>;
-
+  //
+    
   // Current states
   private searchQuery: string;
   private searchPage: number;
@@ -53,6 +56,8 @@ export class HomeViewModel {
       setHistory: (updater: (prev: SearchHistoryItem[]) => SearchHistoryItem[]) => void;
       setIsLikedTabLoaded: (loaded: boolean) => void;
       setIsFollowingTabLoaded: (loaded: boolean) => void;
+      setSearchQuery: (query: string) => void;
+      
     },
     hooks: {
       likeHook: ReturnType<typeof useRecipeLike>;
@@ -81,7 +86,7 @@ export class HomeViewModel {
     this.setHistory = setters.setHistory;
     this.setIsLikedTabLoaded = setters.setIsLikedTabLoaded;
     this.setIsFollowingTabLoaded = setters.setIsFollowingTabLoaded;
-
+    this.setSearchQuery = setters.setSearchQuery;
     this.likeHook = hooks.likeHook;
     this.newestPagination = hooks.newestPagination;
     this.trendingPagination = hooks.trendingPagination;
@@ -101,7 +106,28 @@ export class HomeViewModel {
     if (states.searchPage !== undefined) this.searchPage = states.searchPage;
     if (states.activeTab !== undefined) this.activeTab = states.activeTab;
   }
+   async fetchUserSuggestions(query: string): Promise<string[]> {
+  try {
+    const response = await getUserSuggestions(query, 5);
+    if (response.code === 1000 && response.result) {
+      return response.result;
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching user suggestions:', error);
+    return [];
+  }
+}
 
+handleQueryChange(query: string, hasSearched: boolean) {
+  this.setSearchQuery(query);
+  this.searchQuery = query; 
+  if (hasSearched) {
+    this.setHasSearched(false);
+    this.setRecipes([]);
+    this.setError(null);
+  }
+}
   async fetchHomeSuggestions() {
     try {
       this.setLoading(true);
@@ -119,7 +145,7 @@ export class HomeViewModel {
           dailyRecommendations,
         } = response.data;
 
-        // Reset paginations
+        // Reset paginations với data từ API
         this.newestPagination.reset(newestRecipes || []);
         this.trendingPagination.reset(trendingRecipes || []);
         this.popularPagination.reset(popularRecipes || []);
@@ -128,20 +154,40 @@ export class HomeViewModel {
         this.setFeaturedRecipes(featuredRecipes || []);
         this.setDailyRecommendations(dailyRecommendations || []);
 
-        // Check liked status
-        const allRecipeIds = [
+        // ✅ Thu thập và loại bỏ duplicate recipeIds
+        const allRecipeIds = Array.from(new Set([
           ...(trendingRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(popularRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(newestRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(topRatedRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(featuredRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(dailyRecommendations || []).map((r: DishRecipe) => r.recipeId),
-        ];
+        ])).filter(Boolean); // Loại bỏ null/undefined
 
-        await this.likeHook.checkLikedStatus(allRecipeIds);
+        console.log(`✅ Checking likes for ${allRecipeIds.length} unique recipes`);
+
+        if (allRecipeIds.length > 0) {
+          try {
+            const likeCheckResponse = await checkMultipleLikes(allRecipeIds);
+            
+            if (likeCheckResponse.code === 1000 && likeCheckResponse.result) {
+              const likedSet = new Set(
+                Object.entries(likeCheckResponse.result)
+                  .filter(([_, isLiked]) => isLiked)
+                  .map(([recipeId, _]) => recipeId)
+              );
+              
+              console.log(`Found ${likedSet.size} liked recipes`);
+              this.likeHook.setLikedRecipes(likedSet);
+            }
+          } catch (likeError: any) {
+            console.error('Error checking likes (non-critical):', likeError.message);
+            // Không throw error, chỉ log - không ảnh hưởng đến việc hiển thị recipes
+          }
+        }
       }
     } catch (err: any) {
-      console.error('Error fetching home suggestions:', err);
+      console.error('❌ Error fetching home suggestions:', err);
       this.setError(err.message || 'Không thể tải dữ liệu');
     } finally {
       this.setLoading(false);
@@ -188,19 +234,24 @@ export class HomeViewModel {
     }
   }
 
-  async handleSearch(reset = true, requestedPage?: number) {
-    if (reset && !this.searchQuery.trim()) {
+  async handleSearch(reset = true, requestedPage?: number,queryOverride?: string) {
+    const queryToSearch = (queryOverride || this.searchQuery).trim();
+  if (!queryToSearch && reset) {
+    this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
+    return;
+  }
+    if (reset && !queryToSearch) {
       this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
       return;
     }
-
+    console.log('🔍 Tìm kiếm người dùng với từ khóa:', queryToSearch);
     this.setLoading(true);
     this.setError(null);
     this.setHasSearched(true);
 
     try {
       const currentPage = reset ? 0 : requestedPage ?? this.searchPage;
-      const data = await searchRecipeByUser(this.searchQuery, currentPage, 10);
+      const data = await searchRecipeByUser(queryToSearch, currentPage, 10);
 
       if ('code' in data && data.code !== 1000) {
         this.setError(data.message || 'Lỗi từ server');

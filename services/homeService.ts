@@ -136,6 +136,24 @@ export const searchRecipeByUser = async (searchQuery: string, page: number = 0, 
     handleError(error);
   }
 };
+export const getUserSuggestions = async (query: string,size: number = 5) => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    const res = await axios.get(
+      `${BASE_URL}/searchs/user/suggestions?query=${encodeURIComponent(query)}&size=${size}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...API_CONFIG.DEFAULT_HEADERS,
+        },
+        timeout: API_CONFIG.TIMEOUT,
+      }
+    );
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
 export const getRecipebyFollowing = async (page: number = 0, size: number = 10) => {
   try {
     const token = await AsyncStorage.getItem('authToken');
@@ -147,6 +165,23 @@ export const getRecipebyFollowing = async (page: number = 0, size: number = 10) 
           ...API_CONFIG.DEFAULT_HEADERS,
         },
         timeout: API_CONFIG.TIMEOUT,
+      }
+    );
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+export const checkMultipleLikes = async (recipeIds: string[]) => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    const res = await api.post(
+      '/likes-ratings/check-likes',
+      recipeIds,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
     );
     return res.data;

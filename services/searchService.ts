@@ -167,3 +167,26 @@ export const fetchSearchHistory = async (): Promise<SearchHistoryItem[]> => {
     return [];
   }
 };
+export const getRecipeSuggestions = async (query: string, limit: number = 5): Promise<string[]> => {
+  try {
+    const url = `${BASE_URL}/searchs/recipe/suggestions?query=${encodeURIComponent(query)}&limit=${limit}`;
+    const data = await fetchApi(url);
+    if (
+      data &&
+      'code' in data &&
+      data.code === 1000 &&
+      data.result &&
+      Array.isArray(data.result)
+    ) {
+      const suggestions = data.result as string[];
+      console.log('✅ Fetched', suggestions.length, 'recipe suggestions');
+      return suggestions;
+    } else {
+      console.error('❌ Invalid recipe suggestions response:', data);
+      return [];
+    }
+  } catch (error: unknown) {
+    console.error('❌ Error fetching recipe suggestions:', error);
+    return [];
+  }
+};

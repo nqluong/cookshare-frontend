@@ -37,7 +37,6 @@ export default function NewestRecipes({
   onToggleLike,
 }: NewestRecipesProps) {
   const router = useRouter();
-  
   const {
     isSaved,
     collections,

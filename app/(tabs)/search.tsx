@@ -6,7 +6,7 @@ import IngredientFilter from '../../components/Search/IngredientFilter';
 import RecipeCard from '../../components/Search/RecipeCard';
 import SearchBar from '../../components/Search/SearchBar';
 import SearchHistory from '../../components/Search/SearchHistory';
-import { fetchPopularIngredients, fetchSearchHistory, searchRecipes } from '../../services/searchService';
+import { fetchPopularIngredients, fetchSearchHistory, getRecipeSuggestions, searchRecipes } from '../../services/searchService';
 import { searchStyles } from '../../styles/SearchStyles';
 import { Ingredient, Recipe, SearchHistoryItem } from '../../types/search';
 export default function SearchScreen() {
@@ -76,6 +76,7 @@ export default function SearchScreen() {
   );
 };
 
+
   const handleAddCustomIngredient = () => {
     if (customIngredient.trim()) {
       const newIngredient = customIngredient.trim();
@@ -89,12 +90,30 @@ export default function SearchScreen() {
       setShowInputModal(false);
     }
   };
-
- const handleSearch = async (reset = true, requestedPage?: number) => {
-  if (reset && !searchQuery.trim()) {
-    setError('Vui lòng nhập tên món ăn');
-    return;
+  const fetchRecipeSuggestions = async (query: string): Promise<string[]> => {
+  try {
+    const response = await getRecipeSuggestions(query, 5);
+    return response; // ✅ response đã là string[]
+  } catch (error) {
+    console.error('Error fetching recipe suggestions:', error);
+    return [];
   }
+};
+  const handleQueryChange = (query: string) => {
+    setSearchQuery(query);
+    if (hasSearched) {
+      setHasSearched(false);
+      setRecipes([]);
+      setError(null);
+    }
+  };
+
+ const handleSearch = async (reset = true, requestedPage?: number, queryOverride?: string) => {
+  const queryToSearch = queryOverride?.trim() || searchQuery.trim();
+    if (reset && !queryToSearch) {
+      setError('Vui lòng nhập tên người dùng cần tìm kiếm');
+      return;
+    }
 
   setLoading(true);
   setError(null);
@@ -102,7 +121,7 @@ export default function SearchScreen() {
 
   try {
     const currentPage = reset ? 0 : requestedPage ?? page;
-    const data = await searchRecipes(searchQuery, selectedIngredients, currentPage, 10);
+    const data = await searchRecipes(queryToSearch, selectedIngredients, currentPage, 10);
     if ('success' in data && data.success === false) {
       setError(data.message || 'Lỗi từ server');
       setRecipes([]);
@@ -177,8 +196,10 @@ export default function SearchScreen() {
     <View style={searchStyles.container}>
       <SearchBar
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        setSearchQuery={handleQueryChange}
         onSearch={handleSearch}
+        onGetSuggestions={fetchRecipeSuggestions}
+        showSuggestions={!hasSearched}
         onToggleFilter={() => setShowFilter(!showFilter)}
       />
 
