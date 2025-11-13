@@ -1,13 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -25,12 +24,12 @@ import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
 
 // Services & Hooks
 import {
-  getLikedRecipes,
-  getNewestRecipes,
-  getPopularRecipes,
-  getRecipebyFollowing,
-  getTopRatedRecipes,
-  getTrendingRecipes,
+    getLikedRecipes,
+    getNewestRecipes,
+    getPopularRecipes,
+    getRecipebyFollowing,
+    getTopRatedRecipes,
+    getTrendingRecipes,
 } from '../../services/homeService';
 import { useRecipePagination } from '../../services/useRecipePagination';
 import { useRecipeLike } from '../../services/userRecipeLike';
@@ -279,11 +278,30 @@ function MainContent({
   onRecipePress,
   onToggleLike,
 }: any) {
-  return (
-    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-      {activeTab === 'Đề xuất' ? (
-        <>
-          <FeaturedDish recipes={dailyRecommendations} onRecipePress={onRecipePress} />
+  // Render content based on active tab
+  const renderContent = () => {
+    if (activeTab === 'Đề xuất') {
+      return [
+        { id: 'featured', type: 'featured' },
+        { id: 'trending', type: 'trending' },
+        { id: 'popular', type: 'popular' },
+        { id: 'topRated', type: 'topRated' },
+        { id: 'newest', type: 'newest' },
+      ];
+    } else if (activeTab === 'Yêu thích') {
+      return [{ id: 'liked', type: 'liked' }];
+    } else if (activeTab === 'Theo dõi') {
+      return [{ id: 'following', type: 'following' }];
+    }
+    return [];
+  };
+
+  const renderItem = ({ item }: { item: any }) => {
+    switch (item.type) {
+      case 'featured':
+        return <FeaturedDish recipes={dailyRecommendations} onRecipePress={onRecipePress} />;
+      case 'trending':
+        return (
           <TrendingRecipes
             recipes={trending.recipes}
             onRecipePress={onRecipePress}
@@ -294,6 +312,9 @@ function MainContent({
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
           />
+        );
+      case 'popular':
+        return (
           <PopularRecipes
             recipes={popular.recipes}
             onRecipePress={onRecipePress}
@@ -304,6 +325,9 @@ function MainContent({
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
           />
+        );
+      case 'topRated':
+        return (
           <TopRatedRecipes
             recipes={topRated.recipes}
             onRecipePress={onRecipePress}
@@ -314,6 +338,9 @@ function MainContent({
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
           />
+        );
+      case 'newest':
+        return (
           <NewestRecipes
             recipes={newest.recipes}
             onRecipePress={onRecipePress}
@@ -324,32 +351,48 @@ function MainContent({
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
           />
-        </>
-      ) : activeTab === 'Yêu thích' ? (
-        <LikedRecipes
-          recipes={liked.recipes}
-          onRecipePress={onRecipePress}
-          onLoadMore={liked.loadMore}
-          hasMore={liked.hasMore}
-          isLoadingMore={liked.isLoadingMore}
-          likedRecipes={likedRecipes}
-          likingRecipeId={likingRecipeId}
-          onToggleLike={onToggleLike}
-        />
-      ) : activeTab === 'Theo dõi' ? (
-        <RecipeFollowing
-          recipes={following.recipes}
-          onRecipePress={onRecipePress}
-          onLoadMore={following.loadMore}
-          hasMore={following.hasMore}
-          isLoadingMore={following.isLoadingMore}
-          likedRecipes={likedRecipes}
-          likingRecipeId={likingRecipeId}
-          onToggleLike={onToggleLike}
-        />
-      ) : null}
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+        );
+      case 'liked':
+        return (
+          <LikedRecipes
+            recipes={liked.recipes}
+            onRecipePress={onRecipePress}
+            onLoadMore={liked.loadMore}
+            hasMore={liked.hasMore}
+            isLoadingMore={liked.isLoadingMore}
+            likedRecipes={likedRecipes}
+            likingRecipeId={likingRecipeId}
+            onToggleLike={onToggleLike}
+          />
+        );
+      case 'following':
+        return (
+          <RecipeFollowing
+            recipes={following.recipes}
+            onRecipePress={onRecipePress}
+            onLoadMore={following.loadMore}
+            hasMore={following.hasMore}
+            isLoadingMore={following.isLoadingMore}
+            likedRecipes={likedRecipes}
+            likingRecipeId={likingRecipeId}
+            onToggleLike={onToggleLike}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <FlatList
+      data={renderContent()}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id}
+      showsVerticalScrollIndicator={false}
+      ListFooterComponent={<View style={styles.bottomPadding} />}
+      removeClippedSubviews={false} // Important for nested horizontal lists
+      contentContainerStyle={styles.flatListContent}
+    />
   );
 }
 
@@ -360,6 +403,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  flatListContent: {
+    flexGrow: 1,
   },
   bottomPadding: {
     height: 80,

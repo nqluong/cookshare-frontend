@@ -1,7 +1,7 @@
 import { useCollectionManager } from "@/hooks/useCollectionManager";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,6 +13,7 @@ import {
 import { Colors } from "../../../styles/colors";
 import { Recipe } from "../../../types/dish";
 import { recipeToDish } from "../../../utils/recipeHelpers";
+import { getDifficultyText } from "../../../utils/recipeUtils";
 import { CachedImage, ImagePriority } from "../../ui/CachedImage";
 import RecipeSaveButton from "../RecipeSaveButton";
 
@@ -39,7 +40,8 @@ export default function PopularRecipes({
   onToggleLike,
 }: PopularRecipesProps) {
   const router = useRouter();
-  // Sử dụng collection manager hook
+  const isLoadingRef = useRef(false);
+  
   const {
     isSaved,
     collections,
@@ -53,16 +55,24 @@ export default function PopularRecipes({
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
     new Map()
   );
+  
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const paddingToEnd = 20;
+    // Load thêm khi còn 30% nội dung (tương đương 70% đã scroll)
+    const threshold = contentSize.width * 0.3;
 
     if (
       layoutMeasurement.width + contentOffset.x >=
-      contentSize.width - paddingToEnd
+      contentSize.width - threshold
     ) {
-      if (hasMore && !isLoadingMore && onLoadMore) {
+      if (hasMore && !isLoadingMore && !isLoadingRef.current && onLoadMore) {
+        isLoadingRef.current = true;
         onLoadMore();
+        
+        // Reset loading ref sau 1 giây để tránh gọi liên tục
+        setTimeout(() => {
+          isLoadingRef.current = false;
+        }, 1000);
       }
     }
   };
@@ -75,19 +85,6 @@ export default function PopularRecipes({
     }
 
     await onToggleLike(recipeId);
-  };
-
-  const getDifficultyText = (difficulty: string) => {
-    switch (difficulty) {
-      case "EASY":
-        return "Dễ";
-      case "MEDIUM":
-        return "Trung bình";
-      case "HARD":
-        return "Khó";
-      default:
-        return difficulty;
-    }
   };
 
   const handleSaveSuccess = (
@@ -278,6 +275,7 @@ export default function PopularRecipes({
         {isLoadingMore && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.loadingText}>Đang tải...</Text>
           </View>
         )}
       </ScrollView>
@@ -357,6 +355,12 @@ const styles = StyleSheet.create({
     height: 200,
     justifyContent: "center",
     alignItems: "center",
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginTop: 4,
   },
   loadingLikeButton: {
     opacity: 0.7,

@@ -1,10 +1,11 @@
 import { useCollectionManager } from "@/hooks/useCollectionManager";
+import { getDifficultyText } from "@/utils/recipeUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -27,7 +28,6 @@ interface TopRatedRecipesProps {
   onToggleLike?: (recipeId: string) => Promise<void>;
 }
 
-// Component hiển thị danh sách công thức đánh giá cao nhất (theo averageRating)
 export default function TopRatedRecipes({
   recipes,
   onRecipePress,
@@ -39,8 +39,9 @@ export default function TopRatedRecipes({
   onToggleLike,
 }: TopRatedRecipesProps) {
   const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
+  const isLoadingRef = useRef(false);
 
-  // Sử dụng collection manager hook
   const {
     isSaved,
     collections,
@@ -50,29 +51,25 @@ export default function TopRatedRecipes({
     handleSaveRecipe: updateSavedCache,
   } = useCollectionManager();
 
-  // State để quản lý saveCount tạm thời trên UI
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
     new Map()
   );
 
-  const handleScroll = (event: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const paddingToEnd = 20;
-
-    if (
-      layoutMeasurement.width + contentOffset.x >=
-      contentSize.width - paddingToEnd
-    ) {
-      if (hasMore && !isLoadingMore && onLoadMore) {
-        onLoadMore();
-      }
+  //Load thêm khi gần cuối danh sách ngang
+  const handleEndReached = useCallback(() => {
+    if (hasMore && !isLoadingMore && !isLoadingRef.current && onLoadMore) {
+      isLoadingRef.current = true;
+      onLoadMore();
+      
+      setTimeout(() => {
+        isLoadingRef.current = false;
+      }, 1000);
     }
-  };
+  }, [hasMore, isLoadingMore, onLoadMore]);
 
   const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
 
-    // Kiểm tra đang loading hoặc không có callback
     if (likingRecipeId === recipeId || !onToggleLike) {
       return;
     }
@@ -80,28 +77,12 @@ export default function TopRatedRecipes({
     await onToggleLike(recipeId);
   };
 
-  const getDifficultyText = (difficulty: string) => {
-    switch (difficulty) {
-      case "EASY":
-        return "Dễ";
-      case "MEDIUM":
-        return "Trung bình";
-      case "HARD":
-        return "Khó";
-      default:
-        return difficulty;
-    }
-  };
-
   const handleSaveSuccess = (
     recipeId: string,
     collectionId: string,
     newSaveCount: number
   ) => {
-    // 1. Cập nhật saveCount trên UI
     setLocalSaveCounts((prev) => new Map(prev).set(recipeId, newSaveCount));
-
-    // 2. Cập nhật cache (savedRecipes & recipeToCollectionMap)
     updateSavedCache(recipeId, collectionId);
   };
 
@@ -110,9 +91,200 @@ export default function TopRatedRecipes({
   };
 
   const handleCreateNewCollection = () => {
-    // TODO: Điều hướng đến màn hình tạo bộ sưu tập
     router.push("/create-collection" as any);
   };
+
+  // Render từng item (memoized)
+  const renderRecipeItem = useCallback(
+    ({ item: recipe, index }: { item: Recipe; index: number }) => {
+      const dish = recipeToDish(recipe);
+      const isLiked = likedRecipes.has(recipe.recipeId);
+      const isLoading = likingRecipeId === recipe.recipeId;
+      const currentLikes = recipe.likeCount;
+      const saved = isSaved(recipe.recipeId);
+      const currentSaveCount =
+        localSaveCounts.get(recipe.recipeId) ?? recipe.saveCount ?? 0;
+
+      return (
+        <TouchableOpacity
+          style={[
+            styles.card,
+            index === 0 && styles.firstCard,
+          ]}
+          onPress={() => onRecipePress?.(recipe)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.imageWrapper}>
+            <View style={styles.imageContainer}>
+              <CachedImage
+                source={{ uri: dish.image }}
+                style={styles.image}
+                resizeMode="cover"
+                priority={index < 3 ? ImagePriority.high : ImagePriority.normal}
+                placeholder={
+                  <View style={styles.imagePlaceholder}>
+                    <Ionicons
+                      name="image-outline"
+                      size={40}
+                      color={Colors.gray[400]}
+                    />
+                  </View>
+                }
+              />
+              {/* Rating badge */}
+              <View style={styles.ratingBadge}>
+                <Ionicons name="star" size={12} color="#FFD700" />
+                <Text style={styles.ratingText}>
+                  {recipe.averageRating.toFixed(1)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  isLoading && styles.loadingLikeButton,
+                ]}
+                onPress={(e) => toggleLike(recipe.recipeId, e)}
+                activeOpacity={0.7}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size={12} color={Colors.primary} />
+                ) : (
+                  <Ionicons
+                    name={isLiked ? "heart" : "heart-outline"}
+                    size={16}
+                    color={isLiked ? Colors.primary : Colors.text.light}
+                  />
+                )}
+              </TouchableOpacity>
+
+              <RecipeSaveButton
+                recipeId={recipe.recipeId}
+                isSaved={saved}
+                isDisabled={isLoadingSaved}
+                collections={collections}
+                userUUID={userUUID}
+                currentSaveCount={currentSaveCount}
+                onSaveSuccess={handleSaveSuccess}
+                onUnsaveSuccess={handleUnsaveSuccess}
+                onUnsave={handleUnsaveRecipe}
+                onCreateNewCollection={handleCreateNewCollection}
+                style={styles.actionButton}
+              />
+            </View>
+          </View>
+          <View style={styles.info}>
+            <Text style={styles.dishName} numberOfLines={2}>
+              {dish.name}
+            </Text>
+
+            {/* Grid thông tin 2 hàng × 3 cột */}
+            <View style={styles.infoGrid}>
+              {/* Hàng 1 */}
+              <View style={styles.infoRow}>
+                <View style={styles.infoItem}>
+                  <Ionicons
+                    name="bar-chart-outline"
+                    size={12}
+                    color={Colors.text.secondary}
+                  />
+                  <Text style={styles.infoText}>
+                    {getDifficultyText(recipe.difficulty)}
+                  </Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Ionicons
+                    name="time-outline"
+                    size={12}
+                    color={Colors.text.secondary}
+                  />
+                  <Text style={styles.infoText}>{recipe.cookTime}p</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Ionicons
+                    name="people-outline"
+                    size={12}
+                    color={Colors.text.secondary}
+                  />
+                  <Text style={styles.infoText}>{recipe.servings}</Text>
+                </View>
+              </View>
+
+              {/* Hàng 2 */}
+              <View style={styles.infoRow}>
+                <View style={styles.infoItem}>
+                  <Ionicons
+                    name="eye-outline"
+                    size={12}
+                    color={Colors.text.secondary}
+                  />
+                  <Text style={styles.infoText}>{recipe.viewCount}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Ionicons name="heart" size={12} color={Colors.primary} />
+                  <Text style={styles.infoText}>{currentLikes}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Ionicons name="bookmark" size={12} color="#FFD700" />
+                  <Text style={styles.infoText}>
+                    {currentSaveCount.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [
+      likedRecipes,
+      likingRecipeId,
+      localSaveCounts,
+      isSaved,
+      collections,
+      userUUID,
+      isLoadingSaved,
+      onRecipePress,
+      toggleLike,
+      handleSaveSuccess,
+      handleUnsaveSuccess,
+      handleUnsaveRecipe,
+      handleCreateNewCollection,
+    ]
+  );
+
+  // 🔑 Key extractor
+  const keyExtractor = useCallback((item: Recipe) => item.recipeId, []);
+
+  // 📍 Footer component với loading
+  const renderFooter = useCallback(() => {
+    if (!hasMore && !isLoadingMore) return null;
+
+    return (
+      <View style={styles.loadingContainer}>
+        {isLoadingMore ? (
+          <>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.loadingText}>Đang tải...</Text>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={styles.loadMoreButton}
+            onPress={onLoadMore}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }, [hasMore, isLoadingMore, onLoadMore]);
+
+  // 📍 Item separator
+  const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
 
   if (!recipes || recipes.length === 0) {
     return null;
@@ -124,13 +296,15 @@ export default function TopRatedRecipes({
         <Text style={styles.title}>Đánh giá cao nhất ⭐</Text>
         <TouchableOpacity
           style={styles.viewAllButton}
-          onPress={() => 
-            router.push({ 
-              pathname: '/_view-all', 
-              params: { 
-                type: 'topRated' ,
-                liked: JSON.stringify([...likedRecipes])
-              } })}
+          onPress={() =>
+            router.push({
+              pathname: "/_view-all",
+              params: {
+                type: "topRated",
+                liked: JSON.stringify([...likedRecipes]),
+              },
+            })
+          }
           activeOpacity={0.7}
         >
           <Text style={styles.viewAllText}>Xem tất cả</Text>
@@ -138,161 +312,39 @@ export default function TopRatedRecipes({
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <FlatList
+        ref={flatListRef}
+        data={recipes}
+        renderItem={renderRecipeItem}
+        keyExtractor={keyExtractor}
+        // 🔥 Horizontal scroll
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        onScroll={handleScroll}
-        scrollEventThrottle={400}
-      >
-        {recipes.map((recipe) => {
-          const dish = recipeToDish(recipe);
-          const isLiked = likedRecipes.has(recipe.recipeId);
-          const isLoading = likingRecipeId === recipe.recipeId;
-          const currentLikes = recipe.likeCount;
-          const saved = isSaved(recipe.recipeId);
-          const currentSaveCount =
-            localSaveCounts.get(recipe.recipeId) ?? recipe.saveCount ?? 0;
-
-          return (
-            <TouchableOpacity
-              key={recipe.recipeId}
-              style={styles.card}
-              onPress={() => onRecipePress?.(recipe)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.imageWrapper}>
-                <View style={styles.imageContainer}>
-                  <CachedImage
-                    source={{ uri: dish.image }}
-                    style={styles.image}
-                    resizeMode="cover"
-                    priority={ImagePriority.normal}
-                    placeholder={
-                      <View style={styles.imagePlaceholder}>
-                        <Ionicons 
-                          name="image-outline" 
-                          size={40} 
-                          color={Colors.gray[400]} 
-                        />
-                      </View>
-                    }
-                  />
-                  {/* Rating badge */}
-                  <View style={styles.ratingBadge}>
-                    <Ionicons name="star" size={12} color="#FFD700" />
-                    <Text style={styles.ratingText}>
-                      {recipe.averageRating.toFixed(1)}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.actionButton,
-                      isLoading && styles.loadingLikeButton,
-                    ]}
-                    onPress={(e) => toggleLike(recipe.recipeId, e)}
-                    activeOpacity={0.7}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator size={12} color={Colors.primary} />
-                    ) : (
-                      <Ionicons
-                        name={isLiked ? "heart" : "heart-outline"}
-                        size={16}
-                        color={isLiked ? Colors.primary : Colors.text.light}
-                      />
-                    )}
-                  </TouchableOpacity>
-
-                  <RecipeSaveButton
-                    recipeId={recipe.recipeId}
-                    isSaved={saved}
-                    isDisabled={isLoadingSaved}
-                    collections={collections}
-                    userUUID={userUUID}
-                    currentSaveCount={currentSaveCount}
-                    onSaveSuccess={handleSaveSuccess}
-                    onUnsaveSuccess={handleUnsaveSuccess}
-                    onUnsave={handleUnsaveRecipe}
-                    onCreateNewCollection={handleCreateNewCollection}
-                    style={styles.actionButton}
-                  />
-                </View>
-              </View>
-              <View style={styles.info}>
-                <Text style={styles.dishName} numberOfLines={2}>
-                  {dish.name}
-                </Text>
-
-                {/* Grid thông tin 2 hàng × 3 cột */}
-                <View style={styles.infoGrid}>
-                  {/* Hàng 1 */}
-                  <View style={styles.infoRow}>
-                    <View style={styles.infoItem}>
-                      <Ionicons
-                        name="bar-chart-outline"
-                        size={12}
-                        color={Colors.text.secondary}
-                      />
-                      <Text style={styles.infoText}>
-                        {getDifficultyText(recipe.difficulty)}
-                      </Text>
-                    </View>
-                    <View style={styles.infoItem}>
-                      <Ionicons
-                        name="time-outline"
-                        size={12}
-                        color={Colors.text.secondary}
-                      />
-                      <Text style={styles.infoText}>{recipe.cookTime}p</Text>
-                    </View>
-                    <View style={styles.infoItem}>
-                      <Ionicons
-                        name="people-outline"
-                        size={12}
-                        color={Colors.text.secondary}
-                      />
-                      <Text style={styles.infoText}>{recipe.servings}</Text>
-                    </View>
-                  </View>
-
-                  {/* Hàng 2 */}
-                  <View style={styles.infoRow}>
-                    <View style={styles.infoItem}>
-                      <Ionicons
-                        name="eye-outline"
-                        size={12}
-                        color={Colors.text.secondary}
-                      />
-                      <Text style={styles.infoText}>{recipe.viewCount}</Text>
-                    </View>
-                    <View style={styles.infoItem}>
-                      <Ionicons name="heart" size={12} color={Colors.primary} />
-                      <Text style={styles.infoText}>{currentLikes}</Text>
-                    </View>
-                    <View style={styles.infoItem}>
-                      <Ionicons name="bookmark" size={12} color="#FFD700" />
-                      <Text style={styles.infoText}>
-                        {currentSaveCount.toLocaleString()}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
+        // 🎯 Load thêm khi còn 30% nội dung
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.3}
+        // 📍 Components
+        ListFooterComponent={renderFooter}
+        ItemSeparatorComponent={ItemSeparator}
+        // 🚀 Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={5}
+        windowSize={7}
+        // 📏 Item layout (tối ưu cho horizontal scroll)
+        getItemLayout={(data, index) => ({
+          length: 162, // width: 150 + marginRight: 12
+          offset: 162 * index,
+          index,
         })}
-
-        {isLoadingMore && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={Colors.primary} />
-          </View>
-        )}
-      </ScrollView>
+        // 🎨 Styling
+        contentContainerStyle={styles.listContent}
+        // 📱 Smooth scrolling
+        decelerationRate="fast"
+        snapToInterval={162} // Snap to each card
+        snapToAlignment="start"
+      />
     </View>
   );
 }
@@ -313,9 +365,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.text.primary,
   },
-  scrollContent: {
+  listContent: {
     paddingHorizontal: 16,
-    gap: 12,
+  },
+  separator: {
+    width: 12,
   },
   card: {
     width: 150,
@@ -327,7 +381,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-    bottom: 1,
+  },
+  firstCard: {
+    // Có thể thêm style đặc biệt cho card đầu tiên nếu cần
   },
   imageWrapper: {
     position: "relative",
@@ -345,7 +401,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-   imagePlaceholder: {
+  imagePlaceholder: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
@@ -391,9 +447,30 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     width: 150,
-    height: 200,
+    height: 220,
     justifyContent: "center",
     alignItems: "center",
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginTop: 4,
+  },
+  loadMoreButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: Colors.primary,
   },
   loadingLikeButton: {
     opacity: 0.7,
