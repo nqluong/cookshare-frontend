@@ -56,7 +56,7 @@ class AdminStatisticService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Response error:', {
+        console.log('Response error:', {
           status: response.status,
           body: errorText
         });
@@ -77,7 +77,7 @@ class AdminStatisticService {
 
       return result.data;
     } catch (error: any) {
-      console.error(`Error in fetch request to ${url}:`, error);
+      console.log(`Error in fetch request to ${url}:`, error);
       if (error.name === 'AbortError') {
         throw new Error('Request timeout');
       }
@@ -169,9 +169,9 @@ class AdminStatisticService {
       `${BASE_URL}/api/admin/statistics/interaction/engagement-by-category?${queryParams.toString()}`
     );
   }
- /**
-   * Lấy tổng quan tìm kiếm
-   */
+  /**
+    * Lấy tổng quan tìm kiếm
+    */
   async getSearchOverview(params?: DateRangeParams): Promise<SearchOverview> {
     const queryParams = new URLSearchParams();
     if (params?.startDate) queryParams.append('startDate', params.startDate);

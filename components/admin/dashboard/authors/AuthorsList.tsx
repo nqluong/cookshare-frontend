@@ -1,7 +1,8 @@
 // components/admin/dashboard/authors/AuthorsList.tsx
 import { TopAuthorDTO } from "@/types/admin/report.types";
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface AuthorsListProps {
   topAuthors: TopAuthorDTO[];
@@ -15,11 +16,25 @@ const authorStatsConfig = [
 ];
 
 export default function AuthorsList({ topAuthors }: AuthorsListProps) {
+  const handleAuthorPress = (userId: string) => {
+    router.push(`/profile/${userId}` as any);
+  };
+
+  const handleEditPress = (userId: string, event: any) => {
+    event.stopPropagation();
+    router.push(`/admin/users/edit/${userId}` as any);
+  };
+
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>👨‍🍳 Top Tác Giả</Text>
       {topAuthors.map((author, index) => (
-        <View key={author.userId} style={styles.authorCard}>
+        <TouchableOpacity
+          key={author.userId}
+          style={styles.authorCard}
+          onPress={() => handleAuthorPress(author.userId)}
+          activeOpacity={0.7}
+        >
           <View style={styles.authorRank}>
             <Text style={styles.authorRankText}>#{index + 1}</Text>
           </View>
@@ -44,7 +59,14 @@ export default function AuthorsList({ topAuthors }: AuthorsListProps) {
               })}
             </View>
           </View>
-        </View>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={(e) => handleEditPress(author.userId, e)}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="create-outline" size={20} color="#3b82f6" />
+          </TouchableOpacity>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -111,5 +133,14 @@ const styles = StyleSheet.create({
   authorStatText: {
     fontSize: 12,
     color: "#6b7280",
+  },
+  editButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
   },
 });

@@ -7,7 +7,7 @@ import { searchStyles } from '../../styles/SearchStyles';
 interface SearchBarProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-   onSearch: (reset?: boolean, requestedPage?: number, queryOverride?: string) => void;
+  onSearch: (reset?: boolean, requestedPage?: number, queryOverride?: string) => void;
   onToggleFilter: () => void;
   onGetSuggestions?: (query: string) => Promise<string[]>;
   showSuggestions?: boolean;
@@ -22,66 +22,66 @@ export default function SearchBar({
   showSuggestions = true,
 }: SearchBarProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
-    const [showSuggestionList, setShowSuggestionList] = useState(false);
-    const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-    useEffect(() => {
-      // Debounce để tránh gọi API quá nhiều lần
+  const [showSuggestionList, setShowSuggestionList] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    // Debounce để tránh gọi API quá nhiều lần
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    if (searchQuery.trim().length >= 2 && onGetSuggestions && showSuggestions) {
+      setIsLoadingSuggestions(true);
+      debounceTimer.current = setTimeout(async () => {
+        try {
+          const results = await onGetSuggestions(searchQuery.trim());
+          setSuggestions(results);
+          setShowSuggestionList(true);
+        } catch (error) {
+          console.log('Error fetching suggestions:', error);
+          setSuggestions([]);
+        } finally {
+          setIsLoadingSuggestions(false);
+        }
+      }, 300); // Đợi 300ms sau khi người dùng ngừng gõ
+    } else {
+      setSuggestions([]);
+      setShowSuggestionList(false);
+      setIsLoadingSuggestions(false);
+    }
+
+    return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
-  
-      if (searchQuery.trim().length >= 2 && onGetSuggestions && showSuggestions) {
-        setIsLoadingSuggestions(true);
-        debounceTimer.current = setTimeout(async () => {
-          try {
-            const results = await onGetSuggestions(searchQuery.trim());
-            setSuggestions(results);
-            setShowSuggestionList(true);
-          } catch (error) {
-            console.error('Error fetching suggestions:', error);
-            setSuggestions([]);
-          } finally {
-            setIsLoadingSuggestions(false);
-          }
-        }, 300); // Đợi 300ms sau khi người dùng ngừng gõ
-      } else {
-        setSuggestions([]);
-        setShowSuggestionList(false);
-        setIsLoadingSuggestions(false);
-      }
-  
-      return () => {
-        if (debounceTimer.current) {
-          clearTimeout(debounceTimer.current);
-        }
-      };
-    }, [searchQuery, onGetSuggestions, showSuggestions]);
-  
-    const handleSelectSuggestion = (suggestion: string) => {
+    };
+  }, [searchQuery, onGetSuggestions, showSuggestions]);
+
+  const handleSelectSuggestion = (suggestion: string) => {
     setSearchQuery(suggestion);
     setShowSuggestionList(false);
     setSuggestions([]);
     Keyboard.dismiss();
-  
+
     // Truyền trực tiếp suggestion thay vì dựa vào state
-    onSearch(true,undefined, suggestion);
+    onSearch(true, undefined, suggestion);
   };
-  
-    const handleSearch = () => {
-      setShowSuggestionList(false);
-      setSuggestions([]);
-      Keyboard.dismiss();
-      onSearch(true);
-    };
-  
-    const handleInputFocus = () => {
-      // Khi focus vào input và có suggestions thì hiển thị lại
-      if (suggestions.length > 0 && showSuggestions) {
-        setShowSuggestionList(true);
-      }
-    };
+
+  const handleSearch = () => {
+    setShowSuggestionList(false);
+    setSuggestions([]);
+    Keyboard.dismiss();
+    onSearch(true);
+  };
+
+  const handleInputFocus = () => {
+    // Khi focus vào input và có suggestions thì hiển thị lại
+    if (suggestions.length > 0 && showSuggestions) {
+      setShowSuggestionList(true);
+    }
+  };
   return (
     <View style={searchStyles.searchContainer}>
       <TouchableOpacity onPress={handleSearch}>
@@ -99,48 +99,48 @@ export default function SearchBar({
         <Ionicons name="filter-outline" size={22} color="#666" />
       </TouchableOpacity>
       {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSearchQuery('');
-                    setSuggestions([]);
-                    setShowSuggestionList(false);
-                  }}
-                  style={styles.clearButton}
-                >
-                  <Ionicons name="close-circle" size={20} color="#999" />
-                </TouchableOpacity>
-              )}
-       {/* Danh sách gợi ý */}
-             {showSuggestionList && suggestions.length > 0 && (
-               <View style={styles.suggestionsContainer}>
-                 <FlatList
-                   data={suggestions}
-                   keyExtractor={(item, index) => `suggestion-${index}`}
-                   renderItem={({ item }) => (
-                     <TouchableOpacity
-                       style={styles.suggestionItem}
-                       onPress={() => handleSelectSuggestion(item)}
-                     >
-                       <Ionicons name="search" size={16} color="#999" style={styles.suggestionIcon} />
-                       <Text style={styles.suggestionText} numberOfLines={1}>
-                         {item}
-                       </Text>
-                     </TouchableOpacity>
-                   )}
-                   style={styles.suggestionsList}
-                   keyboardShouldPersistTaps="handled"
-                 />
-               </View>
-             )}
-       
-             {isLoadingSuggestions && (
-               <View style={styles.suggestionsContainer}>
-                 <Text style={styles.loadingText}>Đang tải gợi ý...</Text>
-               </View>
-             )}       
+        <TouchableOpacity
+          onPress={() => {
+            setSearchQuery('');
+            setSuggestions([]);
+            setShowSuggestionList(false);
+          }}
+          style={styles.clearButton}
+        >
+          <Ionicons name="close-circle" size={20} color="#999" />
+        </TouchableOpacity>
+      )}
+      {/* Danh sách gợi ý */}
+      {showSuggestionList && suggestions.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          <FlatList
+            data={suggestions}
+            keyExtractor={(item, index) => `suggestion-${index}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.suggestionItem}
+                onPress={() => handleSelectSuggestion(item)}
+              >
+                <Ionicons name="search" size={16} color="#999" style={styles.suggestionIcon} />
+                <Text style={styles.suggestionText} numberOfLines={1}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            )}
+            style={styles.suggestionsList}
+            keyboardShouldPersistTaps="handled"
+          />
+        </View>
+      )}
+
+      {isLoadingSuggestions && (
+        <View style={styles.suggestionsContainer}>
+          <Text style={styles.loadingText}>Đang tải gợi ý...</Text>
+        </View>
+      )}
     </View>
   );
-  
+
 }
 const styles = StyleSheet.create({
   // Container chính bao bọc toàn bộ SearchBar + Suggestions

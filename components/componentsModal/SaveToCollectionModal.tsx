@@ -5,13 +5,13 @@ import { CollectionUserDto } from "@/types/collection.types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
 import {
-    Alert,
-    FlatList,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface SaveToCollectionModalProps {
@@ -20,7 +20,7 @@ interface SaveToCollectionModalProps {
   collections: CollectionUserDto[];
   userUUID: string;
   onClose: () => void;
-  onSaveSuccess: (recipeId: string,collectionId: string, newSaveCount: number) => void;
+  onSaveSuccess: (recipeId: string, collectionId: string, newSaveCount: number) => void;
   onCreateNew?: () => void;
 }
 
@@ -52,12 +52,12 @@ export default function SaveToCollectionModal({
       const token = await AsyncStorage.getItem('authToken');
       const recipeData = await RecipeService.getRecipeById(recipeId, token);
       const newSaveCount = recipeData.saveCount || 0;
-      
-      onSaveSuccess(recipeId,collectionId, newSaveCount);
+
+      onSaveSuccess(recipeId, collectionId, newSaveCount);
       Alert.alert("Thành công", "Công thức đã được lưu vào bộ sưu tập!");
       onClose();
     } catch (error: any) {
-      console.error("Lỗi khi lưu công thức:", error);
+      console.log("Lỗi khi lưu công thức:", error);
       Alert.alert("Lỗi", error.message || "Không thể lưu vào bộ sưu tập.");
     } finally {
       setIsSaving(false);

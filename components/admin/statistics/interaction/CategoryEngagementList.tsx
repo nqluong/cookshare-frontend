@@ -12,7 +12,7 @@ export default function CategoryEngagementList({ data, loading }: CategoryEngage
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Engagement Theo Danh Mục</Text>
+        <Text style={styles.title}>Tương Tác Theo Danh Mục</Text>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#10b981" />
         </View>

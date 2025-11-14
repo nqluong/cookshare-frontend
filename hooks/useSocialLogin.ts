@@ -80,6 +80,15 @@ export const useSocialLogin = () => {
                     return result;
                 }
 
+                // ✅ Kiểm tra HTTP 401 - backend trả về error result từ authErrors map
+                if (response.status === 401) {
+                    const errorData = await response.json();
+                    console.log(`🚨 ${provider} auth error received:`, errorData);
+
+                    // Throw error để dừng polling
+                    throw new Error(errorData.message || 'Xác thực thất bại');
+                }
+
                 // Wait 1 second before next attempt
                 if (attempt < maxAttempts) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -90,7 +99,13 @@ export const useSocialLogin = () => {
                     return null;
                 }
 
-                console.error(`❌ ${provider} polling attempt ${attempt} failed:`, error);
+                // Nếu là lỗi xác thực, throw ra ngoài để dừng hoàn toàn
+                if (error.message) {
+                    console.log(`🚨 ${provider} auth error detected, stop polling:`, error.message);
+                    throw error;
+                }
+
+                console.log(`❌ ${provider} polling attempt ${attempt} failed:`, error);
 
                 if (attempt < maxAttempts) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -125,7 +140,7 @@ export const useSocialLogin = () => {
 
             // Mở browser (non-blocking)
             const browserPromise = WebBrowser.openBrowserAsync(authUrl).catch(e => {
-                console.warn(`Could not open ${provider} browser:`, e);
+                console.log(`Could not open ${provider} browser:`, e.message || e);
                 return null as any;
             });
 
@@ -133,11 +148,11 @@ export const useSocialLogin = () => {
             browserPromise.then((result: any) => {
                 const type = result?.type ? String(result.type).toLowerCase() : '';
                 if (!result || type === 'dismiss' || type === 'cancel' || type === 'closed') {
-                    console.log(`✖️ User dismissed ${provider} browser`);
+                    console.log(`✖️ ${provider} browser dismissed/closed`);
                     try { controller.abort(); } catch (e) { /* ignore */ }
                     setLoading(false);
                 }
-            }).catch(e => console.warn('Browser promise handler error:', e));
+            }).catch(e => console.log('Browser promise handler error:', e.message || e));
 
             console.log(`📊 ${provider} browser opened, start polling...`);
 
@@ -180,8 +195,17 @@ export const useSocialLogin = () => {
             }
 
         } catch (error: any) {
-            console.error(`❌ Error in ${provider} login:`, error);
-            Alert.alert('Lỗi', error.message || `Không thể đăng nhập với ${provider}`);
+            console.log(`❌ Error in ${provider} login:`, error.message || error);
+
+            // Đóng browser
+            try {
+                await WebBrowser.dismissBrowser();
+            } catch (e) {
+                // Ignore dismiss errors
+            }
+
+            // Hiển thị lỗi
+            Alert.alert('Đăng nhập thất bại', error.message || `Không thể đăng nhập với ${provider}`);
         } finally {
             setLoading(false);
         }

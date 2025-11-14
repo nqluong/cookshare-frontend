@@ -335,7 +335,36 @@ export default function AddRecipeScreen({ navigation }: any) {
         }
       } 
       else if (modalType === "tag") {
-        const tagRes = await TagService.createTag({ name: searchTerm, color: extraField || "#ccc" });
+        // Kiểm tra xem tag đã tồn tại chưa (so sánh tên không phân biệt hoa thường)
+        const existingTag = tags.find(t => 
+          t.name.toLowerCase().trim() === searchTerm.toLowerCase().trim()
+        );
+        
+        if (existingTag) {
+          // Nếu tag đã tồn tại, chỉ cần chọn nó
+          Alert.alert(
+            "Tag đã tồn tại", 
+            `Tag "${existingTag.name}" đã có sẵn. Đã tự động chọn tag này cho bạn.`,
+            [{ text: "OK" }]
+          );
+          setSelectedTags(prev => {
+            if (!prev.includes(existingTag.id)) {
+              return [...prev, existingTag.id];
+            }
+            return prev;
+          });
+          setSearchTerm("");
+          return;
+        }
+        
+        // 🎨 Random màu cho tag mới
+        const randomColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
+        
+        const tagRes = await TagService.createTag({ 
+          name: searchTerm, 
+          color: randomColor 
+        });
+        
         if (tagRes && tagRes.tagId) {
           const newTag: ListItem = {
             id: tagRes.tagId,
@@ -380,10 +409,26 @@ export default function AddRecipeScreen({ navigation }: any) {
       Alert.alert("Thiếu thông tin", "Vui lòng nhập số khẩu phần!");
       return;
     }
-    if (!steps[0].description.trim()) {
+    
+    // ✅ Validate steps: Nếu có ảnh thì phải có mô tả
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      if (step.image && !step.description.trim()) {
+        Alert.alert(
+          "Thiếu thông tin", 
+          `Bước ${i + 1} đã có ảnh nhưng chưa có mô tả. Vui lòng nhập mô tả cho bước này!`
+        );
+        return;
+      }
+    }
+    
+    // Check if there's at least one valid step (has description)
+    const validSteps = steps.filter(s => s.description.trim());
+    if (validSteps.length === 0) {
       Alert.alert("Thiếu thông tin", "Vui lòng nhập ít nhất một bước thực hiện!");
       return;
     }
+    
     if (!image) {
       Alert.alert("Thiếu thông tin", "Vui lòng chọn ảnh cho món ăn!");
       return;
@@ -430,11 +475,11 @@ export default function AddRecipeScreen({ navigation }: any) {
         return;
       }
 
-      // Cập nhật steps với imageUrl trước khi gửi
-      const stepsWithImages = steps.map((step, index) => ({
+      // Chỉ lấy các bước có mô tả (bỏ qua bước trống)
+      const stepsWithImages = validSteps.map((step, index) => ({
         instruction: step.description,
         stepNumber: index + 1,
-        imageUrl: step.image ? `PLACEHOLDER_${index + 1}` : null // Đánh dấu tạm
+        imageUrl: step.image ? `PLACEHOLDER_${index + 1}` : null
       }));
 
       const recipeData = {
@@ -473,8 +518,8 @@ export default function AddRecipeScreen({ navigation }: any) {
         formData.append("image", fileObj);
       }
 
-      // Append step images with correct stepNumber mapping
-      steps.forEach((step: Step, i: number) => {
+      // Append step images with correct stepNumber mapping (chỉ các bước hợp lệ)
+      validSteps.forEach((step: Step, i: number) => {
         if (step.image) {
           const filename = step.image.split("/").pop()!;
           const ext = filename.split(".").pop()!.toLowerCase();
@@ -490,6 +535,7 @@ export default function AddRecipeScreen({ navigation }: any) {
 
       const response = await RecipeService.createRecipe(formData);
       console.log('Recipe creation response:', response);
+      
       // Reset form
       setTitle("");
       setDescription("");
@@ -502,6 +548,7 @@ export default function AddRecipeScreen({ navigation }: any) {
       setSelectedCategories([]);
       setSelectedIngredients([]);
       setSelectedTags([]);
+      setIngredientInputs({});
 
       // Show success message
       Alert.alert(
@@ -571,16 +618,6 @@ export default function AddRecipeScreen({ navigation }: any) {
           {modalType === "category" && (
             <TextInput
               placeholder="Mô tả danh mục"
-              placeholderTextColor={defaultPlaceholderColor}
-              value={extraField}
-              onChangeText={setExtraField}
-              style={styles.input}
-            />
-          )}
-
-          {modalType === "tag" && (
-            <TextInput
-              placeholder="Màu sắc (vd: #ff0000)"
               placeholderTextColor={defaultPlaceholderColor}
               value={extraField}
               onChangeText={setExtraField}
@@ -847,6 +884,7 @@ export default function AddRecipeScreen({ navigation }: any) {
           <View key={i} style={{ marginBottom: 10 }}>
             <View style={styles.stepRow}>
               <TextInput
+              
                 placeholder={`Bước ${i + 1}`}
                 placeholderTextColor={defaultPlaceholderColor}
                 value={s.description}

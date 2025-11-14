@@ -72,7 +72,7 @@ export default function RecipeDetailScreen() {
       const profile = await userService.getUserByUsername(user.username);
       setUserProfile(profile);
     } catch (error: any) {
-      console.error("Error loading profile:", error);
+      console.log("Error loading profile:", error);
       Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
     } finally {
       setLoading(false);
@@ -88,10 +88,10 @@ export default function RecipeDetailScreen() {
         // Debug: log recipe payload
         try {
           console.log('Recipe detail payload:', data);
-        } catch (e) {}
+        } catch (e) { }
         setRecipe(data);
       } catch (err: any) {
-        console.error("Lỗi API:", err.message);
+        console.log("Lỗi API:", err.message);
         setError(err.message);
 
         if (err.message.includes('401')) {
@@ -139,10 +139,10 @@ export default function RecipeDetailScreen() {
   const ingredients: Ingredient[] = recipe.ingredients || [];
   const steps: Step[] = recipe.steps
     ? recipe.steps.map((s: any) => ({
-        stepId: `step-${s.stepNumber}`,
-        stepNumber: s.stepNumber,
-        instruction: s.instruction,
-      }))
+      stepId: `step-${s.stepNumber}`,
+      stepNumber: s.stepNumber,
+      instruction: s.instruction,
+    }))
     : [];
 
   return (
@@ -165,22 +165,22 @@ export default function RecipeDetailScreen() {
           // Xử lý category - lấy name từ array of objects
           category: (() => {
             const catField = recipe.categories || recipe.categoryName || recipe.category;
-            
+
             if (!catField) return [];
-            
+
             // Nếu là array of objects → lấy name
             if (Array.isArray(catField)) {
-              return catField.map(cat => 
+              return catField.map(cat =>
                 typeof cat === 'string' ? cat : cat.name
               );
             }
-            
+
             // Nếu là string
             if (typeof catField === 'string') return [catField];
-            
+
             // Nếu là object với name property
             if (catField?.name) return [catField.name];
-            
+
             return [];
           })(),
           // Giữ nguyên object tag từ API để có màu

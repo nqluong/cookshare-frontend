@@ -11,13 +11,11 @@ const DEV_CONFIG = {
 
 
   FALLBACK_IP: 'https://cookshare-app.io.vn',
-
-  // Port của backend
   PORT: 8080,
 };
 
 const PROD_CONFIG = {
-  API_URL: 'https://cookshare-app.io.vn', // Thay bằng production URL
+  API_URL: 'https://cookshare-app.io.vn', 
 };
 
 const getPlatformSpecificHost = (): string | null => {
@@ -26,48 +24,41 @@ const getPlatformSpecificHost = (): string | null => {
   }
 
   if (Platform.OS === 'android') {
-    return 'https://cookshare-app.io.vn';
+    return 'https://cookshare-app.io.vn'; // Thay bằng IP của máy dev khi chạy trên Android Emulator
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật
 };
 
-// Get API Host với priority order
 const getApiHost = (): string => {
   if (process.env.EXPO_PUBLIC_API_HOST) {
     return process.env.EXPO_PUBLIC_API_HOST;
   }
 
-  // 2. Manual override trong development
   if (__DEV__ && DEV_CONFIG.MANUAL_IP) {
     return DEV_CONFIG.MANUAL_IP;
   }
 
-  // 3. Platform-specific (Android Emulator, Web)
   const platformHost = getPlatformSpecificHost();
   if (platformHost) {
     return platformHost;
   }
 
-  // 4. Development fallback
   if (__DEV__) {
     return DEV_CONFIG.FALLBACK_IP;
   }
 
-  // 5. Production
   return PROD_CONFIG.API_URL;
 };
 
 const API_HOST = getApiHost();
 
-// Các phiên bản API
 const API_VERSION = {
   V1: '/api/v1',
   V2: '/api/v2',
 };
 
 export const API_CONFIG = {
-  // Base URLs
   BASE_URL: API_HOST,
   API_V1_URL: `${API_HOST}${API_VERSION.V1}`,
   API_V2_URL: `${API_HOST}${API_VERSION.V2}`,
@@ -109,5 +100,4 @@ if (__DEV__) {
 }
 
 
-// WebSocket URL sẽ tự động được tạo từ API_BASE_URL
 export const WS_BASE_URL = API_CONFIG.BASE_URL.replace('http', 'ws').replace('/api', '');

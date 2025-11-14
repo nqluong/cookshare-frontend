@@ -36,7 +36,7 @@ export class HomeViewModel {
   public likedPagination: ReturnType<typeof useRecipePagination>;
   public followingPagination: ReturnType<typeof useRecipePagination>;
   //
-    
+
   // Current states
   private searchQuery: string;
   private searchPage: number;
@@ -57,7 +57,7 @@ export class HomeViewModel {
       setIsLikedTabLoaded: (loaded: boolean) => void;
       setIsFollowingTabLoaded: (loaded: boolean) => void;
       setSearchQuery: (query: string) => void;
-      
+
     },
     hooks: {
       likeHook: ReturnType<typeof useRecipeLike>;
@@ -106,28 +106,28 @@ export class HomeViewModel {
     if (states.searchPage !== undefined) this.searchPage = states.searchPage;
     if (states.activeTab !== undefined) this.activeTab = states.activeTab;
   }
-   async fetchUserSuggestions(query: string): Promise<string[]> {
-  try {
-    const response = await getUserSuggestions(query, 5);
-    if (response.code === 1000 && response.result) {
-      return response.result;
+  async fetchUserSuggestions(query: string): Promise<string[]> {
+    try {
+      const response = await getUserSuggestions(query, 5);
+      if (response.code === 1000 && response.result) {
+        return response.result;
+      }
+      return [];
+    } catch (error) {
+      console.log('Error fetching user suggestions:', error);
+      return [];
     }
-    return [];
-  } catch (error) {
-    console.error('Error fetching user suggestions:', error);
-    return [];
   }
-}
 
-handleQueryChange(query: string, hasSearched: boolean) {
-  this.setSearchQuery(query);
-  this.searchQuery = query; 
-  if (hasSearched) {
-    this.setHasSearched(false);
-    this.setRecipes([]);
-    this.setError(null);
+  handleQueryChange(query: string, hasSearched: boolean) {
+    this.setSearchQuery(query);
+    this.searchQuery = query;
+    if (hasSearched) {
+      this.setHasSearched(false);
+      this.setRecipes([]);
+      this.setError(null);
+    }
   }
-}
   async fetchHomeSuggestions() {
     try {
       this.setLoading(true);
@@ -169,25 +169,25 @@ handleQueryChange(query: string, hasSearched: boolean) {
         if (allRecipeIds.length > 0) {
           try {
             const likeCheckResponse = await checkMultipleLikes(allRecipeIds);
-            
+
             if (likeCheckResponse.code === 1000 && likeCheckResponse.result) {
               const likedSet = new Set(
                 Object.entries(likeCheckResponse.result)
                   .filter(([_, isLiked]) => isLiked)
                   .map(([recipeId, _]) => recipeId)
               );
-              
+
               console.log(`Found ${likedSet.size} liked recipes`);
               this.likeHook.setLikedRecipes(likedSet);
             }
           } catch (likeError: any) {
-            console.error('Error checking likes (non-critical):', likeError.message);
+            console.log('Error checking likes (non-critical):', likeError.message);
             // Không throw error, chỉ log - không ảnh hưởng đến việc hiển thị recipes
           }
         }
       }
     } catch (err: any) {
-      console.error('❌ Error fetching home suggestions:', err);
+      console.log('❌ Error fetching home suggestions:', err);
       this.setError(err.message || 'Không thể tải dữ liệu');
     } finally {
       this.setLoading(false);
@@ -207,7 +207,7 @@ handleQueryChange(query: string, hasSearched: boolean) {
         this.likedPagination.reset(likedList);
       }
     } catch (err: any) {
-      console.error('Lỗi khi tải danh sách yêu thích:', err);
+      console.log('Lỗi khi tải danh sách yêu thích:', err);
       this.setError('Không thể tải danh sách yêu thích');
     } finally {
       this.setLoading(false);
@@ -227,19 +227,19 @@ handleQueryChange(query: string, hasSearched: boolean) {
         this.followingPagination.reset(followingList);
       }
     } catch (err: any) {
-      console.error('Lỗi khi tải danh sách công thức theo dõi:', err);
+      console.log('Lỗi khi tải danh sách công thức theo dõi:', err);
       this.setError('Không thể tải danh sách công thức từ người theo dõi');
     } finally {
       this.setLoading(false);
     }
   }
 
-  async handleSearch(reset = true, requestedPage?: number,queryOverride?: string) {
+  async handleSearch(reset = true, requestedPage?: number, queryOverride?: string) {
     const queryToSearch = (queryOverride || this.searchQuery).trim();
-  if (!queryToSearch && reset) {
-    this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
-    return;
-  }
+    if (!queryToSearch && reset) {
+      this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
+      return;
+    }
     if (reset && !queryToSearch) {
       this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
       return;
@@ -358,7 +358,7 @@ handleQueryChange(query: string, hasSearched: boolean) {
 
   handleTabChange(tab: string, isLikedTabLoaded: boolean, isFollowingTabLoaded: boolean) {
     this.setActiveTab(tab);
-    
+
     if (tab === 'Yêu thích' && !isLikedTabLoaded) {
       this.fetchLikedRecipes();
       this.setIsLikedTabLoaded(true);

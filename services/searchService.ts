@@ -11,7 +11,7 @@ const getToken = async (): Promise<string | null> => {
     const token = await AsyncStorage.getItem('authToken');
     return token;
   } catch (error) {
-    console.error('Lỗi khi lấy token từ AsyncStorage:', error);
+    console.log('Lỗi khi lấy token từ AsyncStorage:', error);
     return null;
   }
 };
@@ -80,7 +80,7 @@ const fetchApi = async (url: string) => {
       };
     }
   } catch (err: unknown) {
-    console.error('❌ Network/Fetch error:', err);
+    console.log('❌ Network/Fetch error:', err);
 
 
     let errorMessage = 'Lỗi không xác định';
@@ -134,11 +134,11 @@ export const fetchPopularIngredients = async (): Promise<Ingredient[]> => {
       console.log('✅ Fetched', ingredientsData.result.length, 'popular ingredients');
       return ingredientsData.result;
     } else {
-      console.error('❌ Invalid ingredients response:', ingredientsData);
+      console.log('❌ Invalid ingredients response:', ingredientsData);
       return [];
     }
   } catch (error) {
-    console.error('❌ Error fetching popular ingredients:', error);
+    console.log('❌ Error fetching popular ingredients:', error);
     return [];
   }
 };
@@ -159,11 +159,11 @@ export const fetchSearchHistory = async (): Promise<SearchHistoryItem[]> => {
       console.log('✅ Fetched', history.length, 'search history items');
       return history;
     } else {
-      console.error('❌ Invalid history response:', data);
+      console.log('❌ Invalid history response:', data);
       return [];
     }
   } catch (error: unknown) {
-    console.error('❌ Error fetching search history:', error);
+    console.log('❌ Error fetching search history:', error);
     return [];
   }
 };
@@ -182,11 +182,11 @@ export const getRecipeSuggestions = async (query: string, limit: number = 5): Pr
       console.log('✅ Fetched', suggestions.length, 'recipe suggestions');
       return suggestions;
     } else {
-      console.error('❌ Invalid recipe suggestions response:', data);
+      console.log('❌ Invalid recipe suggestions response:', data);
       return [];
     }
   } catch (error: unknown) {
-    console.error('❌ Error fetching recipe suggestions:', error);
+    console.log('❌ Error fetching recipe suggestions:', error);
     return [];
   }
 };

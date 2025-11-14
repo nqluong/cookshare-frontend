@@ -10,6 +10,8 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CustomAlert from "../../components/ui/CustomAlert";
+import { useCustomAlert } from "../../hooks/useCustomAlert";
 import AuthorsTab from "../../components/admin/dashboard/AuthorsTab";
 import ContentTab from "../../components/admin/dashboard/ContentTab";
 import DashboardHeader from "../../components/admin/dashboard/DashboardHeader";
@@ -34,6 +36,7 @@ type TabType = "overview" | "performance" | "content" | "authors";
 
 export default function AdminDashboardScreen() {
   const { user } = useAuth();
+  const { alert, showError, hideAlert } = useCustomAlert();
   const [selectedTab, setSelectedTab] = useState<TabType>("overview");
   const [overview, setOverview] = useState<RecipeOverviewDTO | null>(null);
   const [topViewed, setTopViewed] = useState<RecipePerformanceDTO[]>([]);
@@ -89,8 +92,12 @@ export default function AdminDashboardScreen() {
       setTopAuthors(ta);
       setCategoryPerformance(cp);
       setCompletionStats(cs);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch admin data", err);
+      showError(
+        'Lỗi tải dữ liệu',
+        err?.message || 'Không thể tải dữ liệu dashboard. Vui lòng thử lại.'
+      );
     } finally {
       setLoading(false);
     }
@@ -112,7 +119,7 @@ export default function AdminDashboardScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <DashboardHeader onExitAdmin={handleExitAdmin} />
-      
+
       <TabNavigation selectedTab={selectedTab} onTabChange={setSelectedTab} />
 
       <ScrollView
@@ -158,6 +165,16 @@ export default function AdminDashboardScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        buttons={alert.buttons}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 }

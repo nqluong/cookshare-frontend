@@ -102,13 +102,18 @@ export default function AdminLayout() {
         }}
       />
 
-            <Tabs.Screen
+      <Tabs.Screen
         name="recipes/index"
         options={{
           href: null,
         }}
       />
-
+      <Tabs.Screen
+        name="users/edit/[userId]"
+        options={{
+          href: null,
+        }}
+      />  
     </Tabs>
   );
 }

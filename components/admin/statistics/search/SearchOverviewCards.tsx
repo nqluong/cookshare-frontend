@@ -36,7 +36,9 @@ export default function SearchOverviewCards({ data, loading }: SearchOverviewCar
     {
       icon: 'checkmark-circle' as const,
       label: 'Tỷ Lệ Thành Công',
-      value: `${data.successRate.toFixed(1)}%`,
+      value: data.successRate !== null && data.successRate !== undefined 
+        ? `${data.successRate.toFixed(1)}%` 
+        : 'N/A',
       color: '#10b981',
       bgColor: '#d1fae5',
     },
@@ -74,12 +76,20 @@ export default function SearchOverviewCards({ data, loading }: SearchOverviewCar
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Kết quả</Text>
-            <Text style={styles.statValue}>{data.averageResultsPerSearch.toFixed(1)}</Text>
+            <Text style={styles.statValue}>
+              {data.averageResultsPerSearch !== null && data.averageResultsPerSearch !== undefined
+                ? data.averageResultsPerSearch.toFixed(1)
+                : '0.0'}
+            </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Tìm kiếm/người</Text>
-            <Text style={styles.statValue}>{data.averageSearchesPerUser.toFixed(1)}</Text>
+            <Text style={styles.statValue}>
+              {data.averageSearchesPerUser !== null && data.averageSearchesPerUser !== undefined
+                ? data.averageSearchesPerUser.toFixed(1)
+                : 'N/A'}
+            </Text>
           </View>
         </View>
       </View>
@@ -87,7 +97,8 @@ export default function SearchOverviewCards({ data, loading }: SearchOverviewCar
   );
 }
 
-const formatNumber = (num: number): string => {
+const formatNumber = (num: number | null | undefined): string => {
+  if (num === null || num === undefined) return 'N/A';
   if (num >= 1000000) {
     return `${(num / 1000000).toFixed(1)}M`;
   }

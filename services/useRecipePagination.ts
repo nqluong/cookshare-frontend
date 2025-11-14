@@ -19,7 +19,7 @@ export const useRecipePagination = ({ fetchFunction, pageSize = 10 }: Pagination
       setIsLoadingMore(true);
       const nextPage = page + 1;
       const response = await fetchFunction(nextPage, pageSize);
-      
+
       if (response.success && response.data) {
         const newRecipes = response.data.content || [];
         setRecipes(prev => {
@@ -34,7 +34,7 @@ export const useRecipePagination = ({ fetchFunction, pageSize = 10 }: Pagination
         setHasMore(!response.data.last);
       }
     } catch (err: any) {
-      console.error('Error loading more recipes:', err);
+      console.log('Error loading more recipes:', err);
     } finally {
       setIsLoadingMore(false);
     }
@@ -48,8 +48,8 @@ export const useRecipePagination = ({ fetchFunction, pageSize = 10 }: Pagination
   };
 
   const updateRecipe = (recipeId: string, updates: Partial<Recipe>) => {
-    setRecipes(prev => prev.map(recipe => 
-      recipe.recipeId === recipeId 
+    setRecipes(prev => prev.map(recipe =>
+      recipe.recipeId === recipeId
         ? { ...recipe, ...updates }
         : recipe
     ));

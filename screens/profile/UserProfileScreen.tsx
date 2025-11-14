@@ -39,7 +39,7 @@ export default function UserProfileScreen() {
         );
         setCurrentProfileId(profile.userId);
       } catch (error) {
-        console.error("Error loading current user profile:", error);
+        console.log("Error loading current user profile:", error);
       }
     };
     loadCurrentProfileId();
@@ -60,7 +60,7 @@ export default function UserProfileScreen() {
       const profile = await userService.getUserById(userId);
       setUser(profile);
     } catch (error: any) {
-      console.error("Error loading profile:", error);
+      console.log("Error loading profile:", error);
       Alert.alert("Lỗi", error.message || "Không thể tải thông tin người dùng");
     } finally {
       setIsLoading(false);
@@ -78,7 +78,7 @@ export default function UserProfileScreen() {
       );
       setIsFollowing(response.data);
     } catch (error) {
-      console.error("Error checking follow status:", error);
+      console.log("Error checking follow status:", error);
     }
   };
 

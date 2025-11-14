@@ -1,15 +1,10 @@
-// services/websocketService.ts - FIXED VERSION
 import NetInfo from "@react-native-community/netinfo";
 import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { API_CONFIG } from '../config/api.config';
 
-export const API_BASE_URL = API_CONFIG.BASE_URL;
-
-// === CẤU HÌNH URL ===
-// const WS_URL_DEV = `${API_CONFIG}/ws-sockjs`;
-const WS_URL_DEV = `${API_BASE_URL}/ws-sockjs`;
-const WS_URL_PROD = `${API_BASE_URL}/ws`;
+const WS_URL_DEV = `${API_CONFIG.BASE_URL}/ws-sockjs`;
+const WS_URL_PROD = `${API_CONFIG.BASE_URL}/ws`;
 const WS_URL = __DEV__ ? WS_URL_DEV : WS_URL_PROD;
 
 type EventCallback = (data: any) => void;
@@ -87,7 +82,7 @@ class WebSocketService {
 
         onStompError: (frame) => {
           const errorMsg = frame.headers["message"] || frame.body || "STOMP error";
-          console.error("❌ STOMP ERROR:", errorMsg);
+          console.log("❌ STOMP ERROR:", errorMsg);
           this.isConnecting = false;
           this.connectPromise = null;
 
@@ -100,7 +95,7 @@ class WebSocketService {
         },
 
         onWebSocketError: (error) => {
-          console.error("❌ SOCKJS ERROR:", error);
+          console.log("❌ SOCKJS ERROR:", error);
           this.isConnecting = false;
           this.connectPromise = null;
 
@@ -127,7 +122,7 @@ class WebSocketService {
       try {
         this.client.activate();
       } catch (error) {
-        console.error("❌ Failed to activate client:", error);
+        console.log("❌ Failed to activate client:", error);
         this.isConnecting = false;
         this.connectPromise = null;
         this.emit("connectionStatusChange", false);
@@ -160,7 +155,7 @@ class WebSocketService {
       if (this.userId && this.accessToken && !this.client?.connected) {
         this.reconnectAttempts++;
         this.connect(this.userId, this.accessToken).catch(err => {
-          console.error("Reconnect failed:", err);
+          console.log("Reconnect failed:", err);
         });
       }
     }, delay);
@@ -177,7 +172,7 @@ class WebSocketService {
         console.log("🌐 Network restored → reconnecting...");
         setTimeout(() => {
           this.connect(this.userId!, this.accessToken!).catch(err => {
-            console.error("Network reconnect failed:", err);
+            console.log("Network reconnect failed:", err);
           });
         }, 1000);
       }
@@ -208,7 +203,7 @@ class WebSocketService {
           if (data.action === "DELETE") this.emit("DELETE_NOTIFICATION", data);
           if (data.action === "READ_ALL") this.emit("READ_ALL_NOTIFICATIONS", data);
         } catch (e) {
-          console.error("❌ Parse notification error:", e);
+          console.log("❌ Parse notification error:", e);
         }
       }
     );
@@ -226,7 +221,7 @@ class WebSocketService {
             this.emit("ACCOUNT_BANNED", data);
           }
         } catch (e) {
-          console.error("❌ Parse account status error:", e);
+          console.log("❌ Parse account status error:", e);
         }
       }
     );
@@ -258,7 +253,7 @@ class WebSocketService {
       this.subscriptions.set(key, sub);
       console.log("✅ Subscribed:", destination);
     } catch (e) {
-      console.error("❌ Subscribe failed:", key, e);
+      console.log("❌ Subscribe failed:", key, e);
     }
   }
 
@@ -288,7 +283,7 @@ class WebSocketService {
         if (data.action === "UPDATE") this.emit("UPDATE_COMMENT", data);
         if (data.action === "DELETE") this.emit("DELETE_COMMENT", data);
       } catch (e) {
-        console.error("❌ Parse comment error:", e);
+        console.log("❌ Parse comment error:", e);
       }
     });
   }
@@ -336,7 +331,7 @@ class WebSocketService {
       try {
         cb(data);
       } catch (e) {
-        console.error(`❌ Error in listener ${i} for ${event}:`, e);
+        console.log(`❌ Error in listener ${i} for ${event}:`, e);
       }
     });
   }
@@ -354,7 +349,7 @@ class WebSocketService {
       try {
         sub.unsubscribe();
       } catch (e) {
-        console.error("Error unsubscribing:", e);
+        console.log("Error unsubscribing:", e);
       }
     });
     this.subscriptions.clear();
@@ -369,7 +364,7 @@ class WebSocketService {
       try {
         this.client.deactivate();
       } catch (e) {
-        console.error("Error deactivating client:", e);
+        console.log("Error deactivating client:", e);
       }
       this.client = null;
     }

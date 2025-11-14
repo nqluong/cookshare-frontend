@@ -62,11 +62,11 @@ export default function CollectionDetailScreen() {
       // Lấy UUID từ username
       const profile = await userService.getUserByUsername(user!.username);
       setUserUUID(profile.userId);
-      
+
       // Lấy chi tiết collection + recipes
       await loadCollectionDetail(profile.userId);
     } catch (error) {
-      console.error("Error initializing:", error);
+      console.log("Error initializing:", error);
       Alert.alert("Lỗi", "Không thể tải dữ liệu");
       setLoading(false);
     }
@@ -91,7 +91,7 @@ export default function CollectionDetailScreen() {
       );
       setRecipes(recipesData.content || []);
     } catch (error) {
-      console.error("Error loading collection detail:", error);
+      console.log("Error loading collection detail:", error);
       Alert.alert("Lỗi", "Không thể tải chi tiết collection");
     } finally {
       setLoading(false);
@@ -99,13 +99,13 @@ export default function CollectionDetailScreen() {
   };
 
   const getImageUrl = (coverImage?: string | null) => {
-  if (!coverImage) return "https://placehold.co/600x400?text=No+Image";
+    if (!coverImage) return "https://placehold.co/600x400?text=No+Image";
 
-  if (coverImage.startsWith("http")) {
-    return coverImage;
-  }
-  return `${BASE_URL}/${coverImage.replace(/\\/g, "/")}`;
-};
+    if (coverImage.startsWith("http")) {
+      return coverImage;
+    }
+    return `${BASE_URL}/${coverImage.replace(/\\/g, "/")}`;
+  };
 
   const handleDeleteRecipe = (recipeId: string) => {
     Alert.alert(
@@ -207,7 +207,7 @@ export default function CollectionDetailScreen() {
           {/* Collection Info */}
           <View style={styles.infoSection}>
             <Text style={styles.collectionName}>{collection.name}</Text>
-            
+
             <Text style={styles.collectionDescription}>
               {collection.description || "Không có mô tả"}
             </Text>

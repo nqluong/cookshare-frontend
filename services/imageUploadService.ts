@@ -55,19 +55,19 @@ class ImageUploadService {
                         console.log('✅ Upload ảnh thành công');
                         resolve();
                     } else {
-                        console.error('❌ Upload thất bại với status:', xhr.status);
+                        console.log('❌ Upload thất bại với status:', xhr.status);
                         reject(new Error(`Upload thất bại với status: ${xhr.status}`));
                     }
                 });
 
                 // Xử lý lỗi
                 xhr.addEventListener('error', () => {
-                    console.error('❌ Lỗi mạng khi upload');
+                    console.log('❌ Lỗi mạng khi upload');
                     reject(new Error('Lỗi mạng khi upload'));
                 });
 
                 xhr.addEventListener('abort', () => {
-                    console.error('❌ Upload bị hủy');
+                    console.log('❌ Upload bị hủy');
                     reject(new Error('Upload bị hủy'));
                 });
 
@@ -77,7 +77,7 @@ class ImageUploadService {
                 xhr.send(blob);
             });
         } catch (error: any) {
-            console.error('❌ Lỗi upload ảnh:', error);
+            console.log('❌ Lỗi upload ảnh:', error);
             throw new Error(error.message || 'Không thể upload ảnh');
         }
     }

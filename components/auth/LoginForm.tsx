@@ -66,7 +66,7 @@ export default function AuthLoginForm() {
         } catch (error: any) {
             // Hiển thị message cụ thể từ backend
             const errorMessage = error.message || 'Đã có lỗi xảy ra. Vui lòng thử lại';
-            
+
             // Nếu là lỗi tài khoản bị khóa, hiển thị ở error chung
             if (errorMessage.includes('bị khóa')) {
                 Alert.alert('Tài khoản bị khóa', errorMessage);

@@ -30,10 +30,26 @@ export default function SearchTrendsChart({ data, loading }: SearchTrendsChartPr
   const screenWidth = Dimensions.get('window').width;
   const chartWidth = screenWidth - 32;
 
-  const labels = data.trendData.map((item) => {
+  const allLabels = data.trendData.map((item) => {
     const date = new Date(item.date);
     return `${date.getDate()}/${date.getMonth() + 1}`;
   });
+
+  const getDisplayLabels = (labels: string[]) => {
+    const totalPoints = labels.length;
+    if (totalPoints <= 7) {
+      return labels; 
+    } else if (totalPoints <= 14) {
+      return labels.map((label, i) => (i % 2 === 0 ? label : '')); 
+    } else if (totalPoints <= 21) {
+      return labels.map((label, i) => (i % 3 === 0 ? label : '')); 
+    } else {
+      const step = Math.ceil(totalPoints / 7);
+      return labels.map((label, i) => (i % step === 0 ? label : ''));
+    }
+  };
+
+  const labels = getDisplayLabels(allLabels);
 
   const searchesData = data.trendData.map((item) => item.totalSearches);
   const usersData = data.trendData.map((item) => item.uniqueUsers);
@@ -94,7 +110,7 @@ export default function SearchTrendsChart({ data, loading }: SearchTrendsChartPr
         <Text style={styles.chartTitle}>Tổng Lượt Tìm Kiếm</Text>
         <LineChart
           data={{
-            labels: labels.length > 10 ? labels.filter((_, i) => i % 2 === 0) : labels,
+            labels: labels,
             datasets: [
               {
                 data: searchesData,
@@ -120,7 +136,7 @@ export default function SearchTrendsChart({ data, loading }: SearchTrendsChartPr
         <Text style={styles.chartTitle}>Người Dùng Tìm Kiếm</Text>
         <LineChart
           data={{
-            labels: labels.length > 10 ? labels.filter((_, i) => i % 2 === 0) : labels,
+            labels: labels,
             datasets: [
               {
                 data: usersData,
@@ -154,7 +170,7 @@ export default function SearchTrendsChart({ data, loading }: SearchTrendsChartPr
         <Text style={styles.chartTitle}>Tỷ Lệ Thành Công (%)</Text>
         <LineChart
           data={{
-            labels: labels.length > 10 ? labels.filter((_, i) => i % 2 === 0) : labels,
+            labels: labels,
             datasets: [
               {
                 data: successRateData,
