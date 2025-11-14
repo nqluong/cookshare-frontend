@@ -43,15 +43,22 @@ interface SelectedIngredient {
 
 const defaultPlaceholderColor = "#999";
 
+// Độ khó - phải khớp với backend enum (chữ HOA)
+const DIFFICULTY_LEVELS = [
+  { value: "EASY", label: "Dễ", emoji: "😊" },
+  { value: "MEDIUM", label: "Trung bình", emoji: "🙂" },
+  { value: "HARD", label: "Khó", emoji: "😰" },
+];
+
 const styles = StyleSheet.create({
-  container: {
+  container: { 
     flex: 1,
-    padding: 15,
+    padding: 15, 
     backgroundColor: "#fff"
   },
-  center: {
-    flex: 1,
-    justifyContent: "center",
+  center: { 
+    flex: 1, 
+    justifyContent: "center", 
     alignItems: "center",
     backgroundColor: "#fff",
   },
@@ -192,10 +199,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  saveText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16
+  saveText: { 
+    color: "#fff", 
+    fontWeight: "bold", 
+    fontSize: 16 
   },
   stepRow: {
     flexDirection: "row",
@@ -283,6 +290,38 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     padding: 15,
   },
+  // Styles cho độ khó
+  difficultyContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  difficultyButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#ddd",
+    backgroundColor: "#fff",
+    alignItems: "center",
+  },
+  difficultyButtonSelected: {
+    borderColor: "#FF385C",
+    backgroundColor: "#FF385C10",
+  },
+  difficultyEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  difficultyLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  difficultyLabelSelected: {
+    color: "#FF385C",
+  },
 });
 
 export default function EditRecipeScreen() {
@@ -300,6 +339,7 @@ export default function EditRecipeScreen() {
   const [servings, setServings] = useState("");
   const [prepTime, setPrepTime] = useState("");
   const [cookTime, setCookTime] = useState("");
+  const [difficulty, setDifficulty] = useState<string>("MEDIUM"); // Độ khó (chữ HOA)
 
   const [categories, setCategories] = useState<ListItem[]>([]);
   const [ingredients, setIngredients] = useState<ListItem[]>([]);
@@ -309,9 +349,9 @@ export default function EditRecipeScreen() {
   const [selectedIngredients, setSelectedIngredients] = useState<SelectedIngredient[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  const [ingredientInputs, setIngredientInputs] = useState<Record<string, {
-    quantity: string;
-    unit: string;
+  const [ingredientInputs, setIngredientInputs] = useState<Record<string, { 
+    quantity: string; 
+    unit: string; 
     selected: boolean;
   }>>({});
 
@@ -319,39 +359,69 @@ export default function EditRecipeScreen() {
   const [modalType, setModalType] = useState<"category" | "ingredient" | "tag" | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [extraField, setExtraField] = useState("");
+  
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalData, setOriginalData] = useState<any>(null);
 
   useEffect(() => {
     fetchRecipe();
     fetchMetaData();
   }, [recipeId]);
 
+  // Theo dõi thay đổi
+  useEffect(() => {
+    if (!originalData) return;
+    
+    const changed = 
+      title !== originalData.title ||
+      description !== originalData.description ||
+      featuredImage !== originalData.featuredImage ||
+      JSON.stringify(steps) !== JSON.stringify(originalData.steps) ||
+      servings !== originalData.servings ||
+      prepTime !== originalData.prepTime ||
+      cookTime !== originalData.cookTime ||
+      difficulty !== originalData.difficulty ||
+      JSON.stringify(selectedCategories) !== JSON.stringify(originalData.selectedCategories) ||
+      JSON.stringify(selectedIngredients) !== JSON.stringify(originalData.selectedIngredients) ||
+      JSON.stringify(selectedTags) !== JSON.stringify(originalData.selectedTags);
+    
+    setHasChanges(changed);
+  }, [title, description, featuredImage, steps, servings, prepTime, cookTime, difficulty, selectedCategories, selectedIngredients, selectedTags, originalData]);
+
   const fetchRecipe = async () => {
     try {
+      console.log('🔄 Đang tải công thức:', recipeId);
       const data = await RecipeService.getRecipeById(recipeId!);
+      
+      console.log('📦 Đã tải công thức:', {
+        title: data.title,
+        difficulty: data.difficulty,
+        stepsCount: data.steps?.length,
+      });
+      
       setTitle(data.title);
       setDescription(data.description);
       setFeaturedImage(data.featuredImage);
-
-      // Normalize steps with proper image handling
+      // Đảm bảo difficulty luôn là chữ HOA
+      setDifficulty(data.difficulty?.toUpperCase() || "MEDIUM");
+      
       const normalizedSteps = (data.steps || []).map((s: any) => ({
         instruction: s.instruction ?? s.description ?? '',
-        image: s.imageUrl ?? s.image ?? null,
+        image: s.imageUrl ?? null,
         stepNumber: s.stepNumber ?? null,
       }));
+      
       setSteps(normalizedSteps.length > 0 ? normalizedSteps : [{ instruction: '', image: null, stepNumber: 1 }]);
-
-      // Set selected categories
+      
       setSelectedCategories(data.categories?.map((c: any) => c.categoryId) || []);
-
-      // Set selected ingredients with quantity and unit
+      
       const ingredientDetails = (data.ingredients || []).map((i: any) => ({
         id: i.ingredientId,
         quantity: String(i.quantity || 0),
         unit: i.unit || '',
       }));
       setSelectedIngredients(ingredientDetails);
-
-      // Initialize ingredient inputs for all selected ingredients
+      
       const inputs: Record<string, any> = {};
       ingredientDetails.forEach((item: any) => {
         inputs[item.id] = {
@@ -361,17 +431,30 @@ export default function EditRecipeScreen() {
         };
       });
       setIngredientInputs(inputs);
-
-      // Set selected tags
+      
       setSelectedTags(data.tags?.map((t: any) => t.tagId) || []);
-
+      
       setServings(data.servings ? String(data.servings) : "");
       setPrepTime(data.prepTime ? String(data.prepTime) : "");
       setCookTime(data.cookTime ? String(data.cookTime) : "");
-
-      console.log('Loaded recipe with steps:', normalizedSteps);
-      console.log('Loaded ingredients:', ingredientDetails);
+      
+      setOriginalData({
+        title: data.title,
+        description: data.description,
+        featuredImage: data.featuredImage,
+        steps: normalizedSteps,
+        servings: data.servings ? String(data.servings) : "",
+        prepTime: data.prepTime ? String(data.prepTime) : "",
+        cookTime: data.cookTime ? String(data.cookTime) : "",
+        difficulty: data.difficulty?.toUpperCase() || "MEDIUM",
+        selectedCategories: data.categories?.map((c: any) => c.categoryId) || [],
+        selectedIngredients: ingredientDetails,
+        selectedTags: data.tags?.map((t: any) => t.tagId) || [],
+      });
+      
+      console.log('✅ Tải công thức thành công');
     } catch (err: any) {
+      console.error('❌ Lỗi khi tải công thức:', err);
       Alert.alert("❌ Lỗi tải công thức", err.message);
     } finally {
       setLoading(false);
@@ -385,26 +468,26 @@ export default function EditRecipeScreen() {
         IngredientService.getAllIngredients(),
         TagService.getAllTags(),
       ]);
-
+      
       setCategories((catRes || []).map((c: any) => ({
         id: c.categoryId,
         name: c.name,
         description: c.description,
       })));
-
+      
       setIngredients((ingRes || []).map((i: any) => ({
         id: i.ingredientId,
         name: i.name,
         description: i.description || undefined,
       })));
-
+      
       setTags((tagRes || []).map((t: any) => ({
         id: t.tagId,
         name: t.name,
         color: t.color,
       })));
     } catch (err) {
-      console.log("Error loading metadata:", err);
+      console.error("Lỗi khi tải dữ liệu:", err);
     }
   };
 
@@ -435,7 +518,7 @@ export default function EditRecipeScreen() {
         return copy;
       });
     } catch (err) {
-      console.log('Error picking step image', err);
+      console.error('Lỗi khi chọn ảnh bước', err);
       Alert.alert('Lỗi', 'Không thể chọn ảnh bước');
     }
   };
@@ -488,7 +571,7 @@ export default function EditRecipeScreen() {
 
   const handleSelectItem = (item: ListItem) => {
     if (!item?.id) {
-      console.log('Invalid item:', item);
+      console.log('Item không hợp lệ:', item);
       return;
     }
 
@@ -537,7 +620,7 @@ export default function EditRecipeScreen() {
       Alert.alert("Lỗi", "Vui lòng nhập tên!");
       return;
     }
-
+    
     try {
       let created = false;
 
@@ -556,7 +639,7 @@ export default function EditRecipeScreen() {
           setSelectedCategories(prev => [...prev, newCategory.id]);
           created = true;
         }
-      }
+      } 
       else if (modalType === "ingredient") {
         const ingredientRes = await IngredientService.createIngredient({ name: searchTerm });
         if (ingredientRes && ingredientRes.ingredientId) {
@@ -566,24 +649,26 @@ export default function EditRecipeScreen() {
             description: ingredientRes.description || undefined
           };
           setIngredients(prev => [newIngredient, ...prev]);
-
+          
           Alert.alert(
             "✅ Đã tạo nguyên liệu",
             `"${searchTerm}" đã được thêm vào danh sách. Vui lòng nhập số lượng và đơn vị, sau đó nhấn "Chọn".`,
             [{ text: "OK" }]
           );
-
+          
           setIngredientInputs(prev => ({
             ...prev,
             [newIngredient.id]: { quantity: '', unit: '', selected: false }
           }));
-
+          
           setSearchTerm("");
           created = true;
         }
-      }
+      } 
       else if (modalType === "tag") {
-        const tagRes = await TagService.createTag({ name: searchTerm, color: extraField || "#ccc" });
+        // Random màu cho tag
+        const randomColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
+        const tagRes = await TagService.createTag({ name: searchTerm, color: randomColor });
         if (tagRes && tagRes.tagId) {
           const newTag: ListItem = {
             id: tagRes.tagId,
@@ -607,23 +692,23 @@ export default function EditRecipeScreen() {
   };
 
   const handleSave = async () => {
-    if (!title.trim()) return Alert.alert("Vui lòng nhập tiêu đề");
-    if (!description || !description.trim()) return Alert.alert("Vui lòng nhập mô tả");
-    if (!user?.userId) return Alert.alert("Bạn cần đăng nhập để cập nhật công thức");
+    if (!title.trim()) return Alert.alert("Lỗi", "Vui lòng nhập tiêu đề");
+    if (!description || !description.trim()) return Alert.alert("Lỗi", "Vui lòng nhập mô tả");
+    if (!user?.userId) return Alert.alert("Lỗi", "Bạn cần đăng nhập để cập nhật công thức");
 
     const validIngredients = selectedIngredients.filter(ingredient => {
       const ingredientExists = ingredients.find((i: ListItem) => i.id === ingredient.id);
       const hasQuantity = ingredient.quantity && ingredient.quantity.trim() !== '';
       const hasUnit = ingredient.unit && ingredient.unit.trim() !== '';
-
+      
       if (ingredientExists && (!hasQuantity || !hasUnit)) {
         Alert.alert("Thiếu thông tin", `Vui lòng nhập đầy đủ số lượng và đơn vị cho nguyên liệu: ${ingredientExists.name}`);
         return false;
       }
-
+      
       return ingredientExists != null && hasQuantity && hasUnit;
     });
-
+    
     if (validIngredients.length === 0) {
       Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu hợp lệ!");
       return;
@@ -633,10 +718,11 @@ export default function EditRecipeScreen() {
       setUpdating(true);
 
       const formData = new FormData();
-
+      
       const recipeData = {
         title,
         description: description.trim(),
+        difficulty: difficulty.toUpperCase(), // Đảm bảo luôn gửi chữ HOA
         steps: steps.map((step, index) => ({
           instruction: step.instruction ?? '',
           stepNumber: index + 1,
@@ -669,83 +755,75 @@ export default function EditRecipeScreen() {
         formData.append("image", fileObj);
       }
 
-      const stepImages: any[] = [];
       steps.forEach((step, index) => {
         if (typeof step.image === 'string' && step.image.startsWith('file://')) {
           const filename = step.image.split("/").pop()!;
           const ext = filename.split(".").pop()!.toLowerCase();
-          stepImages.push({
+          
+          const fileObj = {
             uri: step.image,
             type: `image/${ext}`,
-            name: `step-${index + 1}.${ext}`,
-          });
+            name: `step_${index + 1}.${ext}`,
+          } as any;
+          formData.append("stepImages", fileObj);
         }
       });
 
-      if (stepImages.length > 0) {
-        stepImages.forEach((img) => {
-          formData.append("stepImages", img);
-        });
-      }
+      console.log('📤 Đang cập nhật công thức với độ khó:', difficulty);
 
       const response = await RecipeService.updateRecipe(recipeId!, formData);
-
+      
       if (response) {
-        setTitle(response.title);
-        setDescription(response.description);
-        setFeaturedImage(response.featuredImage);
-
-        // Normalize steps with proper image handling
-        const normalizedSteps = (response.steps || []).map((s: any) => ({
-          instruction: s.instruction ?? s.description ?? '',
-          image: s.imageUrl ?? s.image ?? null,
-          stepNumber: s.stepNumber ?? null,
-        }));
-        setSteps(normalizedSteps.length > 0 ? normalizedSteps : [{ instruction: '', image: null, stepNumber: 1 }]);
-
-        setSelectedCategories(response.categories?.map((c: any) => c.categoryId) || []);
-
-        const ingredientDetails = (response.ingredients || []).map((i: any) => ({
-          id: i.ingredientId,
-          quantity: String(i.quantity || 0),
-          unit: i.unit || '',
-        }));
-        setSelectedIngredients(ingredientDetails);
-
-        // Re-initialize ingredient inputs
-        const inputs: Record<string, any> = {};
-        ingredientDetails.forEach((item: any) => {
-          inputs[item.id] = {
-            quantity: item.quantity,
-            unit: item.unit,
-            selected: true,
-          };
-        });
-        setIngredientInputs(inputs);
-
-        setSelectedTags(response.tags?.map((t: any) => t.tagId) || []);
-        setServings(response.servings ? String(response.servings) : "");
-        setPrepTime(response.prepTime ? String(response.prepTime) : "");
-        setCookTime(response.cookTime ? String(response.cookTime) : "");
-
-        console.log('Updated recipe with steps:', normalizedSteps);
-      }
-
-      Alert.alert("✅ Cập nhật thành công!", "", [
-        {
-          text: "OK",
-          onPress: () => {
-            router.replace({
-              pathname: '/(tabs)/profile' as any,
-              params: { reload: 'true' }
-            });
+        console.log('🔄 Đang tải lại công thức từ server...');
+        await fetchRecipe();
+        
+        Alert.alert("✅ Cập nhật thành công!", "", [
+          {
+            text: "OK",
+            onPress: () => {
+              router.replace({
+                pathname: '/(tabs)/profile' as any,
+                params: { reload: 'true' }
+              });
+            }
           }
-        }
-      ]);
+        ]);
+      }
     } catch (err: any) {
+      console.error('❌ Cập nhật thất bại:', err);
       Alert.alert("❌ Lỗi khi cập nhật", err.message);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleBackPress = () => {
+    if (hasChanges) {
+      Alert.alert(
+        "Xác nhận thoát",
+        "Bạn có thay đổi chưa lưu. Bạn có muốn tiếp tục chỉnh sửa không?",
+        [
+          {
+            text: "Tiếp tục chỉnh sửa",
+            style: "cancel"
+          },
+          {
+            text: "Thoát (không lưu)",
+            style: "destructive",
+            onPress: () => {
+              router.replace({
+                pathname: '/(tabs)/profile' as any,
+                params: { reload: 'true' }
+              });
+            }
+          }
+        ]
+      );
+    } else {
+      router.replace({
+        pathname: '/(tabs)/profile' as any,
+        params: { reload: 'true' }
+      });
     }
   };
 
@@ -764,8 +842,8 @@ export default function EditRecipeScreen() {
             {modalType === "category"
               ? "Chọn danh mục"
               : modalType === "ingredient"
-                ? "Chọn nguyên liệu"
-                : "Chọn tag"}
+              ? "Chọn nguyên liệu"
+              : "Chọn tag"}
           </Text>
 
           <TextInput
@@ -779,16 +857,6 @@ export default function EditRecipeScreen() {
           {modalType === "category" && (
             <TextInput
               placeholder="Mô tả danh mục"
-              placeholderTextColor={defaultPlaceholderColor}
-              value={extraField}
-              onChangeText={setExtraField}
-              style={styles.input}
-            />
-          )}
-
-          {modalType === "tag" && (
-            <TextInput
-              placeholder="Màu sắc (vd: #ff0000)"
               placeholderTextColor={defaultPlaceholderColor}
               value={extraField}
               onChangeText={setExtraField}
@@ -892,6 +960,7 @@ export default function EditRecipeScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#FF385C" />
+        <Text style={{ marginTop: 10, color: "#999" }}>Đang tải công thức...</Text>
       </View>
     );
   }
@@ -899,12 +968,9 @@ export default function EditRecipeScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.replace({
-            pathname: "/(tabs)/profile",
-            params: { reload: 'true' }
-          } as any)}
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={handleBackPress}
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
@@ -920,7 +986,7 @@ export default function EditRecipeScreen() {
               source={{ uri: featuredImage.startsWith('file://') ? featuredImage : getImageUrl(featuredImage) }}
               style={styles.image}
               onError={() => {
-                Alert.alert("Không tải được ảnh", "Đường dẫn ảnh không hợp lệ hoặc server không phản hồi.");
+                Alert.alert("Lỗi", "Không tải được ảnh. Đường dẫn không hợp lệ hoặc server không phản hồi.");
               }}
             />
           ) : (
@@ -948,6 +1014,31 @@ export default function EditRecipeScreen() {
           placeholder="Nhập mô tả..."
           placeholderTextColor={defaultPlaceholderColor}
         />
+
+        {/* Độ khó */}
+        <Text style={styles.label}>Độ khó</Text>
+        <View style={styles.difficultyContainer}>
+          {DIFFICULTY_LEVELS.map((level) => (
+            <TouchableOpacity
+              key={level.value}
+              style={[
+                styles.difficultyButton,
+                difficulty === level.value && styles.difficultyButtonSelected,
+              ]}
+              onPress={() => setDifficulty(level.value)}
+            >
+              <Text style={styles.difficultyEmoji}>{level.emoji}</Text>
+              <Text
+                style={[
+                  styles.difficultyLabel,
+                  difficulty === level.value && styles.difficultyLabelSelected,
+                ]}
+              >
+                {level.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <Text style={styles.label}>Khẩu phần</Text>
         <TextInput
@@ -999,14 +1090,14 @@ export default function EditRecipeScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>🧂 Nguyên liệu</Text>
-            <TouchableOpacity
-              onPress={() => openModal("ingredient")}
+            <TouchableOpacity 
+              onPress={() => openModal("ingredient")} 
               style={styles.addButton}
             >
               <Text style={styles.addButtonText}>+ Thêm</Text>
             </TouchableOpacity>
           </View>
-
+          
           <View style={styles.ingredientsList}>
             {selectedIngredients.length > 0 ? (
               selectedIngredients.map((item: SelectedIngredient, index: number) => {
@@ -1016,7 +1107,7 @@ export default function EditRecipeScreen() {
                     <Text style={styles.ingredientText}>
                       • {ingredient.name} - {item.quantity} {item.unit}
                     </Text>
-                    <TouchableOpacity
+                    <TouchableOpacity 
                       onPress={() => {
                         setSelectedIngredients(prev => prev.filter(i => i.id !== item.id));
                         setIngredientInputs(prev => ({
@@ -1080,15 +1171,15 @@ export default function EditRecipeScreen() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity 
               onPress={() => pickStepImage(index)}
               style={styles.imagePickerSmall}
             >
               {step.image ? (
                 <Image
-                  source={{
-                    uri: step.image.startsWith('file://')
-                      ? step.image
+                  source={{ 
+                    uri: step.image.startsWith('file://') 
+                      ? step.image 
                       : getImageUrl(step.image)
                   }}
                   style={{ width: '100%', height: '100%', borderRadius: 10 }}
@@ -1100,7 +1191,7 @@ export default function EditRecipeScreen() {
             </TouchableOpacity>
           </View>
         ))}
-
+        
         <TouchableOpacity
           style={[styles.addButton, { marginVertical: 15, alignSelf: 'flex-start' }]}
           onPress={addStepLocal}
