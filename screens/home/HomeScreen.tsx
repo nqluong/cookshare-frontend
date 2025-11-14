@@ -240,8 +240,13 @@ function SearchResults({
   return (
     <FlatList
       data={recipes}
-      renderItem={({ item }) => <RecipeCard item={item} />}
-      keyExtractor={(item) => item.recipeId}
+      renderItem={({ item }) => (
+    <RecipeCard 
+      item={item} 
+      isUserResult={!!item.userId && !item.recipeId} 
+    />
+  )}
+      keyExtractor={(item) => item.recipeId || item.userId}
       contentContainerStyle={searchStyles.listContainer}
       showsVerticalScrollIndicator={false}
       ListFooterComponent={
