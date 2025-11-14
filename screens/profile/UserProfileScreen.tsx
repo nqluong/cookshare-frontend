@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { followService } from "@/services/followService";
 import { userService } from "@/services/userService";
 import { UserProfile } from "@/types/user.types";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -39,7 +39,7 @@ export default function UserProfileScreen() {
         );
         setCurrentProfileId(profile.userId);
       } catch (error) {
-        console.log("Error loading current user profile:", error);
+        console.error("Error loading current user profile:", error);
       }
     };
     loadCurrentProfileId();
@@ -60,7 +60,7 @@ export default function UserProfileScreen() {
       const profile = await userService.getUserById(userId);
       setUser(profile);
     } catch (error: any) {
-      console.log("Error loading profile:", error);
+      console.error("Error loading profile:", error);
       Alert.alert("Lỗi", error.message || "Không thể tải thông tin người dùng");
     } finally {
       setIsLoading(false);
@@ -78,7 +78,7 @@ export default function UserProfileScreen() {
       );
       setIsFollowing(response.data);
     } catch (error) {
-      console.log("Error checking follow status:", error);
+      console.error("Error checking follow status:", error);
     }
   };
 
@@ -146,8 +146,14 @@ export default function UserProfileScreen() {
 
     return (
       <>
-        {/* === Header (Share Icon) === */}
+        {/* === Header (Back & Share Icon) === */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => Alert.alert("Chia sẻ", "Chức năng đang phát triển")}
             style={styles.shareButton}
@@ -261,7 +267,15 @@ export default function UserProfileScreen() {
   };
 
   const data = [{}];
-  const renderItem = () => <RecipeGrid userId={userId || ""} />;
+  const isOwnProfile = currentProfileId && userId && currentProfileId === userId;
+  
+  const renderItem = () => {
+    return <RecipeGrid 
+      userId={userId || ""} 
+      isOwnProfile={isOwnProfile || false}
+      currentProfileId={currentProfileId || ""}
+    />;
+  };
 
   // --- Render Chính ---
 
@@ -307,9 +321,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 0,
-    paddingBottom: 0,
+    paddingVertical: 12,
     backgroundColor: "#fff",
+  },
+  backButton: {
+    padding: 8,
   },
   shareButton: {
     padding: 8,

@@ -80,7 +80,7 @@ export default function OwnProfileScreen() {
       setUserProfile(profile);
       setLastLoadedAvatarUrl(profile.avatarUrl || null);
     } catch (error: any) {
-      console.log("❌ [OwnProfile] Error loading profile:", error.message);
+      console.error("❌ [OwnProfile] Error loading profile:", error.message);
 
       // Fallback: Use user from context nếu có
       if (user) {
@@ -153,7 +153,7 @@ export default function OwnProfileScreen() {
                 transition={200}
                 recyclingKey={userProfile.avatarUrl} // Help with cache
                 onError={(error) => {
-                  console.log('❌ Lỗi load avatar:', error);
+                  console.error('❌ Lỗi load avatar:', error);
                   console.log('URL gây lỗi:', userProfile.avatarUrl);
                 }}
                 onLoad={() => {
@@ -267,7 +267,7 @@ export default function OwnProfileScreen() {
     if (!userProfile?.userId) return null;
 
     if (activeTab === "recipes") {
-      return <RecipeGrid userId={userProfile.userId} refreshKey={refreshKey} />;
+      return <RecipeGrid userId={userProfile.userId} refreshKey={refreshKey} isOwnProfile={true} />;
     } else {
       return <CollectionListTab userId={userProfile.userId} />;
     }

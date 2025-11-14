@@ -47,25 +47,42 @@ type Recipe = {
   views?: number;
 };
 
+type AuthorInfo = {
+  userId: string;
+  username: string;
+  fullName: string;
+  avatarUrl?: string;
+};
+
 interface CommentWithExpandedReplies extends CommentResponse {
   expandedRepliesCount?: number;
 }
 
 type Props = {
   recipe: Recipe;
+  authorInfo?: AuthorInfo;
   currentUserId: string;
   currentUserAvatar?: string;
+  router?: any;
   onBack: () => void;
   onSearch: () => void;
 };
 
 export default function RecipeDetailView({
   recipe,
+  authorInfo,
   currentUserId,
   currentUserAvatar,
+  router,
 }: Props) {
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
+
+  // Debug
+  useEffect(() => {
+    console.log('RecipeDetailView - authorInfo:', authorInfo);
+    console.log('RecipeDetailView - recipe.image:', recipe.image);
+  }, [authorInfo, recipe.image]);
 
   const totalComments = useMemo(
     () => countAllCommentsRecursive(comments),
@@ -82,7 +99,7 @@ export default function RecipeDetailView({
         const normalized = normalizeCommentsRecursive(data);
         setComments(normalized);
       } catch (error) {
-        console.log("Lỗi tải số bình luận:", error);
+        console.error("Lỗi tải số bình luận:", error);
       }
     };
 
@@ -103,6 +120,15 @@ export default function RecipeDetailView({
   };
 
   const difficulty = getDifficultyLabel(recipe.difficulty);
+
+  // Determine avatar source - use default if no avatar URL
+  const getAvatarSource = () => {
+    const avatarUrl = authorInfo?.avatarUrl?.trim();
+    if (avatarUrl && avatarUrl !== "") {
+      return { uri: getImageUrl(avatarUrl) };
+    }
+    return require('../../assets/images/default-avatar.png');
+  };
 
   return (
     <View style={styles.container}>
@@ -132,8 +158,18 @@ export default function RecipeDetailView({
         </View>
 
         {/* Tác giả + thời gian + khẩu phần + độ khó */}
-        <View style={styles.authorRow}>
-          <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.avatar} />
+        <TouchableOpacity 
+          style={styles.authorRow}
+          onPress={() => {
+            if (router && authorInfo?.userId) {
+              router.push(`/profile/${authorInfo.userId}`);
+            }
+          }}
+        >
+          <Image 
+            source={getAvatarSource()} 
+            style={styles.avatar} 
+          />
           <View style={{ flex: 1 }}>
             <Text style={styles.author}>{recipe.author}</Text>
             <Text style={styles.time}>
@@ -148,7 +184,7 @@ export default function RecipeDetailView({
               </Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
 
         {/* Danh mục & Tag */}
         {(recipe.category || (recipe.tags && recipe.tags.length > 0)) && (
@@ -194,11 +230,19 @@ export default function RecipeDetailView({
         <View style={styles.card}>
           <Text style={styles.cardTitle}>🧂 Nguyên liệu:</Text>
           {recipe.ingredients && recipe.ingredients.length > 0 ? (
-            recipe.ingredients.map((item, i) => (
-              <Text key={i} style={{ marginVertical: 2 }}>
-                • {item.name} {item.quantity ? `- ${item.quantity}` : ""} {item.unit ? `${item.unit}` : ""} {item.notes ? `(${item.notes})` : ""}
-              </Text>
-            ))
+            recipe.ingredients.map((item, i) => {
+              const qtyNum = item.quantity !== undefined && item.quantity !== null ? Number(item.quantity) : NaN;
+              const showQuantity = !isNaN(qtyNum) && qtyNum !== 0;
+              const qtyText = showQuantity ? ` - ${qtyNum}` : "";
+              const unitText = item.unit && item.unit.toString().trim() !== "" ? ` ${item.unit}` : "";
+              const notesText = item.notes ? ` (${item.notes})` : "";
+
+              return (
+                <Text key={i} style={{ marginVertical: 2 }}>
+                  • {item.name}{qtyText}{unitText}{notesText}
+                </Text>
+              );
+            })
           ) : (
             <Text>Không có thông tin nguyên liệu</Text>
           )}

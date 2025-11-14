@@ -696,21 +696,15 @@ export default function EditRecipeScreen() {
     if (!description || !description.trim()) return Alert.alert("Lỗi", "Vui lòng nhập mô tả");
     if (!user?.userId) return Alert.alert("Lỗi", "Bạn cần đăng nhập để cập nhật công thức");
 
+    // Allow ingredients even if quantity/unit are empty.
+    // Keep only entries that exist in the master ingredients list.
     const validIngredients = selectedIngredients.filter(ingredient => {
       const ingredientExists = ingredients.find((i: ListItem) => i.id === ingredient.id);
-      const hasQuantity = ingredient.quantity && ingredient.quantity.trim() !== '';
-      const hasUnit = ingredient.unit && ingredient.unit.trim() !== '';
-      
-      if (ingredientExists && (!hasQuantity || !hasUnit)) {
-        Alert.alert("Thiếu thông tin", `Vui lòng nhập đầy đủ số lượng và đơn vị cho nguyên liệu: ${ingredientExists.name}`);
-        return false;
-      }
-      
-      return ingredientExists != null && hasQuantity && hasUnit;
+      return ingredientExists != null;
     });
-    
+
     if (validIngredients.length === 0) {
-      Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu hợp lệ!");
+      Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu!");
       return;
     }
 
@@ -729,11 +723,20 @@ export default function EditRecipeScreen() {
           imageUrl: step.image && typeof step.image === 'string' && step.image.startsWith('file://') ? null : step.image
         })).filter(step => step.instruction.trim() !== ''),
         categoryIds: selectedCategories.filter(Boolean),
-        ingredientDetails: validIngredients.map((ing: SelectedIngredient) => ({
-          ingredientId: ing.id,
-          quantity: parseFloat(ing.quantity),
-          unit: ing.unit
-        })),
+        // NOTE: backend currently calls toString() on quantity without null-check.
+        // To avoid server-side NPE, always send a numeric quantity (0 when empty)
+        // and send empty string for unit when missing.
+        ingredientDetails: validIngredients.map((ing: SelectedIngredient) => {
+          const entry: any = { ingredientId: ing.id };
+          if (ing.quantity && ing.quantity.toString().trim() !== '') {
+            const parsed = parseFloat(ing.quantity);
+            entry.quantity = !isNaN(parsed) ? parsed : 0;
+          } else {
+            entry.quantity = 0;
+          }
+          entry.unit = ing.unit && ing.unit.toString().trim() !== '' ? ing.unit : "";
+          return entry;
+        }),
         tagIds: selectedTags.filter(Boolean),
         featuredImage: featuredImage?.startsWith('file://') ? null : featuredImage,
         servings: servings ? parseInt(servings) : null,
@@ -742,6 +745,11 @@ export default function EditRecipeScreen() {
         userId: user.userId
       };
 
+      // Debug: print payload so we can verify ingredientDetails fields
+      try {
+        console.log('DEBUG recipeData payload:', JSON.stringify(recipeData, null, 2));
+        console.log('DEBUG ingredientDetails:', JSON.stringify(recipeData.ingredientDetails, null, 2));
+      } catch (e) {}
       formData.append('data', JSON.stringify(recipeData));
 
       if (featuredImage?.startsWith('file://')) {
@@ -811,6 +819,30 @@ export default function EditRecipeScreen() {
             text: "Thoát (không lưu)",
             style: "destructive",
             onPress: () => {
+              // Restore local state from original data so unsaved choices are discarded
+              if (originalData) {
+                try {
+                  setTitle(originalData.title || "");
+                  setDescription(originalData.description || "");
+                  setFeaturedImage(originalData.featuredImage || null);
+                  setSteps(originalData.steps || [{ instruction: '', image: null, stepNumber: 1 }]);
+                  setServings(originalData.servings || "");
+                  setPrepTime(originalData.prepTime || "");
+                  setCookTime(originalData.cookTime || "");
+                  setDifficulty(originalData.difficulty || "MEDIUM");
+                  setSelectedCategories(originalData.selectedCategories || []);
+                  setSelectedIngredients(originalData.selectedIngredients || []);
+                  setSelectedTags(originalData.selectedTags || []);
+                  const inputs: Record<string, any> = {};
+                  (originalData.selectedIngredients || []).forEach((it: any) => {
+                    inputs[it.id] = { quantity: it.quantity || '', unit: it.unit || '', selected: true };
+                  });
+                  setIngredientInputs(inputs);
+                  setHasChanges(false);
+                } catch (e) {
+                  console.error('Error restoring original data before exit:', e);
+                }
+              }
               router.replace({
                 pathname: '/(tabs)/profile' as any,
                 params: { reload: 'true' }

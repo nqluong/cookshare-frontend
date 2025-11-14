@@ -2,9 +2,8 @@ import { useAuth } from '@/context/AuthContext';
 import { userService } from '@/services/userService';
 import { UserProfile } from '@/types/user.types';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -39,6 +38,13 @@ type Comment = {
   time?: string;
 };
 
+type RecipeAuthor = {
+  userId: string;
+  username: string;
+  fullName: string;
+  avatarUrl?: string;
+};
+
 const fetchWithTimeout = async (promise: Promise<any>, timeoutMs = 7000) => {
   return Promise.race([
     promise,
@@ -50,14 +56,59 @@ const fetchWithTimeout = async (promise: Promise<any>, timeoutMs = 7000) => {
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, reload } = useLocalSearchParams<{ id?: string; reload?: string }>();
   const [recipe, setRecipe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [authorInfo, setAuthorInfo] = useState<RecipeAuthor | null>(null);
 
   const recipeId = id || "";
+
+  // Refetch data mỗi khi focus vào screen này (khi quay lại từ chỉnh sửa)
+  useFocusEffect(
+    useCallback(() => {
+      if (recipeId) {
+        const fetchData = async () => {
+          try {
+            setLoading(true);
+            const data = await fetchWithTimeout(getRecipeById(recipeId), 7000);
+            setRecipe(data);
+
+            // Load author info from API
+            if (data?.userId) {
+              try {
+                const authorData = await userService.getUserById(data.userId);
+                setAuthorInfo({
+                  userId: data.userId,
+                  username: authorData?.username || data?.username || "",
+                  fullName: authorData?.fullName || data?.fullName || "",
+                  avatarUrl: authorData?.avatarUrl || data?.avatarUrl || data?.userAvatarUrl || "",
+                });
+              } catch (authorErr) {
+                console.error("Error loading author info:", authorErr);
+                setAuthorInfo({
+                  userId: data.userId,
+                  username: data?.username || "",
+                  fullName: data?.fullName || "",
+                  avatarUrl: data?.avatarUrl || data?.userAvatarUrl || "",
+                });
+              }
+            }
+            setError(null);
+          } catch (err: any) {
+            console.error("Lỗi khi refetch:", err.message);
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchData();
+      }
+    }, [recipeId])
+  );
 
   useEffect(() => {
     if (user?.username) {
@@ -72,42 +123,10 @@ export default function RecipeDetailScreen() {
       const profile = await userService.getUserByUsername(user.username);
       setUserProfile(profile);
     } catch (error: any) {
-      console.log("Error loading profile:", error);
+      console.error("Error loading profile:", error);
       Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
-    } finally {
-      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const token = await AsyncStorage.getItem('authToken');
-        const data = await fetchWithTimeout(getRecipeById(recipeId), 7000);
-        // Debug: log recipe payload
-        try {
-          console.log('Recipe detail payload:', data);
-        } catch (e) { }
-        setRecipe(data);
-      } catch (err: any) {
-        console.log("Lỗi API:", err.message);
-        setError(err.message);
-
-        if (err.message.includes('401')) {
-          Alert.alert("Lỗi xác thực", "Vui lòng đăng nhập lại", [
-            { text: "OK", onPress: () => router.replace('/auth/login') }
-          ]);
-        } else {
-          Alert.alert("Lỗi", err.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [recipeId]);
 
   if (loading) {
     return (
@@ -139,10 +158,10 @@ export default function RecipeDetailScreen() {
   const ingredients: Ingredient[] = recipe.ingredients || [];
   const steps: Step[] = recipe.steps
     ? recipe.steps.map((s: any) => ({
-      stepId: `step-${s.stepNumber}`,
-      stepNumber: s.stepNumber,
-      instruction: s.instruction,
-    }))
+        stepId: `step-${s.stepNumber}`,
+        stepNumber: s.stepNumber,
+        instruction: s.instruction,
+      }))
     : [];
 
   return (
@@ -165,22 +184,22 @@ export default function RecipeDetailScreen() {
           // Xử lý category - lấy name từ array of objects
           category: (() => {
             const catField = recipe.categories || recipe.categoryName || recipe.category;
-
+            
             if (!catField) return [];
-
+            
             // Nếu là array of objects → lấy name
             if (Array.isArray(catField)) {
-              return catField.map(cat =>
+              return catField.map(cat => 
                 typeof cat === 'string' ? cat : cat.name
               );
             }
-
+            
             // Nếu là string
             if (typeof catField === 'string') return [catField];
-
+            
             // Nếu là object với name property
             if (catField?.name) return [catField.name];
-
+            
             return [];
           })(),
           // Giữ nguyên object tag từ API để có màu
@@ -191,8 +210,15 @@ export default function RecipeDetailScreen() {
           likes: recipe.likeCount ?? 0,
           views: recipe.viewCount ?? 0,
         }}
+        authorInfo={authorInfo || {
+          userId: recipe.userId || recipe.createdBy || "",
+          username: recipe.username || "",
+          fullName: recipe.fullName || recipe.createdBy || "",
+          avatarUrl: recipe.avatarUrl || recipe.userAvatarUrl || "",
+        }}
         currentUserId={userProfile ? userProfile.userId : ""}
         currentUserAvatar={userProfile ? userProfile.avatarUrl : undefined}
+        router={router}
         onBack={() => router.back()}
         onSearch={() => router.push('/(tabs)/search')}
       />
