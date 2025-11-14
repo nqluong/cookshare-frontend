@@ -4,12 +4,12 @@ import { Platform } from 'react-native';
 
 export const BASE_URL = API_CONFIG.BASE_URL;
 
-// Types for admin user management
 export interface AdminUser {
   userId: string;
   username: string;
   email: string;
   fullName: string;
+  bio?: string;
   avatarUrl: string | null;
   role: string;
   isActive: boolean;
@@ -280,6 +280,81 @@ class AdminUserService {
       console.log('Delete user successful');
     } catch (error: any) {
       console.log('Delete user error:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout - Không thể kết nối đến server');
+      }
+      throw error;
+    }
+  }
+
+  async getUserById(userId: string): Promise<AdminUser> {
+    try {
+      console.log('Getting user by ID:', userId);
+      const token = await this.getAuthToken();
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${BASE_URL}/api/admin/users/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      console.log('Get user by ID response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Không thể lấy thông tin người dùng');
+      }
+
+      const result: ApiResponse<AdminUser> = await response.json();
+      console.log('Get user by ID successful:', result.data.username);
+      return result.data;
+    } catch (error: any) {
+      console.log('Get user by ID error:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout - Không thể kết nối đến server');
+      }
+      throw error;
+    }
+  }
+
+  async updateUser(userId: string, data: Partial<AdminUser>): Promise<AdminUser> {
+    try {
+      console.log('Updating user:', userId, data);
+      const token = await this.getAuthToken();
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${BASE_URL}/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      console.log('Update user response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Không thể cập nhật thông tin người dùng');
+      }
+
+      const result: ApiResponse<AdminUser> = await response.json();
+      console.log('Update user successful');
+      return result.data;
+    } catch (error: any) {
+      console.log('Update user error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }

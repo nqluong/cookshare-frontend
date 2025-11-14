@@ -1,8 +1,8 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image } from 'expo-image';
 import { router } from "expo-router";
 import React, { useMemo } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -10,9 +10,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Image } from 'expo-image';
 import { SafeAreaView } from "react-native-safe-area-context";
+import CustomAlert from "../../components/ui/CustomAlert";
 import { useAuth } from "../../context/AuthContext";
+import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { Colors } from "../../styles/colors";
 
 interface SettingItem {
@@ -34,6 +35,7 @@ interface SettingItem {
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
+  const { alert, showAlert, hideAlert } = useCustomAlert();
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
 
@@ -41,24 +43,33 @@ export default function SettingsScreen() {
   const avatarUrl = useMemo(() => user?.avatarUrl, [user?.avatarUrl]);
 
   const handleLogout = () => {
-    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất không?", [
-      {
-        text: "Hủy",
-        style: "cancel",
-      },
-      {
-        text: "Đăng xuất",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logout();
-            router.replace("/auth/login" as any);
-          } catch (error) {
-            Alert.alert("Lỗi", "Đã có lỗi xảy ra khi đăng xuất");
-          }
+    showAlert({
+      title: "Đăng xuất",
+      message: "Bạn có chắc chắn muốn đăng xuất không?",
+      type: "warning",
+      buttons: [
+        {
+          text: "Hủy",
+          style: "cancel",
         },
-      },
-    ]);
+        {
+          text: "Đăng xuất",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace("/auth/login" as any);
+            } catch (error) {
+              showAlert({
+                title: "Lỗi",
+                message: "Đã có lỗi xảy ra khi đăng xuất",
+                type: "error",
+              });
+            }
+          },
+        },
+      ],
+    });
   };
 
   const handleChangePassword = () => {
@@ -74,19 +85,35 @@ export default function SettingsScreen() {
   };
 
   const handlePrivacy = () => {
-    Alert.alert("Quyền riêng tư", "Tính năng đang được phát triển!");
+    showAlert({
+      title: "Quyền riêng tư",
+      message: "Tính năng đang được phát triển!",
+      type: "info",
+    });
   };
 
   const handleLanguage = () => {
-    Alert.alert("Ngôn ngữ", "Tính năng đang được phát triển!");
+    showAlert({
+      title: "Ngôn ngữ",
+      message: "Tính năng đang được phát triển!",
+      type: "info",
+    });
   };
 
   const handleHelp = () => {
-    Alert.alert("Trợ giúp", "Tính năng đang được phát triển!");
+    showAlert({
+      title: "Trợ giúp",
+      message: "Tính năng đang được phát triển!",
+      type: "info",
+    });
   };
 
   const handleAbout = () => {
-    Alert.alert("Về ứng dụng", "CookShare v1.0.0\nỨng dụng chia sẻ công thức nấu ăn");
+    showAlert({
+      title: "Về ứng dụng",
+      message: "CookShare v1.0.0\nỨng dụng chia sẻ công thức nấu ăn",
+      type: "info",
+    });
   };
 
   const settingSections: { title: string; items: SettingItem[] }[] = [
@@ -309,6 +336,14 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        buttons={alert.buttons}
+        onClose={hideAlert}
+      />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -335,10 +370,10 @@ export default function SettingsScreen() {
                 contentFit="cover"
                 transition={200}
                 onError={(error) => {
-                  console.log('❌ Lỗi load avatar trong Settings:', error);
+                  console.log('Lỗi load avatar trong Settings:', error);
                 }}
                 onLoad={() => {
-                  console.log('✅ Avatar loaded trong Settings (from cache or network)');
+                  console.log('Avatar loaded trong Settings (from cache or network)');
                 }}
               />
             ) : (

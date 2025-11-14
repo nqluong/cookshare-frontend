@@ -137,7 +137,13 @@ export default function AdminRecipesScreen() {
 
   // Cập nhật các handlers khác để nhận recipeId thay vì recipe object
   const handleEditRecipe = (recipeId: string) => {
-    showWarning('Chỉnh sửa', 'Chức năng chỉnh sửa sẽ được phát triển');
+    // Đóng modal nếu đang mở
+    if (showRecipeDetailModal) {
+      setShowRecipeDetailModal(false);
+    }
+    
+    // Chuyển hướng đến trang chỉnh sửa công thức
+    router.push(`/(tabs)/_recipe-edit/${recipeId}` as any);
   };
 
   const handleApproveRecipe = (recipeId: string) => {

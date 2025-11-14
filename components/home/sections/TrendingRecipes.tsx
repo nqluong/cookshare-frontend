@@ -50,12 +50,10 @@ export default function TrendingRecipes({
     handleSaveRecipe: updateSavedCache,
   } = useCollectionManager();
 
-  // State để quản lý saveCount tạm thời trên UI
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(new Map());
 
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    // Load thêm khi còn 30% nội dung
     const threshold = contentSize.width * 0.3;
     
     if (
@@ -80,10 +78,8 @@ export default function TrendingRecipes({
   };
 
   const handleSaveSuccess = (recipeId: string, collectionId: string, newSaveCount: number) => {
-    // 1. Cập nhật saveCount trên UI
     setLocalSaveCounts(prev => new Map(prev).set(recipeId, newSaveCount));
     
-    // 2. Cập nhật cache (savedRecipes & recipeToCollectionMap)
     updateSavedCache(recipeId, collectionId);
   };
 
@@ -92,7 +88,6 @@ export default function TrendingRecipes({
   };
 
   const handleCreateNewCollection = () => {
-    // TODO: Điều hướng đến màn hình tạo bộ sưu tập
     router.push('/create-collection' as any);
   };
 
