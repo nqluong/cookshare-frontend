@@ -1,15 +1,10 @@
-// services/websocketService.ts - FIXED VERSION
 import NetInfo from "@react-native-community/netinfo";
 import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { API_CONFIG } from '../config/api.config';
 
-export const API_BASE_URL = API_CONFIG.BASE_URL;
-
-// === CẤU HÌNH URL ===
-// const WS_URL_DEV = `${API_CONFIG}/ws-sockjs`;
-const WS_URL_DEV = `${API_BASE_URL}/ws-sockjs`;
-const WS_URL_PROD = `${API_BASE_URL}/ws`;
+const WS_URL_DEV = `${API_CONFIG.BASE_URL}/ws-sockjs`;
+const WS_URL_PROD = `${API_CONFIG.BASE_URL}/ws`;
 const WS_URL = __DEV__ ? WS_URL_DEV : WS_URL_PROD;
 
 type EventCallback = (data: any) => void;

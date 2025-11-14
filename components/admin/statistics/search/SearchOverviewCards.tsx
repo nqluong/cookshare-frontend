@@ -79,7 +79,7 @@ export default function SearchOverviewCards({ data, loading }: SearchOverviewCar
             <Text style={styles.statValue}>
               {data.averageResultsPerSearch !== null && data.averageResultsPerSearch !== undefined
                 ? data.averageResultsPerSearch.toFixed(1)
-                : 'N/A'}
+                : '0.0'}
             </Text>
           </View>
           <View style={styles.divider} />
