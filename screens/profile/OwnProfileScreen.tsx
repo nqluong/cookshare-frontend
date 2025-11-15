@@ -43,6 +43,17 @@ export default function OwnProfileScreen() {
     }
   }, [user?.username]);
 
+  // Cập nhật userProfile khi followingCount hoặc followerCount thay đổi trong AuthContext
+  useEffect(() => {
+    if (user && userProfile) {
+      setUserProfile(prev => prev ? {
+        ...prev,
+        followingCount: user.followingCount,
+        followerCount: user.followerCount,
+      } : null);
+    }
+  }, [user?.followingCount, user?.followerCount]);
+
   // Chỉ reload khi avatar thay đổi (detect từ AuthContext)
   useFocusEffect(
     useCallback(() => {
