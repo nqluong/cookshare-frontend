@@ -196,7 +196,7 @@ export default function OwnProfileScreen() {
           }
         >
           <Text style={styles.statNumber}>
-            {formatNumber(userProfile?.followingCount || 2)}
+            {formatNumber(userProfile?.followingCount || 0)}
           </Text>
           <Text style={styles.statLabel}>Đã follow</Text>
         </TouchableOpacity>
@@ -213,7 +213,7 @@ export default function OwnProfileScreen() {
           }
         >
           <Text style={styles.statNumber}>
-            {formatNumber(userProfile?.followerCount || 999)}
+            {formatNumber(userProfile?.followerCount || 0)}
           </Text>
           <Text style={styles.statLabel}>Follower</Text>
         </TouchableOpacity>

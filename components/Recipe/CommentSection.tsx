@@ -397,7 +397,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
           />
           <View style={styles.commentContent}>
             <View style={styles.commentBubble}>
-              <Text style={styles.userName}>{comment.userName}</Text>
+              <Text style={styles.userName}>{comment.fullName}</Text>
               <Text style={styles.commentText}>{comment.content}</Text>
             </View>
 
@@ -609,7 +609,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                 <Text style={styles.replyingToText}>
                   {editingComment
                     ? '✏️ Đang chỉnh sửa'
-                    : <>💬 Trả lời <Text style={styles.replyingToName}>{replyingTo?.userName}</Text></>}
+                    : <>💬 Trả lời <Text style={styles.replyingToName}>{replyingTo?.fullName}</Text></>}
                 </Text>
                 <TouchableOpacity onPress={() => { setReplyingTo(null); setEditingComment(null); setCommentText(''); }}>
                   <Text style={styles.cancelReply}>✕</Text>
@@ -624,7 +624,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
               <TextInput
                 ref={inputRef}
                 style={styles.input}
-                placeholder={replyingTo ? `Trả lời ${replyingTo.userName}...` : 'Viết bình luận...'}
+                placeholder={replyingTo ? `Trả lời ${replyingTo.fullName}...` : 'Viết bình luận...'}
                 placeholderTextColor="#999"
                 value={commentText}
                 onChangeText={setCommentText}
