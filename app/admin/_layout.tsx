@@ -44,24 +44,28 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="menu"
+        name="recipes"
         options={{
           title: "",
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? "layers" : "layers-outline"}
-              size={28}
-              color={focused ? "#10b981" : color}
+              name={focused ? "book" : "book-outline"}
+              size={26}
+              color={color}
             />
           ),
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="users"
         options={{
           title: "",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={26} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "people" : "people-outline"}
+              size={26}
+              color={color}
+            />
           ),
         }}
       />
@@ -73,13 +77,13 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="users"
+        name="menu"
         options={{
           href: null,
         }}
       />
       <Tabs.Screen
-        name="recipes"
+        name="profile"
         options={{
           href: null,
         }}
@@ -98,13 +102,18 @@ export default function AdminLayout() {
         }}
       />
 
-            <Tabs.Screen
+      <Tabs.Screen
         name="recipes/index"
         options={{
           href: null,
         }}
       />
-
+      <Tabs.Screen
+        name="users/edit/[userId]"
+        options={{
+          href: null,
+        }}
+      />  
     </Tabs>
   );
 }

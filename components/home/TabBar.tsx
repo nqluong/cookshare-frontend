@@ -8,14 +8,12 @@ interface TabBarProps {
   onPress?: () => void;
 }
 
-const tabs = ['Đề xuất', 'Yêu thích', 'Lịch sử', 'Theo dõi'];
+const tabs = ['Đề xuất', 'Yêu thích', 'Theo dõi'];
 
 const getTabIcon = (tab: string) => {
   switch (tab) {
     case 'Yêu thích':
       return 'heart-outline';
-    case 'Lịch sử':
-      return 'time-outline';
     case 'Theo dõi':
       return 'people-outline';
     case 'Đề xuất':

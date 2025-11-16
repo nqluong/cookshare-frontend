@@ -2,7 +2,6 @@ import { getImageUrl } from '../config/api.config';
 import { Dish, Post } from '../types';
 import { Recipe } from '../types/dish';
 
-//Tính toán thời gian "... trước" từ timestamp
 export const getTimeAgo = (dateString: string): string => {
   const now = new Date();
   const createdDate = new Date(dateString);

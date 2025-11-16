@@ -1,5 +1,5 @@
 // app/admin/recipes/index.tsx
-import { AdminRecipe, AdminRecipeDetailResponse } from '@/types/admin/recipe.types';
+import { AdminRecipe, AdminRecipeDetailResponse, AdminRecipeListResponse } from '@/types/admin/recipe.types';
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -32,7 +32,7 @@ export default function AdminRecipesScreen() {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDir, setSortDir] = useState<string>('desc');
   const [showFilterOptions, setShowFilterOptions] = useState(false);
-  
+
   const { alert, showSuccess, showError, showWarning, hideAlert } = useCustomAlert();
 
   const handleExitAdmin = () => {
@@ -46,7 +46,7 @@ export default function AdminRecipesScreen() {
         setError(null);
       }
 
-      let response;
+      let response: AdminRecipeListResponse;
       switch (filterStatus) {
         case 'pending':
           response = await adminRecipeService.getPendingRecipes(search, page, 20, sortBy, sortDir);
@@ -60,13 +60,13 @@ export default function AdminRecipesScreen() {
         default:
           response = await adminRecipeService.getAllRecipes(search, filterPublished || undefined, filterFeatured || undefined, page, 20, sortBy, sortDir);
       }
-      
+
       if (reset) {
         setRecipes(response.content);
       } else {
         setRecipes(prev => [...prev, ...response.content]);
       }
-      
+
       setCurrentPage(page);
       setHasMore(!response.last);
       setTotalElements(response.totalElements);
@@ -109,183 +109,189 @@ export default function AdminRecipesScreen() {
 
 
 
-// Cập nhật handleViewRecipe
-const handleViewRecipe = async (recipe: AdminRecipe) => {
-  try {
-    setShowRecipeDetailModal(true);
-    
-    // Load chi tiết công thức
-    const recipeDetail = await adminRecipeService.getRecipeDetail(recipe.recipeId);
-    setSelectedRecipeDetail(recipeDetail);
-  } catch (error: any) {
-    console.error('Error loading recipe detail:', error);
-    
-    let errorMessage = 'Không thể tải chi tiết công thức';
+  // Cập nhật handleViewRecipe
+  const handleViewRecipe = async (recipe: AdminRecipe) => {
     try {
-      const errorData = JSON.parse(error.message);
-      if (errorData.message) {
-        errorMessage = errorData.message;
+      setShowRecipeDetailModal(true);
+
+      // Load chi tiết công thức
+      const recipeDetail = await adminRecipeService.getRecipeDetail(recipe.recipeId);
+      setSelectedRecipeDetail(recipeDetail);
+    } catch (error: any) {
+      console.log('Error loading recipe detail:', error);
+
+      let errorMessage = 'Không thể tải chi tiết công thức';
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (parseError) {
+        errorMessage = error.message || errorMessage;
       }
-    } catch (parseError) {
-      errorMessage = error.message || errorMessage;
+
+      showError('Lỗi', errorMessage);
+      setSelectedRecipeDetail(null);
+    }
+  };
+
+  // Cập nhật các handlers khác để nhận recipeId thay vì recipe object
+  const handleEditRecipe = (recipeId: string) => {
+    // Đóng modal nếu đang mở
+    if (showRecipeDetailModal) {
+      setShowRecipeDetailModal(false);
     }
     
-    showError('Lỗi', errorMessage);
-    setSelectedRecipeDetail(null);
-  }
-};
+    // Chuyển hướng đến trang chỉnh sửa công thức
+    router.push(`/(tabs)/_recipe-edit/${recipeId}` as any);
+  };
 
-// Cập nhật các handlers khác để nhận recipeId thay vì recipe object
-const handleEditRecipe = (recipeId: string) => {
-  showWarning('Chỉnh sửa', 'Chức năng chỉnh sửa sẽ được phát triển');
-};
+  const handleApproveRecipe = (recipeId: string) => {
+    // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+    const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+    if (!recipe) return;
 
-const handleApproveRecipe = (recipeId: string) => {
-  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
-  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
-  if (!recipe) return;
-  
-  showWarning(
-    'Phê duyệt công thức',
-    `Bạn có chắc chắn muốn phê duyệt công thức "${recipe.title}"?`,
-    [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Phê duyệt',
-        style: 'default',
-        onPress: async () => {
-          try {
-            setLoading(true);
-            await adminRecipeService.approveRecipe(recipeId, true);
-            await loadRecipes(0, searchQuery, true);
-            if (showRecipeDetailModal) {
-              setShowRecipeDetailModal(false);
+    showWarning(
+      'Phê duyệt công thức',
+      `Bạn có chắc chắn muốn phê duyệt công thức "${recipe.title}"?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Phê duyệt',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await adminRecipeService.approveRecipe(recipeId, true);
+              await loadRecipes(0, searchQuery, true);
+              if (showRecipeDetailModal) {
+                setShowRecipeDetailModal(false);
+              }
+              showSuccess('Thành công', 'Đã phê duyệt công thức thành công');
+            } catch (err: any) {
+              showError('Lỗi', err.message || 'Không thể phê duyệt công thức');
+            } finally {
+              setLoading(false);
             }
-            showSuccess('Thành công', 'Đã phê duyệt công thức thành công');
-          } catch (err: any) {
-            showError('Lỗi', err.message || 'Không thể phê duyệt công thức');
-          } finally {
-            setLoading(false);
           }
         }
-      }
-    ]
-  );
-};
+      ]
+    );
+  };
 
-const handleRejectRecipe = (recipeId: string) => {
-  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
-  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
-  if (!recipe) return;
-  
-  showWarning(
-    'Từ chối công thức',
-    `Bạn có chắc chắn muốn từ chối công thức "${recipe.title}"?`,
-    [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Từ chối',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setLoading(true);
-            await adminRecipeService.approveRecipe(recipeId, false);
-            await loadRecipes(0, searchQuery, true);
-            if (showRecipeDetailModal) {
-              setShowRecipeDetailModal(false);
+  const handleRejectRecipe = (recipeId: string) => {
+    // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+    const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+    if (!recipe) return;
+
+    showWarning(
+      'Từ chối công thức',
+      `Bạn có chắc chắn muốn từ chối công thức "${recipe.title}"?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Từ chối',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await adminRecipeService.approveRecipe(recipeId, false);
+              await loadRecipes(0, searchQuery, true);
+              if (showRecipeDetailModal) {
+                setShowRecipeDetailModal(false);
+              }
+              showSuccess('Thành công', 'Đã từ chối công thức');
+            } catch (error: any) {
+              showError('Lỗi', error.message || 'Không thể từ chối công thức');
+            } finally {
+              setLoading(false);
             }
-            showSuccess('Thành công', 'Đã từ chối công thức');
-          } catch (error: any) {
-            showError('Lỗi', error.message || 'Không thể từ chối công thức');
-          } finally {
-            setLoading(false);
-          }
+          },
         },
-      },
-    ]
-  );
-};
+      ]
+    );
+  };
 
-const handleDeleteRecipe = (recipeId: string) => {
-  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
-  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
-  if (!recipe) return;
-  
-  showError(
-    'Xóa công thức',
-    `Bạn có chắc chắn muốn xóa công thức "${recipe.title}"? Hành động này không thể hoàn tác.`,
-    [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setLoading(true);
-            await adminRecipeService.deleteRecipe(recipeId);
-            await loadRecipes(0, searchQuery, true);
-            if (showRecipeDetailModal) {
-              setShowRecipeDetailModal(false);
+  const handleDeleteRecipe = (recipeId: string) => {
+    // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+    const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+    if (!recipe) return;
+
+    showError(
+      'Xóa công thức',
+      `Bạn có chắc chắn muốn xóa công thức "${recipe.title}"? Hành động này không thể hoàn tác.`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await adminRecipeService.deleteRecipe(recipeId);
+              await loadRecipes(0, searchQuery, true);
+              if (showRecipeDetailModal) {
+                setShowRecipeDetailModal(false);
+              }
+              showSuccess('Thành công', 'Đã xóa công thức thành công');
+            } catch (err: any) {
+              showError('Lỗi', err.message || 'Không thể xóa công thức');
+            } finally {
+              setLoading(false);
             }
-            showSuccess('Thành công', 'Đã xóa công thức thành công');
-          } catch (err: any) {
-            showError('Lỗi', err.message || 'Không thể xóa công thức');
-          } finally {
-            setLoading(false);
           }
         }
+      ]
+    );
+  };
+
+  const handleToggleFeatured = async (recipeId: string) => {
+    // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+    const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+    if (!recipe) return;
+
+    try {
+      setLoading(true);
+      await adminRecipeService.setFeaturedRecipe(recipeId, !recipe.isFeatured);
+
+      // Nếu đang mở modal, reload recipe detail
+      if (showRecipeDetailModal && selectedRecipeDetail) {
+        const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
+        setSelectedRecipeDetail(updatedRecipe);
       }
-    ]
-  );
-};
 
-const handleToggleFeatured = async (recipeId: string) => {
-  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
-  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
-  if (!recipe) return;
-  
-  try {
-    setLoading(true);
-    await adminRecipeService.setFeaturedRecipe(recipeId, !recipe.isFeatured);
-    
-    // Nếu đang mở modal, reload recipe detail
-    if (showRecipeDetailModal && selectedRecipeDetail) {
-      const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
-      setSelectedRecipeDetail(updatedRecipe);
+      await loadRecipes(0, searchQuery, true);
+      showSuccess('Thành công', recipe.isFeatured ? 'Đã bỏ nổi bật công thức' : 'Đã đặt nổi bật công thức');
+    } catch (err: any) {
+      showError('Lỗi', err.message || 'Không thể thay đổi trạng thái nổi bật');
+    } finally {
+      setLoading(false);
     }
-    
-    await loadRecipes(0, searchQuery, true);
-    showSuccess('Thành công', recipe.isFeatured ? 'Đã bỏ nổi bật công thức' : 'Đã đặt nổi bật công thức');
-  } catch (err: any) {
-    showError('Lỗi', err.message || 'Không thể thay đổi trạng thái nổi bật');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-const handleTogglePublished = async (recipeId: string) => {
-  // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
-  const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
-  if (!recipe) return;
-  
-  try {
-    setLoading(true);
-    await adminRecipeService.setPublishedRecipe(recipeId, !recipe.isPublished);
-    
-    // Nếu đang mở modal, reload recipe detail
-    if (showRecipeDetailModal && selectedRecipeDetail) {
-      const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
-      setSelectedRecipeDetail(updatedRecipe);
+  const handleTogglePublished = async (recipeId: string) => {
+    // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
+    const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
+    if (!recipe) return;
+
+    try {
+      setLoading(true);
+      await adminRecipeService.setPublishedRecipe(recipeId, !recipe.isPublished);
+
+      // Nếu đang mở modal, reload recipe detail
+      if (showRecipeDetailModal && selectedRecipeDetail) {
+        const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
+        setSelectedRecipeDetail(updatedRecipe);
+      }
+
+      await loadRecipes(0, searchQuery, true);
+      showSuccess('Thành công', recipe.isPublished ? 'Đã ẩn công thức' : 'Đã xuất bản công thức');
+    } catch (err: any) {
+      showError('Lỗi', err.message || 'Không thể thay đổi trạng thái xuất bản');
+    } finally {
+      setLoading(false);
     }
-    
-    await loadRecipes(0, searchQuery, true);
-    showSuccess('Thành công', recipe.isPublished ? 'Đã ẩn công thức' : 'Đã xuất bản công thức');
-  } catch (err: any) {
-    showError('Lỗi', err.message || 'Không thể thay đổi trạng thái xuất bản');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   const handleSortChange = (newSortBy: string, newSortDir: string) => {
     setSortBy(newSortBy);
     setSortDir(newSortDir);
@@ -296,7 +302,7 @@ const handleTogglePublished = async (recipeId: string) => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <AdminHeader 
+      <AdminHeader
         title="Công Thức"
         onBack={() => router.back()}
         onFilterPress={() => setShowFilterOptions(true)}
@@ -348,7 +354,7 @@ const handleTogglePublished = async (recipeId: string) => {
         onToggleFeatured={handleToggleFeatured}
         onTogglePublished={handleTogglePublished}
       />
-      
+
       <FilterOptions
         visible={showFilterOptions}
         onClose={() => setShowFilterOptions(false)}
@@ -356,7 +362,7 @@ const handleTogglePublished = async (recipeId: string) => {
         sortDir={sortDir}
         onSortChange={handleSortChange}
       />
-      
+
       <CustomAlert
         visible={alert.visible}
         title={alert.title}

@@ -267,7 +267,7 @@ export default function OwnProfileScreen() {
     if (!userProfile?.userId) return null;
 
     if (activeTab === "recipes") {
-      return <RecipeGrid userId={userProfile.userId} refreshKey={refreshKey} />;
+      return <RecipeGrid userId={userProfile.userId} refreshKey={refreshKey} isOwnProfile={true} />;
     } else {
       return <CollectionListTab userId={userProfile.userId} />;
     }

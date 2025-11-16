@@ -8,9 +8,11 @@ import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, Tou
 interface RecipeGridProps {
   userId: string;
   refreshKey?: number;
+  isOwnProfile?: boolean;
+  currentProfileId?: string;
 }
 
-const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
+const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfile = false, currentProfileId }) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -18,6 +20,9 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortOption, setSortOption] = useState<string>('newest');
   const router = useRouter();
+
+  // Determine if this is the user's own profile
+  const isOwn = isOwnProfile || (currentProfileId && userId && currentProfileId === userId);
 
   useEffect(() => {
     fetchRecipes();
@@ -32,6 +37,9 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
     try {
       const data = await RecipeService.getAllRecipesByUserId(userId);
       const list: Recipe[] = data || [];
+      try {
+        console.log('DEBUG RecipeGrid fetched sample:', list.length > 0 ? Object.keys(list[0]) : 'empty');
+      } catch (e) {}
       setRecipes(sortRecipes(list, sortOption));
     } catch (error) {
       console.error("Failed to fetch recipes:", error);
@@ -43,11 +51,29 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
   const sortRecipes = (items: Recipe[], option: string) => {
     if (!items || items.length === 0) return items;
     const arr = [...items];
+    // Try to detect a date field on recipe objects
+    const getDate = (r: any) => {
+      if (!r) return 0;
+      const candidates = [r.createdAt, r.updatedAt, r.created_date, r.created_at, r.timestamp];
+      for (const c of candidates) {
+        if (!c) continue;
+        const t = Date.parse(c);
+        if (!isNaN(t)) return t;
+      }
+      return 0;
+    };
+
     switch (option) {
       case 'newest':
-        // assuming recipeId contains time-order or server returns newest first — fallback to original order
+        // sort descending by detected date; if no date available, keep server order
+        if (items.some(i => getDate(i) > 0)) {
+          return arr.sort((a, b) => getDate(b) - getDate(a));
+        }
         return arr;
       case 'oldest':
+        if (items.some(i => getDate(i) > 0)) {
+          return arr.sort((a, b) => getDate(a) - getDate(b));
+        }
         return arr.reverse();
       case 'like_desc':
         return arr.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
@@ -108,15 +134,17 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey }) => {
       </View>
 
       {/* Nút 3 chấm */}
-      <TouchableOpacity
-        style={styles.moreButton}
-        onPress={() => {
-          setSelectedRecipe(item);
-          setMenuVisible(true);
-        }}
-      >
-        <Text style={{ fontSize: 22 }}>⋮</Text>
-      </TouchableOpacity>
+      {isOwn && (
+        <TouchableOpacity
+          style={styles.moreButton}
+          onPress={() => {
+            setSelectedRecipe(item);
+            setMenuVisible(true);
+          }}
+        >
+          <Text style={{ fontSize: 22 }}>⋮</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 

@@ -44,7 +44,6 @@ export default function RecipeSaveButton({
     event.stopPropagation();
 
     if (isSaved) {
-      // Nếu đã lưu, hỏi người dùng có muốn bỏ lưu không
       Alert.alert(
         "Công thức đã được lưu",
         "Bạn có muốn gỡ công thức này khỏi bộ sưu tập không?",
@@ -62,7 +61,6 @@ export default function RecipeSaveButton({
         ]
       );
     } else {
-      // Mở modal để chọn bộ sưu tập
       setShowModal(true);
     }
   };

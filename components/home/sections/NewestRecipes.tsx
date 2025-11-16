@@ -7,11 +7,12 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { getImageUrl } from "../../../config/api.config";
 import { Colors } from "../../../styles/colors";
 import { Recipe } from "../../../types/dish";
+import { getDifficultyText } from "../../../utils/recipeUtils";
 import { CachedImage } from "../../ui/CachedImage";
 import RecipeSaveButton from "../RecipeSaveButton";
 
@@ -37,7 +38,7 @@ export default function NewestRecipes({
   onToggleLike,
 }: NewestRecipesProps) {
   const router = useRouter();
-  
+
   const {
     isSaved,
     collections,
@@ -59,19 +60,6 @@ export default function NewestRecipes({
     }
 
     await onToggleLike(recipeId);
-  };
-
-  const getDifficultyText = (difficulty: string) => {
-    switch (difficulty) {
-      case "EASY":
-        return "Dễ";
-      case "MEDIUM":
-        return "Trung bình";
-      case "HARD":
-        return "Khó";
-      default:
-        return difficulty;
-    }
   };
 
   const handleSaveSuccess = (
@@ -98,6 +86,7 @@ export default function NewestRecipes({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Mới nhất</Text>
+
       {recipes.map((recipe) => {
         const isLiked = likedRecipes.has(recipe.recipeId);
         const isLoading = likingRecipeId === recipe.recipeId;
@@ -115,7 +104,6 @@ export default function NewestRecipes({
           >
             {/* Image Section */}
             <View style={styles.imageWrapper}>
-              {/* ✅ Thay Image bằng CachedImage */}
               <CachedImage
                 source={{ uri: getImageUrl(recipe.featuredImage) }}
                 style={styles.image}
@@ -124,10 +112,10 @@ export default function NewestRecipes({
                 showLoader={true}
                 placeholder={
                   <View style={styles.imagePlaceholder}>
-                    <Ionicons 
-                      name="restaurant-outline" 
-                      size={50} 
-                      color={Colors.gray[400]} 
+                    <Ionicons
+                      name="restaurant-outline"
+                      size={50}
+                      color={Colors.gray[400]}
                     />
                   </View>
                 }
@@ -246,11 +234,14 @@ export default function NewestRecipes({
         );
       })}
 
-      {/* Chế độ load thêm */}
+      {/* Load More Button */}
       {hasMore && (
         <View style={styles.loadMoreContainer}>
           {isLoadingMore ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
+            <View style={styles.loadingFooter}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={styles.loadingText}>Đang tải thêm...</Text>
+            </View>
           ) : (
             <TouchableOpacity
               style={styles.loadMoreButton}
@@ -258,7 +249,7 @@ export default function NewestRecipes({
               activeOpacity={0.7}
             >
               <Text style={styles.loadMoreText}>Xem thêm</Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.primary} />
+              <Ionicons name="chevron-down" size={20} color={Colors.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -320,29 +311,40 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   loadMoreContainer: {
+    paddingVertical: 20,
     alignItems: "center",
+  },
+  loadingFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     paddingVertical: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    fontWeight: "500",
   },
   loadMoreButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    gap: 8,
     backgroundColor: Colors.white,
-    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: Colors.primary,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   loadMoreText: {
     fontSize: 14,
-    color: Colors.primary,
     fontWeight: "600",
+    color: Colors.primary,
   },
   loadingLikeButton: {
     opacity: 0.7,

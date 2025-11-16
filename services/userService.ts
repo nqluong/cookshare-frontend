@@ -45,7 +45,7 @@ class UserService {
       console.log('Get user successful:', user.username);
       return user;
     } catch (error: any) {
-      console.error('Get user error:', error);
+      console.log('Get user error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -79,8 +79,8 @@ class UserService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ [getUserByUsername] Error response:', errorText);
-        console.error('❌ [getUserByUsername] Status code:', response.status);
+        console.log('❌ [getUserByUsername] Error response:', errorText);
+        console.log('❌ [getUserByUsername] Status code:', response.status);
         throw new Error(errorText || 'Không thể lấy thông tin người dùng!!!');
       }
 
@@ -88,8 +88,8 @@ class UserService {
       console.log('✅ [getUserByUsername] Success! Username:', user.username);
       return user;
     } catch (error: any) {
-      console.error('❌ [getUserByUsername] Caught error:', error.message);
-      console.error('❌ [getUserByUsername] Error type:', error.name);
+      console.log('❌ [getUserByUsername] Caught error:', error.message);
+      console.log('❌ [getUserByUsername] Error type:', error.name);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -128,7 +128,7 @@ class UserService {
       console.log('Update user successful');
       return updatedUser;
     } catch (error: any) {
-      console.error('Update user error:', error);
+      console.log('Update user error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -177,7 +177,7 @@ class UserService {
       console.log('Update user profile successful');
       return updatedUser;
     } catch (error: any) {
-      console.error('Update user profile error:', error);
+      console.log('Update user profile error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -215,7 +215,7 @@ class UserService {
       console.log('Get all users successful, count:', users.length);
       return users;
     } catch (error: any) {
-      console.error('Get all users error:', error);
+      console.log('Get all users error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -251,7 +251,7 @@ class UserService {
       console.log('Username exists:', exists);
       return exists;
     } catch (error: any) {
-      console.error('Check username exists error:', error);
+      console.log('Check username exists error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -287,7 +287,7 @@ class UserService {
       console.log('Email exists:', exists);
       return exists;
     } catch (error: any) {
-      console.error('Check email exists error:', error);
+      console.log('Check email exists error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -336,7 +336,7 @@ class UserService {
       console.log('✅ Tạo URL upload thành công');
       return result;
     } catch (error: any) {
-      console.error('❌ Lỗi yêu cầu URL upload:', error);
+      console.log('❌ Lỗi yêu cầu URL upload:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }

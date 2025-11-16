@@ -4,7 +4,7 @@ import { Recipe } from "@/types/dish";
 import { recipeToDish } from "@/utils/recipeHelpers";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -38,6 +38,7 @@ export default function TrendingRecipes({
   onToggleLike,
 }: TrendingRecipesProps) {
   const router = useRouter();
+  const isLoadingRef = useRef(false);
   
   // Sử dụng collection manager hook
   const {
@@ -49,18 +50,23 @@ export default function TrendingRecipes({
     handleSaveRecipe: updateSavedCache,
   } = useCollectionManager();
 
-  // State để quản lý saveCount tạm thời trên UI
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(new Map());
 
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const paddingToEnd = 20;
+    const threshold = contentSize.width * 0.3;
+    
     if (
       layoutMeasurement.width + contentOffset.x >=
-      contentSize.width - paddingToEnd
+      contentSize.width - threshold
     ) {
-      if (hasMore && !isLoadingMore && onLoadMore) {
+      if (hasMore && !isLoadingMore && !isLoadingRef.current && onLoadMore) {
+        isLoadingRef.current = true;
         onLoadMore();
+        
+        setTimeout(() => {
+          isLoadingRef.current = false;
+        }, 1000);
       }
     }
   };
@@ -72,10 +78,8 @@ export default function TrendingRecipes({
   };
 
   const handleSaveSuccess = (recipeId: string, collectionId: string, newSaveCount: number) => {
-    // 1. Cập nhật saveCount trên UI
     setLocalSaveCounts(prev => new Map(prev).set(recipeId, newSaveCount));
     
-    // 2. Cập nhật cache (savedRecipes & recipeToCollectionMap)
     updateSavedCache(recipeId, collectionId);
   };
 
@@ -84,7 +88,6 @@ export default function TrendingRecipes({
   };
 
   const handleCreateNewCollection = () => {
-    // TODO: Điều hướng đến màn hình tạo bộ sưu tập
     router.push('/create-collection' as any);
   };
 
@@ -227,6 +230,7 @@ export default function TrendingRecipes({
         {isLoadingMore && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.loadingText}>Đang tải...</Text>
           </View>
         )}
       </ScrollView>
@@ -313,6 +317,11 @@ const styles = StyleSheet.create({
     height: 90,
     justifyContent: "center",
     alignItems: "center",
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 11,
+    color: Colors.text.secondary,
   },
   loadingSaved: {
     flexDirection: "row",
@@ -321,5 +330,4 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 8,
   },
-  loadingText: { color: Colors.text.secondary, fontSize: 13 },
 });

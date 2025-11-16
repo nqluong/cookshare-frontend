@@ -63,11 +63,11 @@ const CommentModal: React.FC<CommentModalProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const isConnected = useWebSocketStatus();
-  
+
   const totalComments = useMemo(
-  () => countAllCommentsRecursive(comments),
-  [comments]
-);
+    () => countAllCommentsRecursive(comments),
+    [comments]
+  );
 
   const sortedComments = useMemo(() => {
     const sorted = [...comments];
@@ -148,7 +148,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
       setComments(normalized);
       console.log('📥 Loaded', normalized.length, 'comments');
     } catch (error) {
-      console.error('❌ Load error:', error);
+      console.log('❌ Load error:', error);
       Alert.alert('Lỗi', 'Không thể tải bình luận');
     } finally {
       setLoading(false);
@@ -159,102 +159,102 @@ const CommentModal: React.FC<CommentModalProps> = ({
   // WEBSOCKET EVENTS
   // ========================================================================
   const handleNewComment = useCallback(
-  (data: any) => {
-    if (data.recipeId !== recipeId) return;
-    const newComment: CommentResponse = data.comment;
+    (data: any) => {
+      if (data.recipeId !== recipeId) return;
+      const newComment: CommentResponse = data.comment;
 
-    setComments((prev) => {
-      // Hàm đệ quy: tìm cha và thêm reply ở MỌI CẤP ĐỘ
-      const addReplyRecursively = (
-        comments: CommentWithExpandedReplies[]
-      ): { updated: boolean; comments: CommentWithExpandedReplies[] } => {
-        let updated = false;
-        
-        const newComments = comments.map((comment) => {
-          // Nếu comment này là cha trực tiếp → thêm reply
-          if (comment.commentId === newComment.parentCommentId) {
-            updated = true;
-            const updatedReplies = [...(comment.replies || []), newComment];
-            return {
-              ...comment,
-              replies: updatedReplies,
-              replyCount: (comment.replyCount || 0) + 1,
-              expandedRepliesCount: updatedReplies.length, // HIỆN TẤT CẢ
-            };
-          }
+      setComments((prev) => {
+        // Hàm đệ quy: tìm cha và thêm reply ở MỌI CẤP ĐỘ
+        const addReplyRecursively = (
+          comments: CommentWithExpandedReplies[]
+        ): { updated: boolean; comments: CommentWithExpandedReplies[] } => {
+          let updated = false;
 
-          // Nếu không phải cha → tìm đệ quy trong replies của nó
-          if (comment.replies && comment.replies.length > 0) {
-            const result = addReplyRecursively(comment.replies);
-            if (result.updated) {
+          const newComments = comments.map((comment) => {
+            // Nếu comment này là cha trực tiếp → thêm reply
+            if (comment.commentId === newComment.parentCommentId) {
               updated = true;
+              const updatedReplies = [...(comment.replies || []), newComment];
               return {
                 ...comment,
-                replies: result.comments,
+                replies: updatedReplies,
                 replyCount: (comment.replyCount || 0) + 1,
+                expandedRepliesCount: updatedReplies.length, // HIỆN TẤT CẢ
               };
             }
-          }
 
-          return comment;
-        });
+            // Nếu không phải cha → tìm đệ quy trong replies của nó
+            if (comment.replies && comment.replies.length > 0) {
+              const result = addReplyRecursively(comment.replies);
+              if (result.updated) {
+                updated = true;
+                return {
+                  ...comment,
+                  replies: result.comments,
+                  replyCount: (comment.replyCount || 0) + 1,
+                };
+              }
+            }
 
-        return { updated, comments: newComments };
-      };
+            return comment;
+          });
 
-      // Nếu là comment gốc
-      if (!newComment.parentCommentId) {
-        if (prev.some((c) => c.commentId === newComment.commentId)) return prev;
-        return [newComment, ...prev];
-      }
+          return { updated, comments: newComments };
+        };
 
-      // Nếu là reply → tìm cha ở mọi cấp
-      const result = addReplyRecursively(prev);
-      return result.updated ? result.comments : prev;
-    });
-  },
-  [recipeId]
-);
+        // Nếu là comment gốc
+        if (!newComment.parentCommentId) {
+          if (prev.some((c) => c.commentId === newComment.commentId)) return prev;
+          return [newComment, ...prev];
+        }
+
+        // Nếu là reply → tìm cha ở mọi cấp
+        const result = addReplyRecursively(prev);
+        return result.updated ? result.comments : prev;
+      });
+    },
+    [recipeId]
+  );
 
   const handleUpdateComment = useCallback(
-  (data: any) => {
-    if (data.recipeId !== recipeId) return;
-    const updated = data.comment;
-    const updateRecursively = (
-      comments: CommentWithExpandedReplies[]
-    ): CommentWithExpandedReplies[] => {
-      return comments.map((c) => {
-        if (c.commentId === updated.commentId) {
-          return { ...c, content: updated.content, updatedAt: updated.updatedAt };
-        }
-        if (c.replies) return { ...c, replies: updateRecursively(c.replies) };
-        return c;
-      });
-    };
-    setComments(updateRecursively);
-  },
-  [recipeId]
-);
+    (data: any) => {
+      if (data.recipeId !== recipeId) return;
+      const updated = data.comment;
+      const updateRecursively = (
+        comments: CommentWithExpandedReplies[]
+      ): CommentWithExpandedReplies[] => {
+        return comments.map((c) => {
+          if (c.commentId === updated.commentId) {
+            return { ...c, content: updated.content, updatedAt: updated.updatedAt };
+          }
+          if (c.replies) return { ...c, replies: updateRecursively(c.replies) };
+          return c;
+        });
+      };
+      setComments(updateRecursively);
+    },
+    [recipeId]
+  );
 
-const handleDeleteComment = useCallback(
-  (data: any) => {
-    if (data.recipeId !== recipeId) return;
-    const deletedId = data.comment.commentId;
-    const removeRecursively = (
-      comments: CommentWithExpandedReplies[]
-    ): CommentWithExpandedReplies[] => {
-      return comments
-        .filter((c) => c.commentId !== deletedId)
-        .map((c) => ({
-          ...c,
-          replies: c.replies ? removeRecursively(c.replies) : [],
-          replyCount: Math.max(0, (c.replyCount || 0) - 1),
-        }));
-    };
-    setComments(removeRecursively);
-  },
-  [recipeId]
-);
+  const handleDeleteComment = useCallback(
+    (data: any) => {
+      if (data.recipeId !== recipeId) return;
+      const deletedId = data.comment.commentId;
+      const removeRecursively = (
+        comments: CommentWithExpandedReplies[]
+      ): CommentWithExpandedReplies[] => {
+        return comments
+          .filter((c) => c.commentId !== deletedId)
+          .map((c) => ({
+            ...c,
+            replies: c.replies ? removeRecursively(c.replies) : [],
+            replyCount: Math.max(0, (c.replyCount || 0) - 1),
+          }));
+      };
+      setComments(removeRecursively);
+    },
+    [recipeId]
+  );
 
   // ========================================================================
   // WEBSOCKET SUBSCRIBE / UNSUBSCRIBE
@@ -300,7 +300,7 @@ const handleDeleteComment = useCallback(
       });
 
       setReplyingTo(null);
-      
+
       // Scroll to new comment
       if (replyingTo) {
         setScrollToCommentId(replyingTo.commentId);
@@ -308,7 +308,7 @@ const handleDeleteComment = useCallback(
         setScrollToCommentId(newComment.commentId);
       }
     } catch (error: any) {
-      console.error('❌ Submit error:', error);
+      console.log('❌ Submit error:', error);
       Alert.alert('Lỗi', error.message || 'Không thể gửi bình luận');
       setCommentText(text);
     } finally {
@@ -335,7 +335,7 @@ const handleDeleteComment = useCallback(
           try {
             await commentService.deleteComment(comment.commentId);
           } catch (error) {
-            console.error('❌ Delete error:', error);
+            console.log('❌ Delete error:', error);
             Alert.alert('Lỗi', 'Không thể xóa bình luận');
           }
         },
@@ -347,29 +347,29 @@ const handleDeleteComment = useCallback(
   // EXPAND/COLLAPSE REPLIES
   // ========================================================================
   const handleExpandReplies = (commentId: string) => {
-  const expandRecursive = (comments: CommentWithExpandedReplies[]): CommentWithExpandedReplies[] => {
-    return comments.map((c) => {
-      if (c.commentId === commentId) {
-        return {
-          ...c,
-          expandedRepliesCount: Math.min(
-            (c.expandedRepliesCount || 0) + 5,
-            c.replies?.length || 0
-          ),
-        };
-      }
-      if (c.replies && c.replies.length > 0) {
-        return {
-          ...c,
-          replies: expandRecursive(c.replies),
-        };
-      }
-      return c;
-    });
-  };
+    const expandRecursive = (comments: CommentWithExpandedReplies[]): CommentWithExpandedReplies[] => {
+      return comments.map((c) => {
+        if (c.commentId === commentId) {
+          return {
+            ...c,
+            expandedRepliesCount: Math.min(
+              (c.expandedRepliesCount || 0) + 5,
+              c.replies?.length || 0
+            ),
+          };
+        }
+        if (c.replies && c.replies.length > 0) {
+          return {
+            ...c,
+            replies: expandRecursive(c.replies),
+          };
+        }
+        return c;
+      });
+    };
 
-  setComments((prev) => expandRecursive(prev));
-};
+    setComments((prev) => expandRecursive(prev));
+  };
 
 
   // ========================================================================

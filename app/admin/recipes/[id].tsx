@@ -29,7 +29,7 @@ export default function RecipeDetailScreen() {
       const data = await adminRecipeService.getRecipeDetail(id as string);
       setRecipeDetail(data);
     } catch (error: any) {
-      console.error('Error loading recipe detail:', error);
+      console.log('Error loading recipe detail:', error);
       showError('Lỗi', 'Không thể tải chi tiết công thức');
     } finally {
       setLoading(false);
@@ -42,7 +42,7 @@ export default function RecipeDetailScreen() {
 
   const handleApprove = (recipeId: string) => {
     if (!recipeDetail) return;
-    
+
     showWarning(
       'Phê duyệt công thức',
       `Bạn có chắc chắn muốn phê duyệt công thức "${recipeDetail.title}"?`,
@@ -67,7 +67,7 @@ export default function RecipeDetailScreen() {
 
   const handleReject = (recipeId: string) => {
     if (!recipeDetail) return;
-    
+
     showWarning(
       'Từ chối công thức',
       `Bạn có chắc chắn muốn từ chối công thức "${recipeDetail.title}"?`,
@@ -92,7 +92,7 @@ export default function RecipeDetailScreen() {
 
   const handleDelete = (recipeId: string) => {
     if (!recipeDetail) return;
-    
+
     showError(
       'Xóa công thức',
       `Bạn có chắc chắn muốn xóa công thức "${recipeDetail.title}"?`,
@@ -117,7 +117,7 @@ export default function RecipeDetailScreen() {
 
   const handleToggleFeatured = async (recipeId: string) => {
     if (!recipeDetail) return;
-    
+
     try {
       await adminRecipeService.setFeaturedRecipe(recipeId, !recipeDetail.isFeatured);
       await loadRecipeDetail();
@@ -129,7 +129,7 @@ export default function RecipeDetailScreen() {
 
   const handleTogglePublished = async (recipeId: string) => {
     if (!recipeDetail) return;
-    
+
     try {
       await adminRecipeService.setPublishedRecipe(recipeId, !recipeDetail.isPublished);
       await loadRecipeDetail();

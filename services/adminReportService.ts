@@ -46,7 +46,7 @@ class AdminReportService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Response error:', {
+        console.log('Response error:', {
           status: response.status,
           body: errorText
         });
@@ -54,7 +54,7 @@ class AdminReportService {
       }
 
       const result = await response.json();
-      
+
       if (!result || typeof result !== 'object') {
         throw new Error('Invalid response: not an object');
       }
@@ -63,14 +63,14 @@ class AdminReportService {
         console.log('Direct response detected, returning as is');
         return result as T;
       }
-      
+
       if (!('data' in result)) {
         throw new Error('Invalid response: missing data field');
       }
 
       return result.data;
     } catch (error: any) {
-      console.error(`Error in fetch request to ${url}:`, error);
+      console.log(`Error in fetch request to ${url}:`, error);
       if (error.name === 'AbortError') {
         throw new Error('Request timeout');
       }

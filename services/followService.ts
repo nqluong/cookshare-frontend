@@ -47,7 +47,7 @@ class FollowService {
       console.log('Follow successful');
       return result;
     } catch (error: any) {
-      console.error('Follow error:', error);
+      console.log('Follow error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -85,7 +85,7 @@ class FollowService {
       console.log('Unfollow successful');
       return result;
     } catch (error: any) {
-      console.error('Unfollow error:', error);
+      console.log('Unfollow error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -126,7 +126,7 @@ class FollowService {
       console.log('Get followers successful, count:', result.data.totalElements);
       return result;
     } catch (error: any) {
-      console.error('Get followers error:', error);
+      console.log('Get followers error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -167,7 +167,7 @@ class FollowService {
       console.log('Get following successful, count:', result.data.totalElements);
       return result;
     } catch (error: any) {
-      console.error('Get following error:', error);
+      console.log('Get following error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }
@@ -208,7 +208,7 @@ class FollowService {
       console.log('Follow status:', result.data);
       return result;
     } catch (error: any) {
-      console.error('Check follow status error:', error);
+      console.log('Check follow status error:', error);
       if (error.name === 'AbortError') {
         throw new Error('Timeout - Không thể kết nối đến server');
       }

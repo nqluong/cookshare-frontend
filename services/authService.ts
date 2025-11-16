@@ -34,7 +34,22 @@ class AuthService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "Đăng nhập thất bại");
+        let errorMessage = "Đăng nhập thất bại";
+
+        try {
+          const errorData = JSON.parse(errorText);
+          // Kiểm tra error code từ backend
+          if (errorData.code === 4002 || errorData.message?.includes("không hoạt động")) {
+            errorMessage = "Tài khoản này đã bị khóa";
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // Nếu không parse được JSON, dùng errorText hoặc message mặc định
+          errorMessage = errorText || errorMessage;
+        }
+
+        throw new Error(errorMessage);
       }
 
       const responseData = await response.json();
@@ -61,7 +76,8 @@ class AuthService {
         user: responseData.user,
       };
     } catch (error: any) {
-      console.error("Login error:", error);
+      // Log ngắn gọn, chỉ log message thay vì toàn bộ error object
+      console.log("❌ Login error:", error.message || error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -99,7 +115,7 @@ class AuthService {
       console.log("Register successful");
       return message;
     } catch (error: any) {
-      console.error("Register error:", error);
+      console.log("Register error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -114,7 +130,7 @@ class AuthService {
       const decodedPayload = JSON.parse(atob(payload));
       return decodedPayload;
     } catch (error) {
-      console.error("Token decode error:", error);
+      console.log("Token decode error:", error);
       return null;
     }
   }
@@ -133,7 +149,7 @@ class AuthService {
         console.log('⚠️ No refresh_token found in Set-Cookie header');
       }
     } catch (error) {
-      console.error('❌ Error saving refresh token:', error);
+      console.log('❌ Error saving refresh token:', error);
     }
   }
 
@@ -142,7 +158,7 @@ class AuthService {
     try {
       return await AsyncStorage.getItem("refresh_token");
     } catch (error) {
-      console.error("Error getting refresh token:", error);
+      console.log("Error getting refresh token:", error);
       return null;
     }
   }
@@ -152,7 +168,7 @@ class AuthService {
       await AsyncStorage.setItem('access_token', token);
       await AsyncStorage.setItem('authToken', token);
     } catch (error) {
-      console.error("Error saving access token:", error);
+      console.log("Error saving access token:", error);
     }
   }
 
@@ -160,7 +176,7 @@ class AuthService {
     try {
       return await AsyncStorage.getItem("access_token");
     } catch (error) {
-      console.error("Error getting access token:", error);
+      console.log("Error getting access token:", error);
       return null;
     }
   }
@@ -170,7 +186,7 @@ class AuthService {
       await AsyncStorage.removeItem('access_token');
       await AsyncStorage.removeItem('authToken');
     } catch (error) {
-      console.error("Error clearing access token:", error);
+      console.log("Error clearing access token:", error);
     }
   }
 
@@ -179,7 +195,7 @@ class AuthService {
       await AsyncStorage.setItem("user_data", JSON.stringify(user));
       console.log("User info saved to AsyncStorage");
     } catch (error) {
-      console.error("Error saving user info:", error);
+      console.log("Error saving user info:", error);
     }
   }
 
@@ -188,7 +204,7 @@ class AuthService {
       const userData = await AsyncStorage.getItem("user_data");
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
-      console.error("Error getting user info:", error);
+      console.log("Error getting user info:", error);
       return null;
     }
   }
@@ -237,7 +253,7 @@ class AuthService {
       console.log('❌ Refresh failed, session invalid');
       return false;
     } catch (error) {
-      console.error('❌ Error checking session:', error);
+      console.log('❌ Error checking session:', error);
       return false;
     }
   }
@@ -250,7 +266,7 @@ class AuthService {
       await this.clearAccessToken();
       console.log('User info cleared');
     } catch (error) {
-      console.error("Error clearing user info:", error);
+      console.log("Error clearing user info:", error);
     }
   }
 
@@ -274,7 +290,7 @@ class AuthService {
       await this.clearUserInfo();
       console.log("Logout successful");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.log('Logout error:', error);
       await this.clearUserInfo();
     }
   }
@@ -298,7 +314,7 @@ class AuthService {
 
       console.log(`✅ ${provider} login data saved successfully`);
     } catch (error) {
-      console.error(`❌ Error saving ${provider} login data:`, error);
+      console.log(`❌ Error saving ${provider} login data:`, error);
       throw error;
     }
   }
@@ -318,7 +334,7 @@ class AuthService {
 
       return await response.text();
     } catch (error: any) {
-      console.error('Verify email error:', error);
+      console.log('Verify email error:', error);
       throw error;
     }
   }
@@ -337,7 +353,7 @@ class AuthService {
 
       return await response.text();
     } catch (error: any) {
-      console.error('Verify OTP error:', error);
+      console.log('Verify OTP error:', error);
       throw error;
     }
   }
@@ -357,7 +373,7 @@ class AuthService {
 
       return await response.text();
     } catch (error: any) {
-      console.error('Reset password error:', error);
+      console.log('Reset password error:', error);
       throw error;
     }
   }
@@ -392,7 +408,82 @@ class AuthService {
 
       return await response.text();
     } catch (error: any) {
-      console.error("Change password error:", error);
+      console.log("Change password error:", error);
+      if (error.name === "AbortError") {
+        throw new Error("Timeout - Không thể kết nối đến server");
+      }
+      throw error;
+    }
+  }
+
+  // Email Verification Methods
+  async sendEmailVerificationOtp(): Promise<string> {
+    try {
+      const accessToken = await this.getAccessToken();
+      if (!accessToken) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${API_BASE_URL}/api/email-verification/send-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Gửi mã OTP thất bại");
+      }
+
+      return await response.text();
+    } catch (error: any) {
+      console.log("Send email verification OTP error:", error);
+      if (error.name === "AbortError") {
+        throw new Error("Timeout - Không thể kết nối đến server");
+      }
+      throw error;
+    }
+  }
+
+  async verifyEmailOtp(otp: string): Promise<string> {
+    try {
+      const accessToken = await this.getAccessToken();
+      if (!accessToken) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${API_BASE_URL}/api/email-verification/verify-otp/${otp}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        credentials: 'include',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Xác thực OTP thất bại");
+      }
+
+      return await response.text();
+    } catch (error: any) {
+      console.log("Verify email OTP error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }

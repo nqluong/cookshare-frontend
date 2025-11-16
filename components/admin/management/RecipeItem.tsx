@@ -129,7 +129,7 @@ export default function RecipeItem({
           </TouchableOpacity>
         )}
 
-        {onTogglePublished && (
+        {/* {onTogglePublished && (
           <TouchableOpacity
             style={[styles.actionButton, styles.publishedButton]}
             onPress={() => {
@@ -142,7 +142,7 @@ export default function RecipeItem({
               color="#10b981"
             />
           </TouchableOpacity>
-        )}
+        )} */}
 
         <TouchableOpacity
           style={styles.actionButton}
