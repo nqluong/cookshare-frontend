@@ -144,14 +144,14 @@ export default function RecipeItem({
           </TouchableOpacity>
         )} */}
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.actionButton}
           onPress={() => {
             onEdit(recipe.recipeId);
           }}
         >
           <Ionicons name="create-outline" size={18} color={Colors.text.secondary} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           style={styles.actionButton}

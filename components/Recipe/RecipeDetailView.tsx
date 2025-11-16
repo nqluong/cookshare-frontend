@@ -162,7 +162,12 @@ export default function RecipeDetailView({
           style={styles.authorRow}
           onPress={() => {
             if (router && authorInfo?.userId) {
-              router.push(`/profile/${authorInfo.userId}`);
+              // Nếu là profile của chính mình, navigate tới (tabs)/profile, nếu không thì public profile
+              if (currentUserId === authorInfo.userId) {
+                router.push('/(tabs)/profile');
+              } else {
+                router.push(`/profile/${authorInfo.userId}`);
+              }
             }
           }}
         >

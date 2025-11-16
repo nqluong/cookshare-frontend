@@ -335,13 +335,13 @@ export default function RecipeDetailContent({
           </TouchableOpacity>
         )}
         
-        <TouchableOpacity 
+        {/* <TouchableOpacity 
           style={[styles.actionButton, styles.editButton]}
           onPress={() => onEdit(recipeDetail.recipeId)}
         >
           <Ionicons name="create-outline" size={16} color="#3b82f6" />
           <Text style={[styles.actionButtonText, { color: "#3b82f6" }]}>Chỉnh sửa</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         
         <TouchableOpacity 
           style={[styles.actionButton, styles.deleteButton]}

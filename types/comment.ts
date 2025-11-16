@@ -3,6 +3,7 @@ export interface CommentResponse {
   recipeId: string;
   userId: string;
   userName: string;
+  fullName: string;
   userAvatar: string | null;
   content: string;
   parentCommentId: string | null;

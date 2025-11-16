@@ -440,22 +440,14 @@ export default function AddRecipeScreen({ navigation }: any) {
       return category != null;
     });
 
-    // Validate ingredients with quantity and unit
+    // Validate ingredients - có thể không cần nhập số lượng/đơn vị
     const validIngredients = selectedIngredients.filter(ingredient => {
       const ingredientExists = ingredients.find((i: ListItem) => i.id === ingredient.id);
-      const hasQuantity = ingredient.quantity && ingredient.quantity.trim() !== '';
-      const hasUnit = ingredient.unit && ingredient.unit.trim() !== '';
-      
-      if (ingredientExists && (!hasQuantity || !hasUnit)) {
-        Alert.alert("Thiếu thông tin", `Vui lòng nhập đầy đủ số lượng và đơn vị cho nguyên liệu: ${ingredientExists.name}`);
-        return false;
-      }
-      
-      return ingredientExists != null && hasQuantity && hasUnit;
+      return ingredientExists != null;
     });
     
     if (validIngredients.length === 0) {
-      Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu hợp lệ và nhập đầy đủ số lượng, đơn vị!");
+      Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu!");
       return;
     }
     
@@ -494,11 +486,20 @@ export default function AddRecipeScreen({ navigation }: any) {
         tagIds: validTags,
         userId: user.userId,
         status: "PENDING",
-        ingredientDetails: validIngredients.map((ing: SelectedIngredient) => ({
-          ingredientId: ing.id,
-          quantity: parseFloat(ing.quantity),
-          unit: ing.unit
-        })),
+        ingredientDetails: validIngredients.map((ing: SelectedIngredient) => {
+          // Xử lý quantity: nếu không nhập hoặc NaN, mặc định là 0
+          const quantity = ing.quantity && ing.quantity.trim() !== '' 
+            ? parseFloat(ing.quantity) 
+            : 0;
+          // Xử lý unit: nếu không nhập, mặc định là chuỗi rỗng
+          const unit = ing.unit && ing.unit.trim() !== '' ? ing.unit : '';
+          
+          return {
+            ingredientId: ing.id,
+            quantity: isNaN(quantity) ? 0 : quantity,
+            unit: unit
+          };
+        }),
         steps: stepsWithImages
       };
       
