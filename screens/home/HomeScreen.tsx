@@ -1,21 +1,20 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Components
 import LikedRecipes from '@/components/home/LikedRecipes';
 import RecipeFollowing from '@/components/home/RecipeFollowing';
-import RecipeCard from '../../components/Search/RecipeCard';
 import FeaturedDish from '../../components/home/FeaturedDish';
 import SearchBar from '../../components/home/SearchBar';
+import SearchResults from '../../components/home/SearchResult';
 import TabBar from '../../components/home/TabBar';
 import NewestRecipes from '../../components/home/sections/NewestRecipes';
 import PopularRecipes from '../../components/home/sections/PopularRecipes';
@@ -24,19 +23,18 @@ import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
 
 // Services & Hooks
 import {
-    getLikedRecipes,
-    getNewestRecipes,
-    getPopularRecipes,
-    getRecipebyFollowing,
-    getTopRatedRecipes,
-    getTrendingRecipes,
+  getLikedRecipes,
+  getNewestRecipes,
+  getPopularRecipes,
+  getRecipebyFollowing,
+  getTopRatedRecipes,
+  getTrendingRecipes,
 } from '../../services/homeService';
 import { useRecipePagination } from '../../services/useRecipePagination';
 import { useRecipeLike } from '../../services/userRecipeLike';
 
 // Types & Styles
 import { SearchHistoryItem } from '@/types/search';
-import { searchStyles } from '../../styles/SearchStyles';
 import { Colors } from '../../styles/colors';
 import { Recipe as DishRecipe } from '../../types/dish';
 import { Recipe as SearchRecipe } from '../../types/search';
@@ -128,19 +126,20 @@ export default function HomeScreen() {
     router.push(`/_recipe-detail/${recipe.recipeId}` as any);
   };
 
- const handleSearch = (
-  reset = true,
-  requestedPage?: number,
-  queryOverride?: string
-) => {
-  if (queryOverride !== undefined) {
-    viewModel.updateCurrentStates({ searchQuery: queryOverride });
-    viewModel.handleSearch(reset, requestedPage, queryOverride);
-  } else {
-    viewModel.updateCurrentStates({ searchQuery, searchPage });
-    viewModel.handleSearch(reset, requestedPage);
-  }
-};
+  const handleSearch = (
+    reset = true,
+    requestedPage?: number,
+    queryOverride?: string
+  ) => {
+    if (queryOverride !== undefined) {
+      viewModel.updateCurrentStates({ searchQuery: queryOverride });
+      viewModel.handleSearch(reset, requestedPage, queryOverride);
+    } else {
+      viewModel.updateCurrentStates({ searchQuery, searchPage });
+      viewModel.handleSearch(reset, requestedPage);
+    }
+  };
+
   const handleToggleLike = (recipeId: string) => {
     viewModel.updateCurrentStates({ activeTab });
     viewModel.toggleLike(recipeId, dailyRecommendations, featuredRecipes);
@@ -181,7 +180,7 @@ export default function HomeScreen() {
         onSearch={handleSearch}
         onGetSuggestions={(query) => viewModel.fetchUserSuggestions(query)}
         showSuggestions={!hasSearched}
-/>
+      />
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} onPress={() => setHasSearched(false)} />
 
       {hasSearched ? (
@@ -217,68 +216,6 @@ export default function HomeScreen() {
         />
       )}
     </SafeAreaView>
-  );
-}
-
-// Search Results Component
-function SearchResults({
-  recipes,
-  searchPage,
-  hasMoreSearch,
-  loading,
-  onPageChange,
-  onReset,
-}: {
-  recipes: SearchRecipe[];
-  searchPage: number;
-  hasMoreSearch: boolean;
-  loading: boolean;
-  onPageChange: (page: number) => void;
-  onReset: () => void;
-}) {
-  return (
-    <FlatList
-      data={recipes}
-      renderItem={({ item }) => (
-    <RecipeCard 
-      item={item} 
-      isUserResult={!!item.userId && !item.recipeId} 
-    />
-  )}
-      keyExtractor={(item) => item.recipeId || item.userId}
-      contentContainerStyle={searchStyles.listContainer}
-      showsVerticalScrollIndicator={false}
-      ListFooterComponent={
-        <View style={{ alignItems: 'center', marginVertical: 20 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-            {searchPage > 0 && (
-              <TouchableOpacity
-                style={[styles.paginationButton, loading && { opacity: 0.6 }]}
-                onPress={() => onPageChange(searchPage - 1)}
-                disabled={loading}
-              >
-                <Text style={styles.paginationButtonText}>Trang trước</Text>
-              </TouchableOpacity>
-            )}
-            <Text style={styles.pageIndicator}>Trang {searchPage + 1}</Text>
-            {hasMoreSearch && (
-              <TouchableOpacity
-                style={[styles.paginationButton, loading && { opacity: 0.6 }]}
-                onPress={() => onPageChange(searchPage + 1)}
-                disabled={loading}
-              >
-                <Text style={styles.paginationButtonText}>Trang sau</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          {recipes.length > 0 && (
-            <TouchableOpacity style={styles.resetButton} onPress={onReset}>
-              <Text style={styles.paginationButtonText}>Về trang đầu</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      }
-    />
   );
 }
 
@@ -410,7 +347,7 @@ function MainContent({
       keyExtractor={(item) => item.id}
       showsVerticalScrollIndicator={false}
       ListFooterComponent={<View style={styles.bottomPadding} />}
-      removeClippedSubviews={false} // Important for nested horizontal lists
+      removeClippedSubviews={false}
       contentContainerStyle={styles.flatListContent}
     />
   );
@@ -452,27 +389,5 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '600',
     textDecorationLine: 'underline',
-  },
-  paginationButton: {
-    backgroundColor: '#fbbc05',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginHorizontal: 5,
-  },
-  paginationButtonText: {
-    color: '#fff',
-  },
-  pageIndicator: {
-    marginHorizontal: 10,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  resetButton: {
-    backgroundColor: '#666',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 10,
   },
 });
