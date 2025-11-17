@@ -1,5 +1,6 @@
 import { commentService } from "@/services/commentService";
 import { CommentResponse } from "@/types/comment";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { getImageUrl } from "../../config/api.config";
@@ -67,6 +68,10 @@ type Props = {
   onBack: () => void;
   onSearch: () => void;
 };
+type RecipeDetailParams = {
+  openComments?: string;
+  focusCommentId?: string;
+};
 
 export default function RecipeDetailView({
   recipe,
@@ -75,8 +80,10 @@ export default function RecipeDetailView({
   currentUserAvatar,
   router,
 }: Props) {
+  const params = useLocalSearchParams<RecipeDetailParams>();
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
 
   // Debug
   useEffect(() => {
@@ -105,6 +112,15 @@ export default function RecipeDetailView({
 
     loadCommentCount();
   }, [recipe?.id]);
+
+  useEffect(() => {
+    if (params.openComments === 'true') {
+      setCommentModalVisible(true);
+      if (params.focusCommentId) {
+        setFocusCommentId(params.focusCommentId as string);
+      }
+    }
+  }, [params.openComments, params.focusCommentId]);
 
   const getDifficultyLabel = (difficulty?: string) => {
     switch (difficulty?.toLowerCase()) {
@@ -290,11 +306,15 @@ export default function RecipeDetailView({
       {/* Comment Modal */}
       <CommentModal
         visible={commentModalVisible}
-        onClose={() => setCommentModalVisible(false)}
+        onClose={() => {
+          setCommentModalVisible(false);
+          setFocusCommentId(null);
+        }}
         recipeId={recipe.id}
         currentUserId={currentUserId}
         currentUserAvatar={currentUserAvatar}
         onCommentCountChange={setCommentCount}
+        focusCommentId={focusCommentId}
       />
     </View>
   );

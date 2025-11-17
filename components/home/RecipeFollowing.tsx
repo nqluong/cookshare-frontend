@@ -1,13 +1,19 @@
-import { useCollectionManager } from '@/hooks/useCollectionManager';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getImageUrl } from '../../config/api.config';
-import { Colors } from '../../styles/colors';
-import { Recipe } from '../../types/dish';
-import { CachedImage } from '../ui/CachedImage';
-import RecipeSaveButton from './RecipeSaveButton';
+import { CollectionUserDto } from "@/types/collection.types";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { getImageUrl } from "../../config/api.config";
+import { Colors } from "../../styles/colors";
+import { Recipe } from "../../types/dish";
+import { CachedImage } from "../ui/CachedImage";
+import RecipeSaveButton from "./RecipeSaveButton";
 
 interface LikedRecipesProps {
   recipes: Recipe[]; // Danh sách công thức đã thích từ API
@@ -18,6 +24,17 @@ interface LikedRecipesProps {
   likedRecipes?: Set<string>;
   likingRecipeId?: string | null;
   onToggleLike?: (recipeId: string) => Promise<void>;
+  isSaved: (recipeId: string) => boolean;
+  savedVersion: number;
+  collections: CollectionUserDto[];
+  userUUID: string;
+  isLoadingSaved: boolean;
+  handleUnsaveRecipe: (
+    recipeId: string,
+    currentSaveCount: number,
+    onSuccess: (newSaveCount: number) => void
+  ) => Promise<void>;
+  updateSavedCache: (recipeId: string, collectionId: string) => void;
 }
 
 // Component hiển thị danh sách công thức đã thích
@@ -30,22 +47,21 @@ export default function LikedRecipes({
   likedRecipes = new Set<string>(),
   likingRecipeId,
   onToggleLike,
+  isSaved,
+  savedVersion,
+  collections,
+  userUUID,
+  isLoadingSaved,
+  handleUnsaveRecipe,
+  updateSavedCache,
 }: LikedRecipesProps) {
   const router = useRouter();
-  // Sử dụng collection manager hook
-  const {
-    isSaved,
-    collections,
-    userUUID,
-    isLoadingSaved,
-    handleUnsaveRecipe,
-    handleSaveRecipe: updateSavedCache,
-  } = useCollectionManager();
 
   // State để quản lý saveCount tạm thời trên UI
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
     new Map()
   );
+  useEffect(() => {}, [savedVersion]);
   const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
     // ✅ Kiểm tra đang loading hoặc không có callback
@@ -57,10 +73,14 @@ export default function LikedRecipes({
 
   const getDifficultyText = (difficulty: string) => {
     switch (difficulty) {
-      case 'EASY': return 'Dễ';
-      case 'MEDIUM': return 'Trung bình';
-      case 'HARD': return 'Khó';
-      default: return difficulty;
+      case "EASY":
+        return "Dễ";
+      case "MEDIUM":
+        return "Trung bình";
+      case "HARD":
+        return "Khó";
+      default:
+        return difficulty;
     }
   };
 
@@ -268,7 +288,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.text.primary,
     marginBottom: 16,
     paddingTop: 8,
@@ -277,28 +297,28 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 16,
     marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   imageWrapper: {
-    width: '100%',
+    width: "100%",
     height: 200,
-    position: 'relative',
+    position: "relative",
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   content: {
     padding: 16,
   },
   recipeName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.text.primary,
     marginBottom: 12,
     lineHeight: 22,
@@ -308,12 +328,12 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   loadMoreContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 16,
   },
   loadMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -321,7 +341,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.primary,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -330,7 +350,7 @@ const styles = StyleSheet.create({
   loadMoreText: {
     fontSize: 14,
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   loadingLikeButton: {
     opacity: 0.7,
@@ -383,10 +403,10 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.gray[100],
   },
 });

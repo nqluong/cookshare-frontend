@@ -1,13 +1,13 @@
-import { useCollectionManager } from "@/hooks/useCollectionManager";
+import { CollectionUserDto } from "@/types/collection.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { getImageUrl } from "../../../config/api.config";
 import { Colors } from "../../../styles/colors";
@@ -25,6 +25,17 @@ interface NewestRecipesProps {
   likedRecipes?: Set<string>;
   likingRecipeId?: string | null;
   onToggleLike?: (recipeId: string) => Promise<void>;
+  isSaved: (recipeId: string) => boolean;
+  savedVersion: number;
+  collections: CollectionUserDto[];
+  userUUID: string;
+  isLoadingSaved: boolean;
+  handleUnsaveRecipe: (
+    recipeId: string,
+    currentSaveCount: number,
+    onSuccess: (newSaveCount: number) => void
+  ) => Promise<void>;
+  updateSavedCache: (recipeId: string, collectionId: string) => void;
 }
 
 export default function NewestRecipes({
@@ -36,22 +47,20 @@ export default function NewestRecipes({
   likedRecipes = new Set<string>(),
   likingRecipeId,
   onToggleLike,
+  isSaved,
+  savedVersion,
+  collections,
+  userUUID,
+  isLoadingSaved,
+  handleUnsaveRecipe,
+  updateSavedCache,
 }: NewestRecipesProps) {
   const router = useRouter();
-
-  const {
-    isSaved,
-    collections,
-    userUUID,
-    isLoadingSaved,
-    handleUnsaveRecipe,
-    handleSaveRecipe: updateSavedCache,
-  } = useCollectionManager();
 
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
     new Map()
   );
-
+  useEffect(() => {}, [savedVersion]);
   const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
 

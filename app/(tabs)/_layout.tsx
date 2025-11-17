@@ -93,7 +93,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="_recipe-detail/[id]"
         options={{
-          href: null, // Hide from tab bar (đủ rồi, không cần tabBarButton)
+          href: null,
         }}
       />
       <Tabs.Screen

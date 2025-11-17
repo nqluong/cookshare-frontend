@@ -1,4 +1,5 @@
 // app/notifications/index.tsx
+import { getImageUrl } from '@/config/api.config';
 import { useAuth } from '@/context/AuthContext';
 import { notificationService } from '@/services/notificationService';
 import websocketService from '@/services/websocketService';
@@ -6,11 +7,14 @@ import { Colors } from '@/styles/colors';
 import { Notification, NotificationType } from '@/types/notification';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
+  Image,
+  PanResponder,
   RefreshControl,
   StyleSheet,
   Text,
@@ -18,6 +22,288 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// SwipeableNotificationItem Component
+const SwipeableNotificationItem = ({ 
+  item, 
+  onPress, 
+  onDelete 
+}: { 
+  item: Notification; 
+  onPress: () => void; 
+  onDelete: () => void;
+}) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const [showDelete, setShowDelete] = useState(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          translateX.setValue(Math.max(gestureState.dx, -80));
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -40) {
+          Animated.spring(translateX, {
+            toValue: -80,
+            useNativeDriver: true,
+          }).start();
+          setShowDelete(true);
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+          setShowDelete(false);
+        }
+      },
+    })
+  ).current;
+
+  const handleDelete = () => {
+    Animated.timing(translateX, {
+      toValue: -400,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      onDelete();
+    });
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return 'Vừa xong';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} phút`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)} ngày`;
+    
+    const month = date.toLocaleString('vi-VN', { month: 'short', day: 'numeric' });
+    return month;
+  };
+
+  const renderContent = () => {
+    const avatarUrl = item.actorAvatar || 'https://i.pravatar.cc/150';
+
+    switch (item.type) {
+      case NotificationType.FOLLOW:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: getImageUrl(avatarUrl) }}
+                style={styles.avatar}
+              />
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
+                {' đã bắt đầu theo dõi bạn. '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.followButton}>
+              <Text style={styles.followButtonText}>Theo dõi lại</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case NotificationType.COMMENT:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatar}
+              />
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
+                {' đã bình luận về công thức của bạn. '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+            {item.recipeImage && (
+              <Image
+                source={{ uri: getImageUrl(item.recipeImage) }}
+                style={styles.recipeThumb}
+              />
+            )}
+          </View>
+        );
+
+      case NotificationType.MENTION:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatar}
+              />
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
+                {' đã trả lời bình luận của bạn. '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+            {item.recipeImage && (
+              <Image
+                source={{ uri: getImageUrl(item.recipeImage) }}
+                style={styles.recipeThumb}
+              />
+            )}
+          </View>
+        );
+
+      case NotificationType.LIKE:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatar}
+              />
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
+                {' đã thích công thức của bạn. '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+            {item.recipeImage && (
+              <Image
+                source={{ uri: getImageUrl(item.recipeImage) }}
+                style={styles.recipeThumb}
+              />
+            )}
+          </View>
+        );
+
+      case NotificationType.RECIPE_PUBLISHED:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatar}
+              />
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
+                {' vừa đăng công thức mới'}
+                {item.recipeTitle && (
+                  <>
+                    {': "'}
+                    <Text style={styles.recipeTitle}>{item.recipeTitle}</Text>
+                    {'"'}
+                  </>
+                )}
+                {'. '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+            {item.recipeImage && (
+              <Image
+                source={{ uri: getImageUrl(item.recipeImage) }}
+                style={styles.recipeThumb}
+              />
+            )}
+          </View>
+        );
+
+      case NotificationType.SYSTEM:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <View style={[styles.avatar, styles.systemAvatar]}>
+                <Ionicons name="notifications" size={24} color={Colors.primary} />
+              </View>
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                {item.message}
+                {' '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+            {item.recipeImage && (
+              <Image
+                source={{ uri: getImageUrl(item.recipeImage) }}
+                style={styles.recipeThumb}
+              />
+            )}
+          </View>
+        );
+
+      default:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatar}
+              />
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                {item.message}
+                {' '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+          </View>
+        );
+    }
+  };
+
+  return (
+    <View style={styles.swipeContainer}>
+      <View style={styles.deleteContainer}>
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={handleDelete}
+        >
+          <Text style={styles.deleteText}>Xóa</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <Animated.View
+        style={[
+          styles.notificationItem,
+          !item.isRead && styles.unreadNotification,
+          { transform: [{ translateX }] },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <TouchableOpacity
+          style={styles.notificationTouchable}
+          onPress={onPress}
+          activeOpacity={0.9}
+        >
+          {renderContent()}
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+};
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -31,6 +317,7 @@ export default function NotificationsScreen() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
 
   // Lấy danh sách thông báo
   const fetchNotifications = async (pageNum: number = 0, isRefresh: boolean = false) => {
@@ -100,8 +387,6 @@ export default function NotificationsScreen() {
 
         // Update unread count
         setUnreadCount((prev) => prev + 1);
-
-        // Show local notification badge (optional)
         console.log('✅ New notification added to list');
       }
     };
@@ -197,54 +482,25 @@ export default function NotificationsScreen() {
     }
   };
 
-  // Đánh dấu tất cả thông báo là đã đọc
-  const markAllAsRead = async () => {
-    if (!userId || unreadCount === 0) return;
-
-    try {
-      const updatedCount = await notificationService.markAllAsRead(userId);
-
-      // Update local state (WebSocket will also update it)
-      setNotifications((prev) =>
-        prev.map((notif) => ({ ...notif, isRead: true, readAt: new Date().toISOString() }))
-      );
-      setUnreadCount(0);
-
-      Alert.alert('Thành công', `Đã đánh dấu ${updatedCount} thông báo là đã đọc`);
-    } catch (error: any) {
-      console.log('❌ Error marking all as read:', error);
-      Alert.alert('Lỗi', error.message || 'Không thể cập nhật thông báo');
-    }
-  };
-
   // Xóa một thông báo
-  const deleteNotification = (notificationId: string) => {
+  const deleteNotification = async (notificationId: string) => {
     if (!userId) return;
 
-    Alert.alert('Xác nhận', 'Bạn có chắc muốn xóa thông báo này?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await notificationService.deleteNotification(userId, notificationId);
+    try {
+      await notificationService.deleteNotification(userId, notificationId);
 
-            // Update local state (WebSocket will also update it)
-            setNotifications((prev) => {
-              const deletedNotif = prev.find((n) => n.notificationId === notificationId);
-              if (deletedNotif && !deletedNotif.isRead) {
-                setUnreadCount((count) => Math.max(0, count - 1));
-              }
-              return prev.filter((notif) => notif.notificationId !== notificationId);
-            });
-          } catch (error: any) {
-            console.log('❌ Error deleting notification:', error);
-            Alert.alert('Lỗi', error.message || 'Không thể xóa thông báo');
-          }
-        },
-      },
-    ]);
+      // Update local state (WebSocket will also update it)
+      setNotifications((prev) => {
+        const deletedNotif = prev.find((n) => n.notificationId === notificationId);
+        if (deletedNotif && !deletedNotif.isRead) {
+          setUnreadCount((count) => Math.max(0, count - 1));
+        }
+        return prev.filter((notif) => notif.notificationId !== notificationId);
+      });
+    } catch (error: any) {
+      console.log('❌ Error deleting notification:', error);
+      Alert.alert('Lỗi', error.message || 'Không thể xóa thông báo');
+    }
   };
 
   // Xử lý khi nhấn vào thông báo
@@ -259,58 +515,36 @@ export default function NotificationsScreen() {
     // Navigate based on notification type
     switch (notification.type) {
       case NotificationType.FOLLOW:
-        if (notification.relatedId) {
-          router.push(`/profile/${notification.relatedId}`);
+        if (notification.actorId) {
+          router.push(`/profile/${notification.actorId}`);
         }
         break;
-      case NotificationType.LIKE:
+      
       case NotificationType.COMMENT:
-      case NotificationType.RATING:
-      case NotificationType.SHARE:
-      case NotificationType.RECIPE_PUBLISHED:
       case NotificationType.MENTION:
-        if (notification.relatedId) {
-          // Navigate to recipe detail
-          //router.push(`/recipe/${notification.relatedId}`);
+        if (notification.recipeId && notification.relatedId) {
+          // Navigate to recipe and open comment modal, focus on specific comment
+          router.push({
+            pathname: `/_recipe-detail/${notification.recipeId}`,
+            params: { 
+              openComments: 'true',
+              focusCommentId: notification.relatedId 
+            }
+          } as any);
         }
         break;
+      
+      case NotificationType.LIKE:
+      case NotificationType.RECIPE_PUBLISHED:
       case NotificationType.SYSTEM:
-        // System notifications might not have navigation
+        if (notification.relatedId) {
+          router.push(`/_recipe-detail/${notification.relatedId}`);
+        }
         break;
+      
       default:
         break;
     }
-  };
-
-  // Lấy biểu tượng cho thông báo
-  const getNotificationIcon = (type: NotificationType) => {
-    const icons = {
-      [NotificationType.FOLLOW]: { name: 'person-add' as const, color: Colors.primary },
-      [NotificationType.LIKE]: { name: 'heart' as const, color: Colors.primary },
-      [NotificationType.COMMENT]: { name: 'chatbubble' as const, color: Colors.secondary },
-      [NotificationType.RATING]: { name: 'star' as const, color: Colors.secondary },
-      [NotificationType.MENTION]: { name: 'at' as const, color: Colors.text.secondary },
-      [NotificationType.SHARE]: { name: 'share-social' as const, color: Colors.text.secondary },
-      [NotificationType.RECIPE_PUBLISHED]: {
-        name: 'restaurant' as const,
-        color: Colors.secondary,
-      },
-      [NotificationType.SYSTEM]: { name: 'notifications' as const, color: Colors.text.secondary },
-    };
-    return icons[type] || icons[NotificationType.SYSTEM];
-  };
-
-  // Định dạng thời gian
-  const getTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return 'Vừa xong';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} phút trước`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ trước`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)} ngày trước`;
-    return date.toLocaleDateString('vi-VN');
   };
 
   // Xử lý làm mới
@@ -327,42 +561,28 @@ export default function NotificationsScreen() {
     }
   };
 
-  // Render mục thông báo
-  const renderNotificationItem = ({ item }: { item: Notification }) => {
-    const icon = getNotificationIcon(item.type);
+  // Group notifications by period
+  const groupNotificationsByPeriod = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    return (
-      <TouchableOpacity
-        style={[styles.notificationItem, !item.isRead && styles.unreadNotification]}
-        onPress={() => handleNotificationPress(item)}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.iconContainer, { backgroundColor: icon.color + '20' }]}>
-          <Ionicons name={icon.name} size={24} color={icon.color} />
-        </View>
-
-        <View style={styles.notificationContent}>
-          <Text style={styles.notificationTitle}>{item.title}</Text>
-          <Text style={styles.notificationMessage} numberOfLines={2}>
-            {item.message}
-          </Text>
-          <Text style={styles.notificationTime}>{getTimeAgo(item.createdAt)}</Text>
-        </View>
-
-        {!item.isRead && <View style={styles.unreadDot} />}
-
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            deleteNotification(item.notificationId);
-          }}
-        >
-          <Ionicons name="trash-outline" size={20} color={Colors.primary} />
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
+    return {
+      today: notifications.filter(n => new Date(n.createdAt) >= today),
+      week: notifications.filter(n => {
+        const date = new Date(n.createdAt);
+        return date < today && date >= weekAgo;
+      }),
+      month: notifications.filter(n => {
+        const date = new Date(n.createdAt);
+        return date < weekAgo && date >= monthAgo;
+      }),
+    };
   };
+
+  const grouped = groupNotificationsByPeriod();
+  const currentNotifications = grouped[selectedPeriod];
 
   // Render trạng thái rỗng
   const renderEmptyState = () => (
@@ -386,7 +606,7 @@ export default function NotificationsScreen() {
   if (loading && page === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header router={router} unreadCount={unreadCount} />
+        <Header unreadCount={unreadCount} />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Đang tải thông báo...</Text>
@@ -397,7 +617,7 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header router={router} unreadCount={unreadCount} />
+      <Header unreadCount={unreadCount} />
 
       {/* Connection status indicator */}
       {!websocketService.isConnected() && (
@@ -409,37 +629,44 @@ export default function NotificationsScreen() {
         </View>
       )}
 
-      {/* Nút hành động */}
-      {notifications.length > 0 && (
-        <View style={styles.actionBar}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={markAllAsRead}
-            disabled={unreadCount === 0}
-          >
-            <Ionicons
-              name="checkmark-done"
-              size={20}
-              color={unreadCount === 0 ? Colors.gray[300] : Colors.primary}
-            />
-            <Text
-              style={[
-                styles.actionButtonText,
-                unreadCount === 0 && styles.actionButtonTextDisabled,
-              ]}
-            >
-              Đọc tất cả
-            </Text>
-          </TouchableOpacity>
-
-
-        </View>
-      )}
+      {/* Period Tabs */}
+      <View style={styles.periodTabs}>
+        <TouchableOpacity
+          style={[styles.periodTab, selectedPeriod === 'today' && styles.periodTabActive]}
+          onPress={() => setSelectedPeriod('today')}
+        >
+          <Text style={[styles.periodTabText, selectedPeriod === 'today' && styles.periodTabTextActive]}>
+            Hôm nay
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.periodTab, selectedPeriod === 'week' && styles.periodTabActive]}
+          onPress={() => setSelectedPeriod('week')}
+        >
+          <Text style={[styles.periodTabText, selectedPeriod === 'week' && styles.periodTabTextActive]}>
+            Tuần này
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.periodTab, selectedPeriod === 'month' && styles.periodTabActive]}
+          onPress={() => setSelectedPeriod('month')}
+        >
+          <Text style={[styles.periodTabText, selectedPeriod === 'month' && styles.periodTabTextActive]}>
+            Tháng này
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Danh sách thông báo */}
       <FlatList
-        data={notifications}
-        renderItem={renderNotificationItem}
+        data={currentNotifications}
+        renderItem={({ item }) => (
+          <SwipeableNotificationItem
+            item={item}
+            onPress={() => handleNotificationPress(item)}
+            onDelete={() => deleteNotification(item.notificationId)}
+          />
+        )}
         keyExtractor={(item) => item.notificationId}
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={renderFooter}
@@ -453,7 +680,7 @@ export default function NotificationsScreen() {
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
-        contentContainerStyle={notifications.length === 0 ? styles.emptyListContainer : undefined}
+        contentContainerStyle={currentNotifications.length === 0 ? styles.emptyListContainer : undefined}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
@@ -461,15 +688,8 @@ export default function NotificationsScreen() {
 }
 
 // Component Header
-const Header = ({ router, unreadCount }: { router: any; unreadCount?: number }) => (
+const Header = ({ unreadCount }: { unreadCount?: number }) => (
   <View style={styles.header}>
-    <TouchableOpacity
-      onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/home'))}
-      style={styles.backButton}
-    >
-      <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
-    </TouchableOpacity>
-
     <View style={styles.headerCenter}>
       <Text style={styles.headerTitle}>Thông báo</Text>
       {unreadCount! > 0 && (
@@ -478,8 +698,6 @@ const Header = ({ router, unreadCount }: { router: any; unreadCount?: number }) 
         </View>
       )}
     </View>
-
-    <View style={{ width: 24 }} />
   </View>
 );
 
@@ -502,15 +720,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-  },
-  backButton: {
-    padding: 4,
   },
   headerCenter: {
     flexDirection: 'row',
@@ -518,7 +733,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: Colors.text.primary,
   },
@@ -534,7 +749,7 @@ const styles = StyleSheet.create({
   unreadBadgeText: {
     color: Colors.white,
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   connectionWarning: {
     flexDirection: 'row',
@@ -551,79 +766,133 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#856404',
   },
-  actionBar: {
+  periodTabs: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  periodTab: {
+    flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.gray[100],
+    alignItems: 'center',
   },
-  actionButtonText: {
-    fontSize: 14,
+  periodTabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.primary,
+  },
+  periodTabText: {
+    fontSize: 15,
     fontWeight: '600',
+    color: Colors.text.secondary,
+  },
+  periodTabTextActive: {
     color: Colors.primary,
   },
-  actionButtonTextDisabled: {
-    color: Colors.gray[300],
+  swipeContainer: {
+    position: 'relative',
+  },
+  deleteContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 80,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteText: {
+    color: Colors.white,
+    fontWeight: '600',
+    fontSize: 14,
   },
   notificationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    gap: 12,
   },
   unreadNotification: {
     backgroundColor: Colors.gray[50],
   },
-  iconContainer: {
+  notificationTouchable: {
+    width: '100%',
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
+    backgroundColor: Colors.gray[100],
+  },
+  systemAvatar: {
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.primary + '20',
   },
-  notificationContent: {
+  unreadDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.white,
+  },
+  textContainer: {
     flex: 1,
-    gap: 4,
   },
-  notificationTitle: {
-    fontSize: 16,
+  message: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.text.primary,
+  },
+  actorName: {
     fontWeight: '600',
     color: Colors.text.primary,
   },
-  notificationMessage: {
-    fontSize: 14,
-    color: Colors.text.light,
-    lineHeight: 20,
+  recipeTitle: {
+    fontWeight: '600',
+    color: Colors.text.primary,
   },
-  notificationTime: {
-    fontSize: 12,
-    color: Colors.gray[300],
-    marginTop: 2,
+  timeAgo: {
+    fontSize: 13,
+    color: Colors.text.secondary,
   },
-  unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  followButton: {
     backgroundColor: Colors.primary,
-    marginRight: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
-  deleteButton: {
-    padding: 8,
+  followButtonText: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  recipeThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 4,
+    backgroundColor: Colors.gray[100],
   },
   emptyListContainer: {
     flexGrow: 1,
@@ -632,7 +901,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
     paddingVertical: 64,
   },
   emptyTitle: {

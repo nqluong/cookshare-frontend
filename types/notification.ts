@@ -29,6 +29,12 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
   readAt: string | null;
+  actorId: string | null;
+  actorName: string | null;
+  actorAvatar: string | null;
+  recipeId: string | null;
+  recipeTitle: string | null;
+  recipeImage: string | null;
 }
 
 export interface NotificationResponse {

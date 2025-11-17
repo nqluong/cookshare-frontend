@@ -1,8 +1,11 @@
+import { getImageUrl } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
 import { collectionService } from "@/services/collectionService";
-import { BASE_URL, userService } from "@/services/userService";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { userService } from "@/services/userService";
+import { CollectionUserDto } from "@/types/collection.types";
+import { Recipe } from "@/types/dish";
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,42 +19,22 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface Collection {
-  collectionId: string;
-  userId: string;
-  name: string;
-  description: string | null;
-  isPublic: boolean;
-  coverImage: string | null;
-  recipeCount: number;
-  viewCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Recipe {
-  recipeId: string;
-  userId: string;
-  title: string;
-  description: string;
-  likeCount: number;
-  commentCount: number;
-  saveCount: number;
-  featuredImage: string;
-}
-
 export default function CollectionDetailScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const params = useLocalSearchParams<{ collectionId: string }>();
   const collectionId = params?.collectionId;
 
-  const [collection, setCollection] = useState<Collection | null>(null);
+  const [collection, setCollection] = useState<CollectionUserDto | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [userUUID, setUserUUID] = useState<string>("");
 
   useEffect(() => {
-    console.log("CollectionDetailScreen mounted with collectionId:", collectionId);
+    console.log(
+      "CollectionDetailScreen mounted with collectionId:",
+      collectionId
+    );
     if (user?.username && collectionId) {
       initLoad();
     }
@@ -79,7 +62,10 @@ export default function CollectionDetailScreen() {
       setLoading(true);
 
       // Lấy chi tiết collection
-      const collectionData = await collectionService.getCollectionDetail(uuid, collectionId);
+      const collectionData = await collectionService.getCollectionDetail(
+        uuid,
+        collectionId
+      );
       setCollection(collectionData.data);
 
       // Lấy danh sách recipes trong collection
@@ -96,15 +82,6 @@ export default function CollectionDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getImageUrl = (coverImage?: string | null) => {
-    if (!coverImage) return "https://placehold.co/600x400?text=No+Image";
-
-    if (coverImage.startsWith("http")) {
-      return coverImage;
-    }
-    return `${BASE_URL}/${coverImage.replace(/\\/g, "/")}`;
   };
 
   const handleDeleteRecipe = (recipeId: string) => {
@@ -136,11 +113,19 @@ export default function CollectionDetailScreen() {
     );
   };
 
+  // Event Handlers
+  const handleOpenDetail = (recipe: Recipe) => {
+    router.push(`/_recipe-detail/${recipe.recipeId}` as any);
+  };
+
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
-    <TouchableOpacity style={styles.recipeRow}>
+    <TouchableOpacity
+      onPress={() => handleOpenDetail(item)}
+      style={styles.recipeRow}
+    >
       {/* Recipe Image - Left */}
       <Image
-        source={{ uri: `${BASE_URL}/${item.featuredImage.replace(/\\/g, '/')}` }}
+        source={{ uri: getImageUrl(item.featuredImage) }}
         style={styles.recipeImage}
         resizeMode="cover"
       />
@@ -155,7 +140,11 @@ export default function CollectionDetailScreen() {
             onPress={() => handleDeleteRecipe(item.recipeId)}
             style={styles.deleteButton}
           >
-            <Ionicons name="close-circle" size={24} color="#FF385C" />
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={26}
+              color="#ff4757"
+            />
           </TouchableOpacity>
         </View>
 
@@ -163,10 +152,21 @@ export default function CollectionDetailScreen() {
           {item.description}
         </Text>
 
-        <View style={styles.recipeStats}>
-          <Text style={styles.statText}>❤️ {item.likeCount}</Text>
-          <Text style={styles.statText}>💬 {item.commentCount}</Text>
-          <Text style={styles.statText}>💾 {item.saveCount}</Text>
+        <View style={styles.stats}>
+          <View style={styles.statItem}>
+            <Ionicons name="heart" size={16} color="#e74c3c" />
+            <Text style={styles.statNumber}>{item.likeCount || 0}</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Ionicons name="bookmark" size={16} color="#f39c12" />
+            <Text style={styles.statNumber}>{item.saveCount || 0}</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Feather name="eye" size={16} color="#3498db" />
+            <Text style={styles.statNumber}>{item.viewCount || 0}</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -209,22 +209,22 @@ export default function CollectionDetailScreen() {
             <Text style={styles.collectionName}>{collection.name}</Text>
 
             <Text style={styles.collectionDescription}>
-              {collection.description || "Không có mô tả"}
+              {collection.description || " "}
             </Text>
 
             {/* Stats */}
             <View style={styles.statsRow}>
-              <View style={styles.statItem}>
+              <View style={styles.statItemCollection}>
                 <Text style={styles.statValue}>{collection.recipeCount}</Text>
                 <Text style={styles.statLabel}>Công thức</Text>
               </View>
               <View style={styles.divider} />
-              <View style={styles.statItem}>
+              <View style={styles.statItemCollection}>
                 <Text style={styles.statValue}>{collection.viewCount}</Text>
                 <Text style={styles.statLabel}>Lượt xem</Text>
               </View>
               <View style={styles.divider} />
-              <View style={styles.statItem}>
+              <View style={styles.statItemCollection}>
                 <Text style={styles.statValue}>
                   {collection.isPublic ? "Công khai" : "Riêng tư"}
                 </Text>
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  statItem: {
+  statItemCollection: {
     flex: 1,
     alignItems: "center",
   },
@@ -424,8 +424,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   recipeImage: {
-    width: 120,
-    height: 120,
+    width: "45%",
+    height: 115,
+    borderRadius: 16,
   },
   recipeInfo: {
     flex: 1,
@@ -454,15 +455,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 16,
   },
-  recipeStats: {
+  stats: {
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "space-between",
+    marginTop: 10,
+    paddingHorizontal: 4,
   },
-  statText: {
-    fontSize: 12,
-    color: "#666",
-  },
-
   // Empty
   emptyContainer: {
     justifyContent: "center",
@@ -473,5 +471,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#999",
     marginTop: 16,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  statNumber: {
+    fontSize: 13.5,
+    color: "#444",
+    fontWeight: "600",
   },
 });

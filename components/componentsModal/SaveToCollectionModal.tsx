@@ -54,7 +54,6 @@ export default function SaveToCollectionModal({
       const newSaveCount = recipeData.saveCount || 0;
 
       onSaveSuccess(recipeId, collectionId, newSaveCount);
-      Alert.alert("Thành công", "Công thức đã được lưu vào bộ sưu tập!");
       onClose();
     } catch (error: any) {
       console.log("Lỗi khi lưu công thức:", error);
