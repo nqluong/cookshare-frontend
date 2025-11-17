@@ -1,14 +1,14 @@
-import { useCollectionManager } from "@/hooks/useCollectionManager";
+import { CollectionUserDto } from "@/types/collection.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { Colors } from "../../../styles/colors";
 import { Recipe } from "../../../types/dish";
@@ -26,6 +26,17 @@ interface PopularRecipesProps {
   likedRecipes?: Set<string>;
   likingRecipeId?: string | null;
   onToggleLike?: (recipeId: string) => Promise<void>;
+  isSaved: (recipeId: string) => boolean;
+  savedVersion: number;
+  collections: CollectionUserDto[];
+  userUUID: string;
+  isLoadingSaved: boolean;
+  handleUnsaveRecipe: (
+    recipeId: string,
+    currentSaveCount: number,
+    onSuccess: (newSaveCount: number) => void
+  ) => Promise<void>;
+  updateSavedCache: (recipeId: string, collectionId: string) => void;
 }
 
 // Component hiển thị danh sách công thức phổ biến (theo saveCount)
@@ -38,24 +49,22 @@ export default function PopularRecipes({
   likedRecipes = new Set<string>(),
   likingRecipeId,
   onToggleLike,
+  isSaved,
+  savedVersion,
+  collections,
+  userUUID,
+  isLoadingSaved,
+  handleUnsaveRecipe,
+  updateSavedCache,
 }: PopularRecipesProps) {
   const router = useRouter();
   const isLoadingRef = useRef(false);
-  
-  const {
-    isSaved,
-    collections,
-    userUUID,
-    isLoadingSaved,
-    handleUnsaveRecipe,
-    handleSaveRecipe: updateSavedCache,
-  } = useCollectionManager();
 
   // State để quản lý saveCount tạm thời trên UI
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
     new Map()
   );
-  
+  useEffect(() => {}, [savedVersion]);
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     // Load thêm khi còn 30% nội dung (tương đương 70% đã scroll)
@@ -68,7 +77,7 @@ export default function PopularRecipes({
       if (hasMore && !isLoadingMore && !isLoadingRef.current && onLoadMore) {
         isLoadingRef.current = true;
         onLoadMore();
-        
+
         // Reset loading ref sau 1 giây để tránh gọi liên tục
         setTimeout(() => {
           isLoadingRef.current = false;
@@ -118,12 +127,15 @@ export default function PopularRecipes({
         <Text style={styles.title}>Phổ biến nhất</Text>
         <TouchableOpacity
           style={styles.viewAllButton}
-          onPress={() => 
-            router.push({ 
-              pathname: '/_view-all', 
-              params: { type: 'popular' ,
-              liked: JSON.stringify([...likedRecipes])  
-              } })}
+          onPress={() =>
+            router.push({
+              pathname: "/_view-all",
+              params: {
+                type: "popular",
+                liked: JSON.stringify([...likedRecipes]),
+              },
+            })
+          }
           activeOpacity={0.7}
         >
           <Text style={styles.viewAllText}>Xem tất cả</Text>
@@ -155,17 +167,17 @@ export default function PopularRecipes({
             >
               <View style={styles.imageWrapper}>
                 <View style={styles.imageContainer}>
-                 <CachedImage
+                  <CachedImage
                     source={{ uri: dish.image }}
                     style={styles.image}
                     resizeMode="cover"
                     priority={ImagePriority.normal}
                     placeholder={
                       <View style={styles.imagePlaceholder}>
-                        <Ionicons 
-                          name="image-outline" 
-                          size={40} 
-                          color={Colors.gray[400]} 
+                        <Ionicons
+                          name="image-outline"
+                          size={40}
+                          color={Colors.gray[400]}
                         />
                       </View>
                     }
@@ -407,7 +419,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.text.secondary,
   },
-   imagePlaceholder: {
+  imagePlaceholder: {
     width: "100%",
     height: "100%",
     justifyContent: "center",

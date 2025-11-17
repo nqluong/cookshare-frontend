@@ -42,6 +42,7 @@
     "expo-system-ui": "6.0.7",
     "expo-web-browser": "~15.0.8",
     "lodash": "4.17.21",
+    "lucide-react-native": "0.553.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
@@ -50,7 +51,7 @@
     "react-native-keyboard-aware-scroll-view": "0.9.5",
     "react-native-reanimated": "4.1.1",
     "react-native-responsive-screen": "1.4.2",
-    "react-native-safe-area-context": "5.6.0",
+    "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "4.16.0",
     "react-native-svg": "15.14.0",
     "react-native-vector-icons": "10.3.0",
@@ -59,6 +60,7 @@
     "sockjs-client": "1.6.1"
   },
   "devDependencies": {
+    "@react-native-community/cli": "20.0.2",
     "@types/react": "19.1.0",
     "@types/react-native-vector-icons": "6.4.18",
     "@types/sockjs-client": "1.5.4",

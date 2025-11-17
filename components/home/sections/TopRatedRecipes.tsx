@@ -1,15 +1,15 @@
-import { useCollectionManager } from "@/hooks/useCollectionManager";
+import { CollectionUserDto } from "@/types/collection.types";
 import { getDifficultyText } from "@/utils/recipeUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { Colors } from "../../../styles/colors";
 import { Recipe } from "../../../types/dish";
@@ -26,6 +26,17 @@ interface TopRatedRecipesProps {
   likedRecipes?: Set<string>;
   likingRecipeId?: string | null;
   onToggleLike?: (recipeId: string) => Promise<void>;
+  isSaved: (recipeId: string) => boolean;
+  savedVersion: number;
+  collections: CollectionUserDto[];
+  userUUID: string;
+  isLoadingSaved: boolean;
+  handleUnsaveRecipe: (
+    recipeId: string,
+    currentSaveCount: number,
+    onSuccess: (newSaveCount: number) => void
+  ) => Promise<void>;
+  updateSavedCache: (recipeId: string, collectionId: string) => void;
 }
 
 export default function TopRatedRecipes({
@@ -37,30 +48,30 @@ export default function TopRatedRecipes({
   likedRecipes = new Set<string>(),
   likingRecipeId,
   onToggleLike,
+  isSaved,
+  savedVersion,
+  collections,
+  userUUID,
+  isLoadingSaved,
+  handleUnsaveRecipe,
+  updateSavedCache,
 }: TopRatedRecipesProps) {
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const isLoadingRef = useRef(false);
 
-  const {
-    isSaved,
-    collections,
-    userUUID,
-    isLoadingSaved,
-    handleUnsaveRecipe,
-    handleSaveRecipe: updateSavedCache,
-  } = useCollectionManager();
-
   const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
     new Map()
   );
+
+  useEffect(() => {}, [savedVersion]);
 
   //Load thêm khi gần cuối danh sách ngang
   const handleEndReached = useCallback(() => {
     if (hasMore && !isLoadingMore && !isLoadingRef.current && onLoadMore) {
       isLoadingRef.current = true;
       onLoadMore();
-      
+
       setTimeout(() => {
         isLoadingRef.current = false;
       }, 1000);
@@ -107,10 +118,7 @@ export default function TopRatedRecipes({
 
       return (
         <TouchableOpacity
-          style={[
-            styles.card,
-            index === 0 && styles.firstCard,
-          ]}
+          style={[styles.card, index === 0 && styles.firstCard]}
           onPress={() => onRecipePress?.(recipe)}
           activeOpacity={0.7}
         >
@@ -284,7 +292,10 @@ export default function TopRatedRecipes({
   }, [hasMore, isLoadingMore, onLoadMore]);
 
   // 📍 Item separator
-  const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
+  const ItemSeparator = useCallback(
+    () => <View style={styles.separator} />,
+    []
+  );
 
   if (!recipes || recipes.length === 0) {
     return null;

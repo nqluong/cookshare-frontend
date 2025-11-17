@@ -1,8 +1,8 @@
-// CollectionListTab.tsx - Updated with Image Upload Feature
+// CollectionListTab.tsx - Direct Upload to Collection API
 
 import { useAuth } from "@/context/AuthContext";
 import { collectionService } from "@/services/collectionService";
-import { BASE_URL } from "@/services/followService";
+import { CollectionUserDto } from "@/types/collection.types";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -23,33 +23,20 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface Collection {
-  collectionId: string;
-  userId: string;
-  name: string;
-  description: string | null;
-  isPublic: boolean;
-  coverImage: string | null;
-  recipeCount: number;
-  viewCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface CollectionListTabProps {
   userId: string;
 }
 
 export default function CollectionListTab({ userId }: CollectionListTabProps) {
   const { user } = useAuth();
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [collections, setCollections] = useState<CollectionUserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedCollection, setSelectedCollection] =
-    useState<Collection | null>(null);
+    useState<CollectionUserDto | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
@@ -59,9 +46,10 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formIsPublic, setFormIsPublic] = useState(false);
-  const [formCoverImage, setFormCoverImage] = useState<string | null>(null);
+  const [formCoverImageUri, setFormCoverImageUri] = useState<string | null>(
+    null
+  ); // Local URI
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -90,15 +78,6 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
     setRefreshing(false);
   };
 
-  const getImageUrl = (coverImage?: string | null) => {
-    if (!coverImage) return "https://placehold.co/600x400?text=No+Image";
-
-    if (coverImage.startsWith("http")) {
-      return coverImage;
-    }
-    return `${BASE_URL}/${coverImage.replace(/\\/g, "/")}`;
-  };
-
   const pickImage = async () => {
     try {
       const permissionResult =
@@ -117,43 +96,13 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await uploadImage(result.assets[0].uri);
+        // Lưu URI local, sẽ upload khi submit
+        setFormCoverImageUri(result.assets[0].uri);
+        console.log("📸 Selected image:", result.assets[0].uri);
       }
     } catch (error) {
       console.log("Error picking image:", error);
       Alert.alert("Lỗi", "Không thể chọn ảnh");
-    }
-  };
-
-  const uploadImage = async (imageUri: string) => {
-    try {
-      setIsUploadingImage(true);
-
-      const formData = new FormData();
-      const filename = imageUri.split("/").pop() || "image.jpg";
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : "image/jpeg";
-
-      formData.append("file", {
-        uri: imageUri,
-        name: filename,
-        type: type,
-      } as any);
-
-      const response = await collectionService.uploadCoverImage(
-        formData,
-        new AbortController().signal
-      );
-
-      if (response.url) {
-        setFormCoverImage(response.url);
-        Alert.alert("Thành công", "Tải ảnh lên thành công");
-      }
-    } catch (error) {
-      console.log("Error uploading image:", error);
-      Alert.alert("Lỗi", "Không thể tải ảnh lên");
-    } finally {
-      setIsUploadingImage(false);
     }
   };
 
@@ -165,12 +114,21 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
 
     try {
       setIsSubmitting(true);
-      const response = await collectionService.createCollection(userId, {
+
+      // Tạo request object
+      const request = {
         name: formName,
-        description: formDescription,
+        description: formDescription || undefined,
         isPublic: formIsPublic,
-        coverImage: formCoverImage ?? " ",
-      });
+        coverImage: undefined, // Sẽ được backend xử lý từ file upload
+      };
+
+      // Gọi service với URI ảnh local
+      const response = await collectionService.createCollection(
+        userId,
+        request,
+        formCoverImageUri || undefined
+      );
 
       const newCollection = (response as any).data ?? response;
 
@@ -178,9 +136,9 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
       resetForm();
       setShowCreateModal(false);
       Alert.alert("Thành công", "Collection đã được tạo");
-    } catch (error) {
+    } catch (error: any) {
       console.log("Error creating collection:", error);
-      Alert.alert("Lỗi", "Không thể tạo collection");
+      Alert.alert("Lỗi", error.message || "Không thể tạo collection");
     } finally {
       setIsSubmitting(false);
     }
@@ -194,19 +152,25 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
 
     try {
       setIsSubmitting(true);
+
+      // Tạo request object
+      const request = {
+        name: formName,
+        description: formDescription || undefined,
+        isPublic: formIsPublic,
+        coverImage: selectedCollection.coverImage ?? undefined,
+      };
+
+      // Gọi service với URI ảnh mới (nếu có)
       const updatedResponse = await collectionService.updateCollection(
         userId,
         selectedCollection.collectionId,
-        {
-          name: formName,
-          description: formDescription,
-          isPublic: formIsPublic,
-          coverImage: formCoverImage ?? " ",
-        }
+        request,
+        formCoverImageUri || undefined
       );
 
       const updatedCollection = ((updatedResponse as any).data ??
-        updatedResponse) as Collection;
+        updatedResponse) as CollectionUserDto;
 
       setCollections(
         collections.map((c) =>
@@ -221,9 +185,9 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
       setShowMenu(false);
       setSelectedCollection(null);
       Alert.alert("Thành công", "Collection đã được cập nhật");
-    } catch (error) {
+    } catch (error: any) {
       console.log("Error updating collection:", error);
-      Alert.alert("Lỗi", "Không thể cập nhật collection");
+      Alert.alert("Lỗi", error.message || "Không thể cập nhật collection");
     } finally {
       setIsSubmitting(false);
     }
@@ -264,12 +228,12 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
     );
   };
 
-  const openEditMenu = (collection: Collection) => {
+  const openEditMenu = (collection: CollectionUserDto) => {
     setSelectedCollection(collection);
     setFormName(collection.name);
     setFormDescription(collection.description || "");
     setFormIsPublic(collection.isPublic);
-    setFormCoverImage(collection.coverImage);
+    setFormCoverImageUri(null); // Reset ảnh mới
     setShowMenu(false);
     setShowEditModal(true);
   };
@@ -278,17 +242,17 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
     setFormName("");
     setFormDescription("");
     setFormIsPublic(false);
-    setFormCoverImage(null);
+    setFormCoverImageUri(null);
   };
 
-  const handleMenuPress = (event: any, item: Collection) => {
+  const handleMenuPress = (event: any, item: CollectionUserDto) => {
     const { pageX, pageY } = event.nativeEvent;
     setMenuPosition({ x: pageX, y: pageY });
     setSelectedCollection(item);
     setShowMenu(true);
   };
 
-  const renderCollectionCard = ({ item }: { item: Collection }) => (
+  const renderCollectionCard = ({ item }: { item: CollectionUserDto }) => (
     <TouchableOpacity
       style={styles.cardRow}
       onPress={() => {
@@ -301,7 +265,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
       <View style={styles.cardCoverRow}>
         {item.coverImage ? (
           <Image
-            source={{ uri: getImageUrl(item.coverImage) }}
+            source={{ uri: item.coverImage }}
             style={styles.cardCoverImageRow}
             resizeMode="cover"
           />
@@ -334,7 +298,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
         </View>
 
         <Text style={styles.cardDescription} numberOfLines={2}>
-          {item.description || "Không có mô tả"}
+          {item.description || " "}
         </Text>
 
         <View style={styles.cardMetaRow}>
@@ -477,6 +441,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
                 setShowEditModal(false);
                 resetForm();
               }}
+              disabled={isSubmitting}
             >
               <Text style={styles.cancelButton}>Hủy</Text>
             </TouchableOpacity>
@@ -495,7 +460,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
                   isSubmitting && styles.saveButtonDisabled,
                 ]}
               >
-                {isSubmitting ? "..." : "Lưu"}
+                {isSubmitting ? "Đang lưu..." : "Lưu"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -506,32 +471,34 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
             <TouchableOpacity
               style={styles.imagePickerContainer}
               onPress={pickImage}
-              disabled={isUploadingImage || isSubmitting}
+              disabled={isSubmitting}
             >
-              {formCoverImage ? (
+              {formCoverImageUri ||
+              (showEditModal &&
+                selectedCollection?.coverImage &&
+                !formCoverImageUri) ? (
                 <Image
-                  source={{ uri: getImageUrl(formCoverImage) }}
+                  source={{
+                    uri:
+                      formCoverImageUri ||
+                      selectedCollection?.coverImage ||
+                      undefined,
+                  }}
                   style={styles.coverImagePreview}
                   resizeMode="cover"
                 />
               ) : (
                 <View style={styles.imagePickerPlaceholder}>
-                  {isUploadingImage ? (
-                    <ActivityIndicator size="large" color="#FF385C" />
-                  ) : (
-                    <>
-                      <Ionicons name="image-outline" size={40} color="#ccc" />
-                      <Text style={styles.imagePickerText}>Chọn ảnh bìa</Text>
-                    </>
-                  )}
+                  <Ionicons name="image-outline" size={40} color="#ccc" />
+                  <Text style={styles.imagePickerText}>Chọn ảnh bìa</Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            {formCoverImage && (
+            {formCoverImageUri && (
               <TouchableOpacity
                 style={styles.removeImageButton}
-                onPress={() => setFormCoverImage(null)}
+                onPress={() => setFormCoverImageUri(null)}
                 disabled={isSubmitting}
               >
                 <Ionicons name="trash-outline" size={16} color="#FF385C" />

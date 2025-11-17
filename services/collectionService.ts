@@ -23,27 +23,53 @@ class CollectionService {
     return await AsyncStorage.getItem("access_token");
   }
 
-  // Tạo bộ sưu tập mới
+  /**
+   * Tạo bộ sưu tập mới với ảnh cover
+   * @param userId - ID của user
+   * @param request - Thông tin collection
+   * @param coverImageUri - URI ảnh local (optional)
+   */
   async createCollection(
     userId: string,
-    request: CreateCollectionRequest
+    request: CreateCollectionRequest,
+    coverImageUri?: string
   ): Promise<ApiResponse<CollectionResponse>> {
     try {
       console.log("Creating collection for user:", userId);
       const token = await this.getAuthToken();
 
+      const formData = new FormData();
+
+      // Thêm data JSON
+      formData.append("data", JSON.stringify(request));
+
+      // Thêm ảnh nếu có
+      if (coverImageUri) {
+        const filename = coverImageUri.split("/").pop() || "cover.jpg";
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : "image/jpeg";
+
+        formData.append("coverImage", {
+          uri: coverImageUri,
+          name: filename,
+          type: type,
+        } as any);
+
+        console.log("📸 Uploading cover image:", filename);
+      }
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s cho upload
 
       const response = await fetch(
         `${API_BASE_URL}/users/${userId}/collections`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
+            // Không set Content-Type, để browser tự set với boundary
           },
-          body: JSON.stringify(request),
+          body: formData,
           signal: controller.signal,
         }
       );
@@ -57,10 +83,83 @@ class CollectionService {
       }
 
       const result = await response.json();
-      console.log("Create collection successful");
+      console.log("✅ Create collection successful");
       return result;
     } catch (error: any) {
-      console.log("Create collection error:", error);
+      console.log("❌ Create collection error:", error);
+      if (error.name === "AbortError") {
+        throw new Error("Timeout - Không thể kết nối đến server");
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Cập nhật bộ sưu tập với ảnh cover
+   * @param userId - ID của user
+   * @param collectionId - ID của collection
+   * @param request - Thông tin cập nhật
+   * @param coverImageUri - URI ảnh local mới (optional)
+   */
+  async updateCollection(
+    userId: string,
+    collectionId: string,
+    request: UpdateCollectionRequest,
+    coverImageUri?: string
+  ): Promise<ApiResponse<CollectionResponse>> {
+    try {
+      console.log("Updating collection:", collectionId);
+      const token = await this.getAuthToken();
+
+      const formData = new FormData();
+
+      // Thêm data JSON
+      formData.append("data", JSON.stringify(request));
+
+      // Thêm ảnh mới nếu có
+      if (coverImageUri) {
+        const filename = coverImageUri.split("/").pop() || "cover.jpg";
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : "image/jpeg";
+
+        formData.append("coverImage", {
+          uri: coverImageUri,
+          name: filename,
+          type: type,
+        } as any);
+
+        console.log("📸 Uploading new cover image:", filename);
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s
+
+      const response = await fetch(
+        `${API_BASE_URL}/users/${userId}/collections/${collectionId}`,
+        {
+          method: "PUT",
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+            // Không set Content-Type
+          },
+          body: formData,
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+      console.log("Update collection response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể cập nhật bộ sưu tập");
+      }
+
+      const result = await response.json();
+      console.log("✅ Update collection successful");
+      return result;
+    } catch (error: any) {
+      console.log("❌ Update collection error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -200,52 +299,6 @@ class CollectionService {
       return result;
     } catch (error: any) {
       console.log("Get collection detail error:", error);
-      if (error.name === "AbortError") {
-        throw new Error("Timeout - Không thể kết nối đến server");
-      }
-      throw error;
-    }
-  }
-
-  // Cập nhật bộ sưu tập
-  async updateCollection(
-    userId: string,
-    collectionId: string,
-    request: UpdateCollectionRequest
-  ): Promise<ApiResponse<CollectionResponse>> {
-    try {
-      console.log("Updating collection:", collectionId);
-      const token = await this.getAuthToken();
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-      const response = await fetch(
-        `${API_BASE_URL}/users/${userId}/collections/${collectionId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          body: JSON.stringify(request),
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-      console.log("Update collection response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Không thể cập nhật bộ sưu tập");
-      }
-
-      const result = await response.json();
-      console.log("Update collection successful");
-      return result;
-    } catch (error: any) {
-      console.log("Update collection error:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }
@@ -399,45 +452,6 @@ class CollectionService {
       console.log("Remove recipe successful");
     } catch (error: any) {
       console.log("Remove recipe error:", error);
-      if (error.name === "AbortError") {
-        throw new Error("Timeout - Không thể kết nối đến server");
-      }
-      throw error;
-    }
-  }
-
-  // Upload cover image cho collection
-  async uploadCoverImage(formData: FormData, signal: AbortSignal): Promise<{ url: string }> {
-    try {
-      console.log("Uploading cover image...");
-      const token = await this.getAuthToken();
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-      const response = await fetch(`${API_BASE_URL}/users/upload`, {
-        method: "POST",
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-          // Không set Content-Type vì FormData tự động set
-        },
-        body: formData,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log("Upload error response:", errorText);
-        throw new Error(errorText || "Không thể upload ảnh bìa");
-      }
-
-      const data = await response.json();
-      console.log("Upload successful:", data);
-      return data;
-    } catch (error: any) {
-      console.log("Error uploading cover image:", error);
       if (error.name === "AbortError") {
         throw new Error("Timeout - Không thể kết nối đến server");
       }

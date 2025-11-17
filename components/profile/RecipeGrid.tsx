@@ -1,9 +1,20 @@
 import { getImageUrl } from "@/config/api.config";
 import { RecipeService } from "@/services/recipeService";
 import { Recipe } from "@/types/search";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View, } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface RecipeGridProps {
   userId: string;
@@ -12,17 +23,23 @@ interface RecipeGridProps {
   currentProfileId?: string;
 }
 
-const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfile = false, currentProfileId }) => {
+const RecipeGrid: React.FC<RecipeGridProps> = ({
+  userId,
+  refreshKey,
+  isOwnProfile = false,
+  currentProfileId,
+}) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
-  const [sortOption, setSortOption] = useState<string>('newest');
+  const [sortOption, setSortOption] = useState<string>("newest");
   const router = useRouter();
 
   // Determine if this is the user's own profile
-  const isOwn = isOwnProfile || (currentProfileId && userId && currentProfileId === userId);
+  const isOwn =
+    isOwnProfile || (currentProfileId && userId && currentProfileId === userId);
 
   useEffect(() => {
     fetchRecipes();
@@ -30,7 +47,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
 
   // Re-sort current list when sort option changes
   useEffect(() => {
-    setRecipes(prev => sortRecipes(prev, sortOption));
+    setRecipes((prev) => sortRecipes(prev, sortOption));
   }, [sortOption]);
 
   const fetchRecipes = async () => {
@@ -38,7 +55,10 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
       const data = await RecipeService.getAllRecipesByUserId(userId);
       const list: Recipe[] = data || [];
       try {
-        console.log('DEBUG RecipeGrid fetched sample:', list.length > 0 ? Object.keys(list[0]) : 'empty');
+        console.log(
+          "DEBUG RecipeGrid fetched sample:",
+          list.length > 0 ? Object.keys(list[0]) : "empty"
+        );
       } catch (e) {}
       setRecipes(sortRecipes(list, sortOption));
     } catch (error) {
@@ -54,7 +74,13 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
     // Try to detect a date field on recipe objects
     const getDate = (r: any) => {
       if (!r) return 0;
-      const candidates = [r.createdAt, r.updatedAt, r.created_date, r.created_at, r.timestamp];
+      const candidates = [
+        r.createdAt,
+        r.updatedAt,
+        r.created_date,
+        r.created_at,
+        r.timestamp,
+      ];
       for (const c of candidates) {
         if (!c) continue;
         const t = Date.parse(c);
@@ -64,28 +90,28 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
     };
 
     switch (option) {
-      case 'newest':
+      case "newest":
         // sort descending by detected date; if no date available, keep server order
-        if (items.some(i => getDate(i) > 0)) {
+        if (items.some((i) => getDate(i) > 0)) {
           return arr.sort((a, b) => getDate(b) - getDate(a));
         }
         return arr;
-      case 'oldest':
-        if (items.some(i => getDate(i) > 0)) {
+      case "oldest":
+        if (items.some((i) => getDate(i) > 0)) {
           return arr.sort((a, b) => getDate(a) - getDate(b));
         }
         return arr.reverse();
-      case 'like_desc':
+      case "like_desc":
         return arr.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
-      case 'like_asc':
+      case "like_asc":
         return arr.sort((a, b) => (a.likeCount || 0) - (b.likeCount || 0));
-      case 'save_desc':
+      case "save_desc":
         return arr.sort((a, b) => (b.saveCount || 0) - (a.saveCount || 0));
-      case 'save_asc':
+      case "save_asc":
         return arr.sort((a, b) => (a.saveCount || 0) - (b.saveCount || 0));
-      case 'view_desc':
+      case "view_desc":
         return arr.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-      case 'view_asc':
+      case "view_asc":
         return arr.sort((a, b) => (a.viewCount || 0) - (b.viewCount || 0));
       default:
         return arr;
@@ -104,7 +130,10 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
             Alert.alert("✅ Đã xóa công thức");
             fetchRecipes();
             // Navigate to home and include a changing param so HomeScreen can detect and refresh
-            router.push({ pathname: "/(tabs)/home", params: { refresh: Date.now() } } as any);
+            router.push({
+              pathname: "/(tabs)/home",
+              params: { refresh: Date.now() },
+            } as any);
           } catch (error: any) {
             Alert.alert("❌ Lỗi khi xóa", error.message);
           }
@@ -113,41 +142,67 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
     ]);
   };
 
+  // Event Handlers
+  const handleOpenDetail = (recipe: Recipe) => {
+    router.push(`/_recipe-detail/${recipe.recipeId}` as any);
+  };
+
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
-    <View style={styles.card}>
+    <TouchableOpacity
+      onPress={() => handleOpenDetail(item)}
+      style={styles.card}
+      activeOpacity={0.8}
+    >
+      {/* Ảnh - chiếm 45% */}
       <Image
-        source={{ 
-          uri: getImageUrl(item.featuredImage)
-        }}
+        source={{ uri: getImageUrl(item.featuredImage) }}
         style={styles.image}
         resizeMode="cover"
       />
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>
-          {item.description || "Không có mô tả"}
+
+      {/* Nội dung - chiếm 55%, nền trắng, bo góc phải */}
+      <View style={styles.content}>
+        <Text style={styles.title} numberOfLines={2}>
+          {item.title}
         </Text>
+
+        <Text style={styles.description} numberOfLines={2}>
+          {item.description || " "}
+        </Text>
+
         <View style={styles.stats}>
-          <Text>❤️ {item.likeCount}</Text>
-          <Text>💾 {item.saveCount}</Text>
+          <View style={styles.statItem}>
+            <Ionicons name="heart" size={16} color="#e74c3c" />
+            <Text style={styles.statNumber}>{item.likeCount || 0}</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Ionicons name="bookmark" size={16} color="#f39c12" />
+            <Text style={styles.statNumber}>{item.saveCount || 0}</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Feather name="eye" size={16} color="#3498db" />
+            <Text style={styles.statNumber}>{item.viewCount || 0}</Text>
+          </View>
         </View>
       </View>
 
-      {/* Nút 3 chấm */}
+      {/* Nút 3 chấm - chỉ hiện khi là chủ */}
       {isOwn && (
         <TouchableOpacity
           style={styles.moreButton}
-          onPress={() => {
+          onPress={(e) => {
+            e.stopPropagation(); // Quan trọng: tránh trigger onPress của card
             setSelectedRecipe(item);
             setMenuVisible(true);
           }}
         >
-          <Text style={{ fontSize: 22 }}>⋮</Text>
+          <Text style={styles.moreText}>⋮</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </TouchableOpacity>
   );
-
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -161,8 +216,13 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
       {/* Sort controls */}
       <View style={styles.sortBar}>
         <Text style={styles.sortLabel}>Sắp xếp:</Text>
-        <TouchableOpacity style={styles.sortButton} onPress={() => setSortModalVisible(true)}>
-          <Text style={styles.sortButtonText}>{friendlySortLabel(sortOption)}</Text>
+        <TouchableOpacity
+          style={styles.sortButton}
+          onPress={() => setSortModalVisible(true)}
+        >
+          <Text style={styles.sortButtonText}>
+            {friendlySortLabel(sortOption)}
+          </Text>
         </TouchableOpacity>
       </View>
       {recipes.length === 0 ? (
@@ -206,8 +266,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
             <TouchableOpacity
               onPress={() => {
                 setMenuVisible(false);
-                if (selectedRecipe)
-                  handleDeleteRecipe(selectedRecipe.recipeId);
+                if (selectedRecipe) handleDeleteRecipe(selectedRecipe.recipeId);
               }}
             >
               <Text style={[styles.menuItem, { color: "red" }]}>
@@ -225,27 +284,38 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
         animationType="fade"
         onRequestClose={() => setSortModalVisible(false)}
       >
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setSortModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPressOut={() => setSortModalVisible(false)}
+        >
           <View style={[styles.menu, { width: 260 }]}>
             {[
-              { key: 'newest', label: 'Mới nhất' },
-              { key: 'oldest', label: 'Cũ nhất' },
-              { key: 'like_desc', label: 'Like nhiều → ít' },
-              { key: 'like_asc', label: 'Like ít → nhiều' },
-              { key: 'save_desc', label: 'Lưu nhiều → ít' },
-              { key: 'save_asc', label: 'Lưu ít → nhiều' },
-              { key: 'view_desc', label: 'Xem nhiều → ít' },
-              { key: 'view_asc', label: 'Xem ít → nhiều' },
-            ].map(opt => (
+              { key: "newest", label: "Mới nhất" },
+              { key: "oldest", label: "Cũ nhất" },
+              { key: "like_desc", label: "Like nhiều → ít" },
+              { key: "like_asc", label: "Like ít → nhiều" },
+              { key: "save_desc", label: "Lưu nhiều → ít" },
+              { key: "save_asc", label: "Lưu ít → nhiều" },
+              { key: "view_desc", label: "Xem nhiều → ít" },
+              { key: "view_asc", label: "Xem ít → nhiều" },
+            ].map((opt) => (
               <TouchableOpacity
                 key={opt.key}
                 onPress={() => {
                   setSortOption(opt.key);
-                  setRecipes(prev => sortRecipes(prev, opt.key));
+                  setRecipes((prev) => sortRecipes(prev, opt.key));
                   setSortModalVisible(false);
                 }}
               >
-                <Text style={[styles.menuItem, sortOption === opt.key ? { fontWeight: '700' } : {}]}>{opt.label}</Text>
+                <Text
+                  style={[
+                    styles.menuItem,
+                    sortOption === opt.key ? { fontWeight: "700" } : {},
+                  ]}
+                >
+                  {opt.label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -257,59 +327,96 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({ userId, refreshKey, isOwnProfil
 
 const friendlySortLabel = (key: string) => {
   switch (key) {
-    case 'newest': return 'Mới nhất';
-    case 'oldest': return 'Cũ nhất';
-    case 'like_desc': return 'Like ↓';
-    case 'like_asc': return 'Like ↑';
-    case 'save_desc': return 'Lưu ↓';
-    case 'save_asc': return 'Lưu ↑';
-    case 'view_desc': return 'Xem ↓';
-    case 'view_asc': return 'Xem ↑';
-    default: return 'Mới nhất';
+    case "newest":
+      return "Mới nhất";
+    case "oldest":
+      return "Cũ nhất";
+    case "like_desc":
+      return "Like ↓";
+    case "like_asc":
+      return "Like ↑";
+    case "save_desc":
+      return "Lưu ↓";
+    case "save_asc":
+      return "Lưu ↑";
+    case "view_desc":
+      return "Xem ↓";
+    case "view_asc":
+      return "Xem ↑";
+    default:
+      return "Mới nhất";
   }
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10, backgroundColor: "#fff" },
+  container: { flex: 1, padding: 10, backgroundColor: "#f8f8f8" },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f8f8",
   },
-  list: { padding: 10, paddingBottom: 20 },
+  list: { paddingBottom: 20 },
+
   card: {
     flexDirection: "row",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-    marginBottom: 10,
-    elevation: 2,
+    backgroundColor: "white",
+    borderRadius: 16,
+    marginBottom: 14,
+    overflow: "hidden",
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    position: "relative",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
+
   image: {
-    width: 100,
-    height: 100,
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+    width: "45%",
+    height: 115,
+    borderRadius: 16,
   },
-  textContainer: { flex: 1, padding: 10 },
-  title: { fontSize: 18, fontWeight: "bold" },
-  description: { fontSize: 14, color: "#666" },
-  stats: {
-    flexDirection: "row",
+  content: {
+    flex: 1,
+    padding: 12,
     justifyContent: "space-between",
-    marginTop: 5,
+    backgroundColor: "white",
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+    paddingRight: 40,
+  },
+
+  title: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+    flex: 1,
+    marginRight: 8,
+  },
+
+  description: {
+    fontSize: 13.5,
+    color: "#666",
+    marginTop: 4,
+    lineHeight: 18,
   },
   moreButton: {
     position: "absolute",
-    right: 10,
     top: 10,
-    padding: 5,
+    right: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+
+  moreText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#555",
   },
   modalOverlay: {
     flex: 1,
@@ -328,31 +435,49 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   sortBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
     paddingHorizontal: 4,
   },
   sortLabel: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     marginRight: 8,
   },
   sortButton: {
-    backgroundColor: '#f1f1f1',
+    backgroundColor: "#f1f1f1",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
   },
   sortButtonText: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   emptyText: {
     fontSize: 16,
     color: "#999",
     textAlign: "center",
     marginTop: 20,
+  },
+  stats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+    paddingHorizontal: 4,
+  },
+
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  statNumber: {
+    fontSize: 13.5,
+    color: "#444",
+    fontWeight: "600",
   },
 });
 

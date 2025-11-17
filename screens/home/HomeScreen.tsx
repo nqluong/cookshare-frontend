@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -40,23 +40,26 @@ import { Recipe as DishRecipe } from '../../types/dish';
 import { Recipe as SearchRecipe } from '../../types/search';
 
 // ViewModel
-import { HomeViewModel } from '../../hooks/homeViewModel';
+import { useCollectionManager } from "@/hooks/useCollectionManager";
+import { HomeViewModel } from "../../hooks/homeViewModel";
 
 export default function HomeScreen() {
   const router = useRouter();
   const { refresh } = useLocalSearchParams<{ refresh?: string }>();
 
   // UI States
-  const [activeTab, setActiveTab] = useState('Đề xuất');
+  const [activeTab, setActiveTab] = useState("Đề xuất");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Data States
-  const [dailyRecommendations, setDailyRecommendations] = useState<DishRecipe[]>([]);
+  const [dailyRecommendations, setDailyRecommendations] = useState<
+    DishRecipe[]
+  >([]);
   const [featuredRecipes, setFeaturedRecipes] = useState<DishRecipe[]>([]);
 
   // Search States
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [recipes, setRecipes] = useState<SearchRecipe[]>([]);
   const [searchPage, setSearchPage] = useState(0);
   const [hasMoreSearch, setHasMoreSearch] = useState(true);
@@ -67,14 +70,42 @@ export default function HomeScreen() {
   const [isLikedTabLoaded, setIsLikedTabLoaded] = useState(false);
   const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
 
+  const {
+    isSaved,
+    savedVersion,
+    collections,
+    userUUID,
+    isLoadingSaved,
+    handleUnsaveRecipe,
+    handleSaveRecipe: updateSavedCache,
+  } = useCollectionManager();
+
   // Hooks
   const likeHook = useRecipeLike();
-  const newest = useRecipePagination({ fetchFunction: getNewestRecipes, pageSize: 10 });
-  const trending = useRecipePagination({ fetchFunction: getTrendingRecipes, pageSize: 10 });
-  const popular = useRecipePagination({ fetchFunction: getPopularRecipes, pageSize: 20 });
-  const topRated = useRecipePagination({ fetchFunction: getTopRatedRecipes, pageSize: 10 });
-  const liked = useRecipePagination({ fetchFunction: getLikedRecipes, pageSize: 10 });
-  const following = useRecipePagination({ fetchFunction: getRecipebyFollowing, pageSize: 10 });
+  const newest = useRecipePagination({
+    fetchFunction: getNewestRecipes,
+    pageSize: 10,
+  });
+  const trending = useRecipePagination({
+    fetchFunction: getTrendingRecipes,
+    pageSize: 10,
+  });
+  const popular = useRecipePagination({
+    fetchFunction: getPopularRecipes,
+    pageSize: 20,
+  });
+  const topRated = useRecipePagination({
+    fetchFunction: getTopRatedRecipes,
+    pageSize: 10,
+  });
+  const liked = useRecipePagination({
+    fetchFunction: getLikedRecipes,
+    pageSize: 10,
+  });
+  const following = useRecipePagination({
+    fetchFunction: getRecipebyFollowing,
+    pageSize: 10,
+  });
 
   // ViewModel
   const viewModel = new HomeViewModel(
@@ -118,7 +149,11 @@ export default function HomeScreen() {
 
   useEffect(() => {
     viewModel.updateCurrentStates({ activeTab });
-    viewModel.handleTabChange(activeTab, isLikedTabLoaded, isFollowingTabLoaded);
+    viewModel.handleTabChange(
+      activeTab,
+      isLikedTabLoaded,
+      isFollowingTabLoaded
+    );
   }, [activeTab]);
 
   // Event Handlers
@@ -139,7 +174,6 @@ export default function HomeScreen() {
       viewModel.handleSearch(reset, requestedPage);
     }
   };
-
   const handleToggleLike = (recipeId: string) => {
     viewModel.updateCurrentStates({ activeTab });
     viewModel.toggleLike(recipeId, dailyRecommendations, featuredRecipes);
@@ -163,7 +197,10 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>⚠ {error}</Text>
-          <Text style={styles.retryText} onPress={() => viewModel.fetchHomeSuggestions()}>
+          <Text
+            style={styles.retryText}
+            onPress={() => viewModel.fetchHomeSuggestions()}
+          >
             Thử lại
           </Text>
         </View>
@@ -176,7 +213,9 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <SearchBar
         searchQuery={searchQuery}
-        setSearchQuery={(query) => viewModel.handleQueryChange(query, hasSearched)}
+        setSearchQuery={(query) =>
+          viewModel.handleQueryChange(query, hasSearched)
+        }
         onSearch={handleSearch}
         onGetSuggestions={(query) => viewModel.fetchUserSuggestions(query)}
         showSuggestions={!hasSearched}
@@ -213,6 +252,13 @@ export default function HomeScreen() {
           likingRecipeId={likeHook.likingRecipeId}
           onRecipePress={handleOpenDetail}
           onToggleLike={handleToggleLike}
+          isSaved={isSaved}
+          savedVersion={savedVersion}
+          collections={collections}
+          userUUID={userUUID}
+          isLoadingSaved={isLoadingSaved}
+          handleUnsaveRecipe={handleUnsaveRecipe}
+          updateSavedCache={updateSavedCache}
         />
       )}
     </SafeAreaView>
@@ -234,30 +280,42 @@ function MainContent({
   likingRecipeId,
   onRecipePress,
   onToggleLike,
+  isSaved,
+  savedVersion,
+  collections,
+  userUUID,
+  isLoadingSaved,
+  handleUnsaveRecipe,
+  updateSavedCache,
 }: any) {
   // Render content based on active tab
   const renderContent = () => {
-    if (activeTab === 'Đề xuất') {
+    if (activeTab === "Đề xuất") {
       return [
-        { id: 'featured', type: 'featured' },
-        { id: 'trending', type: 'trending' },
-        { id: 'popular', type: 'popular' },
-        { id: 'topRated', type: 'topRated' },
-        { id: 'newest', type: 'newest' },
+        { id: "featured", type: "featured" },
+        { id: "trending", type: "trending" },
+        { id: "popular", type: "popular" },
+        { id: "topRated", type: "topRated" },
+        { id: "newest", type: "newest" },
       ];
-    } else if (activeTab === 'Yêu thích') {
-      return [{ id: 'liked', type: 'liked' }];
-    } else if (activeTab === 'Theo dõi') {
-      return [{ id: 'following', type: 'following' }];
+    } else if (activeTab === "Yêu thích") {
+      return [{ id: "liked", type: "liked" }];
+    } else if (activeTab === "Theo dõi") {
+      return [{ id: "following", type: "following" }];
     }
     return [];
   };
 
   const renderItem = ({ item }: { item: any }) => {
     switch (item.type) {
-      case 'featured':
-        return <FeaturedDish recipes={dailyRecommendations} onRecipePress={onRecipePress} />;
-      case 'trending':
+      case "featured":
+        return (
+          <FeaturedDish
+            recipes={dailyRecommendations}
+            onRecipePress={onRecipePress}
+          />
+        );
+      case "trending":
         return (
           <TrendingRecipes
             recipes={trending.recipes}
@@ -268,9 +326,16 @@ function MainContent({
             likedRecipes={likedRecipes}
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
+            isSaved={isSaved}
+            savedVersion={savedVersion}
+            collections={collections}
+            userUUID={userUUID}
+            isLoadingSaved={isLoadingSaved}
+            handleUnsaveRecipe={handleUnsaveRecipe}
+            updateSavedCache={updateSavedCache}
           />
         );
-      case 'popular':
+      case "popular":
         return (
           <PopularRecipes
             recipes={popular.recipes}
@@ -281,9 +346,16 @@ function MainContent({
             likedRecipes={likedRecipes}
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
+            isSaved={isSaved}
+            savedVersion={savedVersion}
+            collections={collections}
+            userUUID={userUUID}
+            isLoadingSaved={isLoadingSaved}
+            handleUnsaveRecipe={handleUnsaveRecipe}
+            updateSavedCache={updateSavedCache}
           />
         );
-      case 'topRated':
+      case "topRated":
         return (
           <TopRatedRecipes
             recipes={topRated.recipes}
@@ -294,9 +366,16 @@ function MainContent({
             likedRecipes={likedRecipes}
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
+            isSaved={isSaved}
+            savedVersion={savedVersion}
+            collections={collections}
+            userUUID={userUUID}
+            isLoadingSaved={isLoadingSaved}
+            handleUnsaveRecipe={handleUnsaveRecipe}
+            updateSavedCache={updateSavedCache}
           />
         );
-      case 'newest':
+      case "newest":
         return (
           <NewestRecipes
             recipes={newest.recipes}
@@ -307,9 +386,16 @@ function MainContent({
             likedRecipes={likedRecipes}
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
+            isSaved={isSaved}
+            savedVersion={savedVersion}
+            collections={collections}
+            userUUID={userUUID}
+            isLoadingSaved={isLoadingSaved}
+            handleUnsaveRecipe={handleUnsaveRecipe}
+            updateSavedCache={updateSavedCache}
           />
         );
-      case 'liked':
+      case "liked":
         return (
           <LikedRecipes
             recipes={liked.recipes}
@@ -320,9 +406,16 @@ function MainContent({
             likedRecipes={likedRecipes}
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
+            isSaved={isSaved}
+            savedVersion={savedVersion}
+            collections={collections}
+            userUUID={userUUID}
+            isLoadingSaved={isLoadingSaved}
+            handleUnsaveRecipe={handleUnsaveRecipe}
+            updateSavedCache={updateSavedCache}
           />
         );
-      case 'following':
+      case "following":
         return (
           <RecipeFollowing
             recipes={following.recipes}
@@ -333,6 +426,13 @@ function MainContent({
             likedRecipes={likedRecipes}
             likingRecipeId={likingRecipeId}
             onToggleLike={onToggleLike}
+            isSaved={isSaved}
+            savedVersion={savedVersion}
+            collections={collections}
+            userUUID={userUUID}
+            isLoadingSaved={isLoadingSaved}
+            handleUnsaveRecipe={handleUnsaveRecipe}
+            updateSavedCache={updateSavedCache}
           />
         );
       default:
@@ -369,8 +469,8 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   loadingText: {
@@ -380,14 +480,14 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#FF3B30',
-    textAlign: 'center',
+    color: "#FF3B30",
+    textAlign: "center",
     marginBottom: 16,
   },
   retryText: {
     fontSize: 16,
     color: Colors.primary,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
 });

@@ -15,6 +15,7 @@ interface UseCollectionManagerReturn {
   handleSaveRecipe: (recipeId: string, collectionId: string) => void;
   handleUnsaveRecipe: (recipeId: string, currentSaveCount: number, onSuccess?: (newSaveCount: number) => void) => Promise<void>;
   refreshCollections: () => Promise<void>;
+  savedVersion: number;
 }
 
 export function useCollectionManager(): UseCollectionManagerReturn {
@@ -25,6 +26,7 @@ export function useCollectionManager(): UseCollectionManagerReturn {
   const [collections, setCollections] = useState<CollectionUserDto[]>([]);
   const [userUUID, setUserUUID] = useState<string>("");
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [savedVersion, setSavedVersion] = useState(0);
 
   /**
    * Tải danh sách công thức đã lưu từ backend
@@ -117,6 +119,7 @@ export function useCollectionManager(): UseCollectionManagerReturn {
 
     // Cập nhật recipeToCollectionMap
     setRecipeToCollectionMap((prev) => new Map(prev).set(recipeId, collectionId));
+    setSavedVersion(v => v + 1);
   };
 
   /**
@@ -150,8 +153,9 @@ export function useCollectionManager(): UseCollectionManagerReturn {
         return newMap;
       });
 
+      setSavedVersion(v => v + 1);
+
       onSuccess?.(currentSaveCount - 1);
-      Alert.alert("Đã gỡ", "Công thức đã được xóa khỏi bộ sưu tập.");
     } catch (error: any) {
       console.log("Lỗi xóa công thức:", error);
       Alert.alert("Lỗi", error.message || "Không thể xóa công thức.");
@@ -187,5 +191,6 @@ export function useCollectionManager(): UseCollectionManagerReturn {
     handleSaveRecipe,
     handleUnsaveRecipe,
     refreshCollections,
+    savedVersion
   };
 }

@@ -1,26 +1,32 @@
-// components/CommentModal.tsx - CLEAN VERSION: Only WebSocket-driven comments
-import { commentService } from '@/services/commentService';
-import { useWebSocketStatus } from '@/services/useWebSocketStatus';
-import websocketService from '@/services/websocketService';
-import { CommentResponse } from '@/types/comment';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// components/CommentModal.tsx - FIXED: Sort, Keyboard, Avatar touchable area
+import { commentService } from "@/services/commentService";
+import { useWebSocketStatus } from "@/services/useWebSocketStatus";
+import websocketService from "@/services/websocketService";
+import { CommentResponse } from "@/types/comment";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   Dimensions,
   FlatList,
   Image,
   Keyboard,
   Modal,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface CommentModalProps {
   visible: boolean;
@@ -29,15 +35,16 @@ interface CommentModalProps {
   currentUserId: string;
   currentUserAvatar?: string;
   onCommentCountChange?: (newCount: number) => void;
+  focusCommentId?: string | null;
 }
 
-type SortOption = 'relevant' | 'newest' | 'oldest';
+type SortOption = "relevant" | "newest" | "oldest";
 
 interface CommentWithExpandedReplies extends CommentResponse {
   expandedRepliesCount?: number;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const CommentModal: React.FC<CommentModalProps> = ({
   visible,
@@ -46,99 +53,248 @@ const CommentModal: React.FC<CommentModalProps> = ({
   currentUserId,
   currentUserAvatar,
   onCommentCountChange,
+  focusCommentId,
 }) => {
   const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
   const [loading, setLoading] = useState(true);
-  const [commentText, setCommentText] = useState('');
+  const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<CommentResponse | null>(null);
   const [editingComment, setEditingComment] = useState<CommentResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [sortOption, setSortOption] = useState<SortOption>('relevant');
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>("relevant");
   const [showSortModal, setShowSortModal] = useState(false);
   const [scrollToCommentId, setScrollToCommentId] = useState<string | null>(null);
+  const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
+  const hasProcessedFocusRef = useRef(false);
 
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList>(null);
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const isConnected = useWebSocketStatus();
+  const router = useRouter();
 
   const totalComments = useMemo(
     () => countAllCommentsRecursive(comments),
     [comments]
   );
 
+  // ==================== FIX 1: Sort cả parent và replies ====================
   const sortedComments = useMemo(() => {
-    const sorted = [...comments];
-    if (sortOption === 'newest') {
-      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } else if (sortOption === 'oldest') {
-      sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    }
-    // 'relevant' giữ nguyên thứ tự từ server
-    return sorted;
+    const sortRecursive = (commentsList: CommentWithExpandedReplies[]): CommentWithExpandedReplies[] => {
+      const sorted = [...commentsList];
+      
+      if (sortOption === "newest") {
+        sorted.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      } else if (sortOption === "oldest") {
+        sorted.sort((a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      }
+      
+      // Đệ quy sort replies
+      return sorted.map(comment => ({
+        ...comment,
+        replies: comment.replies && comment.replies.length > 0
+          ? sortRecursive(comment.replies)
+          : comment.replies
+      }));
+    };
+
+    return sortRecursive(comments);
   }, [comments, sortOption]);
 
-  // ========================================================================
-  // KEYBOARD
-  // ========================================================================
+  // ==================== KEYBOARD LISTENER ====================
   useEffect(() => {
-    const showListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => setKeyboardHeight(e.endCoordinates.height)
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setIsKeyboardOpen(true)
     );
-    const hideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setKeyboardHeight(0)
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setIsKeyboardOpen(false)
     );
 
     return () => {
-      showListener.remove();
-      hideListener.remove();
+      show.remove();
+      hide.remove();
     };
   }, []);
 
-  // ========================================================================
-  // MODAL ANIMATION + LOAD COMMENTS
-  // ========================================================================
   useEffect(() => {
-    if (visible) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        bounciness: 0,
-      }).start();
-      loadComments();
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: SCREEN_HEIGHT,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-      setCommentText('');
-      setReplyingTo(null);
-      setEditingComment(null);
-      setKeyboardHeight(0);
+    if (!visible) {
+      hasProcessedFocusRef.current = false;
+      setHighlightedCommentId(null);
     }
   }, [visible]);
+
+  // ==================== LOAD COMMENTS ====================
+  useEffect(() => {
+    if (visible) {
+      loadComments();
+    }
+  }, [visible]);
+
+  useEffect(() => {
+  if (replyingTo) {
+    const newMention = `@${replyingTo.fullName} `;
+    setCommentText(newMention);
+    Keyboard.dismiss();
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 200);
+  } else {
+    if (commentText.startsWith('@') && !editingComment) {
+      setCommentText('');
+    }
+  }
+}, [replyingTo]);
 
   useEffect(() => {
     onCommentCountChange?.(totalComments);
   }, [totalComments, onCommentCountChange]);
 
-  // Auto-scroll to comment
   useEffect(() => {
     if (scrollToCommentId && flatListRef.current) {
-      const index = sortedComments.findIndex(c => c.commentId === scrollToCommentId);
-      if (index !== -1) {
+      const findCommentIndex = (
+        commentId: string, 
+        comments: CommentWithExpandedReplies[]
+      ): { parentIndex: number; isReply: boolean } | null => {
+        const directIndex = comments.findIndex(c => c.commentId === commentId);
+        if (directIndex !== -1) {
+          return { parentIndex: directIndex, isReply: false };
+        }
+
+        for (let i = 0; i < comments.length; i++) {
+          const comment = comments[i];
+          if (comment.replies && comment.replies.length > 0) {
+            const found = findInReplies(commentId, comment.replies);
+            if (found) {
+              return { parentIndex: i, isReply: true };
+            }
+          }
+        }
+
+        return null;
+      };
+
+      const findInReplies = (
+        commentId: string,
+        replies: CommentWithExpandedReplies[]
+      ): boolean => {
+        for (const reply of replies) {
+          if (reply.commentId === commentId) return true;
+          if (reply.replies && reply.replies.length > 0) {
+            if (findInReplies(commentId, reply.replies)) return true;
+          }
+        }
+        return false;
+      };
+
+      const result = findCommentIndex(scrollToCommentId, sortedComments);
+
+      if (result) {
         setTimeout(() => {
-          flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+          flatListRef.current?.scrollToIndex({
+            index: result.parentIndex,
+            animated: true,
+            viewPosition: result.isReply ? 0.3 : 0.5,
+          });
           setScrollToCommentId(null);
-        }, 300);
+        }, 500);
+      } else {
+        setScrollToCommentId(null);
       }
     }
   }, [scrollToCommentId, sortedComments]);
+
+  useEffect(() => {
+    if (
+      visible && 
+      focusCommentId && 
+      !loading && 
+      comments.length > 0 && 
+      !hasProcessedFocusRef.current
+    ) {
+      hasProcessedFocusRef.current = true;
+      
+      const timer = setTimeout(() => {
+        handleFocusComment(focusCommentId);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [visible, focusCommentId, loading]);
+
+  const handleFocusComment = useCallback((targetCommentId: string) => {
+    const parentsToExpand: string[] = [];
+    
+    const findParentPath = (
+      commentsList: CommentWithExpandedReplies[],
+      path: string[] = []
+    ): boolean => {
+      for (const comment of commentsList) {
+        if (comment.commentId === targetCommentId) {
+          parentsToExpand.push(...path);
+          return true;
+        }
+        
+        if (comment.replies && comment.replies.length > 0) {
+          if (findParentPath(comment.replies, [...path, comment.commentId])) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    setComments(currentComments => {
+      findParentPath(currentComments);
+      
+      if (parentsToExpand.length > 0) {
+        let updated = [...currentComments];
+        
+        parentsToExpand.forEach(parentId => {
+          updated = expandCommentById(updated, parentId, Infinity);
+        });
+        
+        return updated;
+      }
+      
+      return currentComments;
+    });
+    
+    setTimeout(() => {
+      setScrollToCommentId(targetCommentId);
+      setHighlightedCommentId(targetCommentId);
+      
+      setTimeout(() => {
+        setHighlightedCommentId(null);
+      }, 3000);
+    }, 500);
+  }, []);
+
+  const expandCommentById = (
+    commentsList: CommentWithExpandedReplies[],
+    commentId: string,
+    count: number
+  ): CommentWithExpandedReplies[] => {
+    return commentsList.map(c => {
+      if (c.commentId === commentId) {
+        return {
+          ...c,
+          expandedRepliesCount: Math.min(count, c.replies?.length || 0),
+        };
+      }
+      if (c.replies && c.replies.length > 0) {
+        return {
+          ...c,
+          replies: expandCommentById(c.replies, commentId, count),
+        };
+      }
+      return c;
+    });
+  };
 
   const loadComments = useCallback(async () => {
     try {
@@ -146,32 +302,25 @@ const CommentModal: React.FC<CommentModalProps> = ({
       const data = await commentService.getCommentsByRecipe(recipeId);
       const normalized = normalizeCommentsRecursive(data);
       setComments(normalized);
-      console.log('📥 Loaded', normalized.length, 'comments');
     } catch (error) {
-      console.log('❌ Load error:', error);
-      Alert.alert('Lỗi', 'Không thể tải bình luận');
+      Alert.alert("Lỗi", "Không thể tải bình luận");
     } finally {
       setLoading(false);
     }
   }, [recipeId]);
 
-  // ========================================================================
-  // WEBSOCKET EVENTS
-  // ========================================================================
+  // ==================== WEBSOCKET ====================
   const handleNewComment = useCallback(
     (data: any) => {
       if (data.recipeId !== recipeId) return;
       const newComment: CommentResponse = data.comment;
 
       setComments((prev) => {
-        // Hàm đệ quy: tìm cha và thêm reply ở MỌI CẤP ĐỘ
         const addReplyRecursively = (
           comments: CommentWithExpandedReplies[]
         ): { updated: boolean; comments: CommentWithExpandedReplies[] } => {
           let updated = false;
-
           const newComments = comments.map((comment) => {
-            // Nếu comment này là cha trực tiếp → thêm reply
             if (comment.commentId === newComment.parentCommentId) {
               updated = true;
               const updatedReplies = [...(comment.replies || []), newComment];
@@ -179,11 +328,9 @@ const CommentModal: React.FC<CommentModalProps> = ({
                 ...comment,
                 replies: updatedReplies,
                 replyCount: (comment.replyCount || 0) + 1,
-                expandedRepliesCount: updatedReplies.length, // HIỆN TẤT CẢ
+                expandedRepliesCount: updatedReplies.length,
               };
             }
-
-            // Nếu không phải cha → tìm đệ quy trong replies của nó
             if (comment.replies && comment.replies.length > 0) {
               const result = addReplyRecursively(comment.replies);
               if (result.updated) {
@@ -195,20 +342,16 @@ const CommentModal: React.FC<CommentModalProps> = ({
                 };
               }
             }
-
             return comment;
           });
-
           return { updated, comments: newComments };
         };
 
-        // Nếu là comment gốc
         if (!newComment.parentCommentId) {
-          if (prev.some((c) => c.commentId === newComment.commentId)) return prev;
+          if (prev.some((c) => c.commentId === newComment.commentId))
+            return prev;
           return [newComment, ...prev];
         }
-
-        // Nếu là reply → tìm cha ở mọi cấp
         const result = addReplyRecursively(prev);
         return result.updated ? result.comments : prev;
       });
@@ -223,13 +366,13 @@ const CommentModal: React.FC<CommentModalProps> = ({
       const updateRecursively = (
         comments: CommentWithExpandedReplies[]
       ): CommentWithExpandedReplies[] => {
-        return comments.map((c) => {
-          if (c.commentId === updated.commentId) {
-            return { ...c, content: updated.content, updatedAt: updated.updatedAt };
-          }
-          if (c.replies) return { ...c, replies: updateRecursively(c.replies) };
-          return c;
-        });
+        return comments.map((c) =>
+          c.commentId === updated.commentId
+            ? { ...c, content: updated.content, updatedAt: updated.updatedAt }
+            : c.replies
+            ? { ...c, replies: updateRecursively(c.replies) }
+            : c
+        );
       };
       setComments(updateRecursively);
     },
@@ -256,35 +399,36 @@ const CommentModal: React.FC<CommentModalProps> = ({
     [recipeId]
   );
 
-  // ========================================================================
-  // WEBSOCKET SUBSCRIBE / UNSUBSCRIBE
-  // ========================================================================
   useEffect(() => {
     if (!visible || !isConnected) return;
-
-    websocketService.on('NEW_COMMENT', handleNewComment);
-    websocketService.on('UPDATE_COMMENT', handleUpdateComment);
-    websocketService.on('DELETE_COMMENT', handleDeleteComment);
+    websocketService.on("NEW_COMMENT", handleNewComment);
+    websocketService.on("UPDATE_COMMENT", handleUpdateComment);
+    websocketService.on("DELETE_COMMENT", handleDeleteComment);
     websocketService.subscribeToRecipeComments(recipeId);
 
     return () => {
-      websocketService.off('NEW_COMMENT', handleNewComment);
-      websocketService.off('UPDATE_COMMENT', handleUpdateComment);
-      websocketService.off('DELETE_COMMENT', handleDeleteComment);
+      websocketService.off("NEW_COMMENT", handleNewComment);
+      websocketService.off("UPDATE_COMMENT", handleUpdateComment);
+      websocketService.off("DELETE_COMMENT", handleDeleteComment);
       websocketService.unsubscribeFromRecipeComments(recipeId);
     };
-  }, [visible, isConnected, recipeId, handleNewComment, handleUpdateComment, handleDeleteComment]);
+  }, [
+    visible,
+    isConnected,
+    recipeId,
+    handleNewComment,
+    handleUpdateComment,
+    handleDeleteComment,
+  ]);
 
-  // ========================================================================
-  // SUBMIT COMMENT (NO OPTIMISTIC)
-  // ========================================================================
+  // ==================== SUBMIT ====================
   const handleSubmit = async () => {
     const text = commentText.trim();
-    if (!text) return;
+    if (!text || submitting) return;
 
     try {
       setSubmitting(true);
-      setCommentText('');
+      setCommentText("");
       Keyboard.dismiss();
 
       if (editingComment) {
@@ -300,132 +444,136 @@ const CommentModal: React.FC<CommentModalProps> = ({
       });
 
       setReplyingTo(null);
-
-      // Scroll to new comment
-      if (replyingTo) {
-        setScrollToCommentId(replyingTo.commentId);
-      } else {
-        setScrollToCommentId(newComment.commentId);
-      }
+      if (replyingTo) setScrollToCommentId(replyingTo.commentId);
+      else setScrollToCommentId(newComment.commentId);
     } catch (error: any) {
-      console.log('❌ Submit error:', error);
-      Alert.alert('Lỗi', error.message || 'Không thể gửi bình luận');
+      Alert.alert("Lỗi", error.message || "Không thể gửi bình luận");
       setCommentText(text);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ========================================================================
-  // DELETE COMMENT
-  // ========================================================================
   const handleDelete = async (comment: CommentResponse) => {
-    const isParent = !comment.parentCommentId;
-    const replyCount = comment.replyCount || 0;
-    const message = isParent && replyCount > 0
-      ? `Bình luận này có ${replyCount} trả lời. Xóa sẽ xóa tất cả. Bạn có chắc?`
-      : 'Bạn có chắc muốn xóa bình luận này?';
+    const message =
+      !comment.parentCommentId && (comment.replyCount || 0) > 0
+        ? `Bình luận này có ${comment.replyCount} trả lời. Xóa sẽ xóa tất cả. Bạn có chắc?`
+        : "Bạn có chắc muốn xóa bình luận này?";
 
-    Alert.alert('Xóa bình luận', message, [
-      { text: 'Hủy', style: 'cancel' },
+    Alert.alert("Xóa bình luận", message, [
+      { text: "Hủy", style: "cancel" },
       {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await commentService.deleteComment(comment.commentId);
-          } catch (error) {
-            console.log('❌ Delete error:', error);
-            Alert.alert('Lỗi', 'Không thể xóa bình luận');
-          }
-        },
+        text: "Xóa",
+        style: "destructive",
+        onPress: () => commentService.deleteComment(comment.commentId),
       },
     ]);
   };
 
-  // ========================================================================
-  // EXPAND/COLLAPSE REPLIES
-  // ========================================================================
-  const handleExpandReplies = (commentId: string) => {
-    const expandRecursive = (comments: CommentWithExpandedReplies[]): CommentWithExpandedReplies[] => {
-      return comments.map((c) => {
-        if (c.commentId === commentId) {
-          return {
-            ...c,
-            expandedRepliesCount: Math.min(
-              (c.expandedRepliesCount || 0) + 5,
-              c.replies?.length || 0
-            ),
-          };
-        }
-        if (c.replies && c.replies.length > 0) {
-          return {
-            ...c,
-            replies: expandRecursive(c.replies),
-          };
-        }
-        return c;
-      });
-    };
+  const handleExpandReplies = useCallback((commentId: string) => {
+    setComments(prev => {
+      const expandRecursive = (
+        commentsList: CommentWithExpandedReplies[]
+      ): CommentWithExpandedReplies[] => {
+        return commentsList.map((c) => {
+          if (c.commentId === commentId) {
+            return {
+              ...c,
+              expandedRepliesCount: Math.min(
+                (c.expandedRepliesCount || 0) + 5,
+                c.replies?.length || 0
+              ),
+            };
+          }
+          if (c.replies && c.replies.length > 0) {
+            return {
+              ...c,
+              replies: expandRecursive(c.replies),
+            };
+          }
+          return c;
+        });
+      };
 
-    setComments((prev) => expandRecursive(prev));
-  };
+      return expandRecursive(prev);
+    });
+  }, []);
 
-
-  // ========================================================================
-  // RENDER COMMENT
-  // ========================================================================
+  // ==================== FIX 3: Avatar chỉ touchable ở vùng avatar ====================
   const renderComment = useCallback(
-    (comment: CommentWithExpandedReplies, isReply: boolean = false) => {
+    (comment: CommentWithExpandedReplies, isReply = false, depth = 0) => {
       const isOwner = comment.userId === currentUserId;
       const timeAgo = getTimeAgo(comment.createdAt);
       const hasReplies = comment.replies && comment.replies.length > 0;
       const expandedCount = comment.expandedRepliesCount || 0;
-      const visibleReplies = hasReplies ? comment.replies!.slice(0, expandedCount) : [];
+      const visibleReplies = hasReplies
+        ? comment.replies!.slice(0, expandedCount)
+        : [];
       const totalDescendants = countDescendants(comment);
-      const totalDirectReplies = comment.replies ? comment.replies.length : 0;
-      const remainingReplies = Math.max(0, totalDirectReplies - expandedCount);
+      const remainingReplies = Math.max(
+        0,
+        (comment.replies?.length || 0) - expandedCount
+      );
+      const isHighlighted = comment.commentId === highlightedCommentId;
 
       return (
         <View
           key={comment.commentId}
-          style={[styles.commentContainer, isReply && styles.replyContainer]}
+          style={[
+            styles.commentContainer,
+            isReply && styles.replyContainer,
+            depth >= 2 && { marginLeft: 16 }
+          ]}
         >
-          <Image
-            source={{ uri: comment.userAvatar || 'https://via.placeholder.com/40' }}
-            style={[styles.avatar, isReply && styles.avatarReply]}
-          />
+          <TouchableOpacity
+            onPress={() => {
+              onClose();
+              router.push(
+                isOwner ? "/(tabs)/profile" : `/profile/${comment.userId}`
+              );
+            }}
+            style={styles.avatarTouchable}
+          >
+            <Image
+              source={{
+                uri: comment.userAvatar || "https://via.placeholder.com/40",
+              }}
+              style={[styles.avatar, isReply && styles.avatarReply]}
+            />
+          </TouchableOpacity>
+
           <View style={styles.commentContent}>
-            <View style={styles.commentBubble}>
+            <View style={[
+              styles.commentBubble,
+              isHighlighted && styles.highlightedComment
+            ]}>
               <Text style={styles.userName}>{comment.fullName}</Text>
               <Text style={styles.commentText}>{comment.content}</Text>
             </View>
 
             <View style={styles.commentMeta}>
               <Text style={styles.timeAgo}>{timeAgo}</Text>
-
-              {(
-                <TouchableOpacity
-                  onPress={() => {
-                    setReplyingTo(comment);
-                    setEditingComment(null);
-                    setScrollToCommentId(comment.commentId);
-                    inputRef.current?.focus();
-                  }}
-                  style={styles.metaButton}
-                >
-                  <Text style={styles.metaText}>Trả lời</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setReplyingTo(comment);
+                  setEditingComment(null);
+                  setScrollToCommentId(comment.commentId);
+                }}
+                style={styles.metaButton}
+              >
+                <Text style={styles.metaText}>Trả lời</Text>
+              </TouchableOpacity>
 
               {isOwner && (
                 <>
                   <TouchableOpacity
                     onPress={() => {
+                      Keyboard.dismiss();
                       setEditingComment(comment);
                       setCommentText(comment.content);
                       setReplyingTo(null);
-                      inputRef.current?.focus();
+                      setTimeout(() => inputRef.current?.focus(), 200);
                     }}
                     style={styles.metaButton}
                   >
@@ -435,7 +583,9 @@ const CommentModal: React.FC<CommentModalProps> = ({
                     onPress={() => handleDelete(comment)}
                     style={styles.metaButton}
                   >
-                    <Text style={[styles.metaText, styles.deleteText]}>Xóa</Text>
+                    <Text style={[styles.metaText, styles.deleteText]}>
+                      Xóa
+                    </Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -454,7 +604,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                   </TouchableOpacity>
                 ) : (
                   <>
-                    {visibleReplies.map((reply) => renderComment(reply, true))}
+                    {visibleReplies.map((reply) => renderComment(reply, true, depth + 1))}
                     {remainingReplies > 0 && (
                       <TouchableOpacity
                         onPress={() => handleExpandReplies(comment.commentId)}
@@ -473,12 +623,9 @@ const CommentModal: React.FC<CommentModalProps> = ({
         </View>
       );
     },
-    [currentUserId]
+    [currentUserId, onClose, router, highlightedCommentId, handleExpandReplies]
   );
 
-  // ========================================================================
-  // RENDER SORT MODAL
-  // ========================================================================
   const renderSortModal = () => (
     <Modal visible={showSortModal} transparent animationType="fade">
       <TouchableOpacity
@@ -487,465 +634,366 @@ const CommentModal: React.FC<CommentModalProps> = ({
         onPress={() => setShowSortModal(false)}
       >
         <View style={styles.sortModalContent}>
-          <TouchableOpacity
-            style={styles.sortOption}
-            onPress={() => {
-              setSortOption('relevant');
-              setShowSortModal(false);
-            }}
-          >
-            <View style={styles.sortOptionRow}>
-              <Text style={styles.sortOptionText}>Phù hợp nhất</Text>
-              {sortOption === 'relevant' && <Text style={styles.checkMark}>✓</Text>}
-            </View>
-            <Text style={styles.sortOptionDesc}>
-              Hiển thị bình luận của bạn và những bình luận có nhiều lượt tương tác nhất trước tiên.
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.sortOption}
-            onPress={() => {
-              setSortOption('newest');
-              setShowSortModal(false);
-            }}
-          >
-            <View style={styles.sortOptionRow}>
-              <Text style={styles.sortOptionText}>Mới nhất</Text>
-              {sortOption === 'newest' && <Text style={styles.checkMark}>✓</Text>}
-            </View>
-            <Text style={styles.sortOptionDesc}>
-              Hiển thị tất cả bình luận, mới nhất trước tiên.
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.sortOption}
-            onPress={() => {
-              setSortOption('oldest');
-              setShowSortModal(false);
-            }}
-          >
-            <View style={styles.sortOptionRow}>
-              <Text style={styles.sortOptionText}>Tất cả bình luận</Text>
-              {sortOption === 'oldest' && <Text style={styles.checkMark}>✓</Text>}
-            </View>
-            <Text style={styles.sortOptionDesc}>
-              Hiển thị tất cả bình luận, bao gồm cả nội dung có thể là spam.
-            </Text>
-          </TouchableOpacity>
+          {(["relevant", "newest", "oldest"] as SortOption[]).map((opt) => (
+            <TouchableOpacity
+              key={opt}
+              style={styles.sortOption}
+              onPress={() => {
+                setSortOption(opt);
+                setShowSortModal(false);
+              }}
+            >
+              <View style={styles.sortOptionRow}>
+                <Text style={styles.sortOptionText}>
+                  {opt === "relevant"
+                    ? "Phù hợp nhất"
+                    : opt === "newest"
+                    ? "Mới nhất"
+                    : "Tất cả bình luận"}
+                </Text>
+                {sortOption === opt && (
+                  <Ionicons name="checkmark-done" size={20} color="#1877F2" />
+                )}
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
       </TouchableOpacity>
     </Modal>
   );
 
-  // ========================================================================
-  // RENDER UI
-  // ========================================================================
+  // ==================== RENDER ====================
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={false}
+      onRequestClose={onClose}
+    >
       {renderSortModal()}
-      <View style={styles.modalOverlay}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
-        <Animated.View
+
+      <View style={{ flex: 1, backgroundColor: "#FFF" }}>
+        <View style={styles.modalHeader}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Bình luận ({totalComments})</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>×</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.sortButton}
+          onPress={() => setShowSortModal(true)}
+        >
+          <Text style={styles.sortButtonText}>
+            {sortOption === "relevant" && "Phù hợp nhất"}
+            {sortOption === "newest" && "Mới nhất"}
+            {sortOption === "oldest" && "Tất cả bình luận"}
+          </Text>
+          <MaterialIcons name="keyboard-arrow-down" size={20} color="#666" />
+        </TouchableOpacity>
+
+        <View style={styles.contentContainer}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#FF6B6B" />
+            </View>
+          ) : comments.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptySubtext}>Chưa có bình luận nào</Text>
+              <Text style={styles.emptyHint}>Hãy là người đầu tiên!</Text>
+            </View>
+          ) : (
+            <FlatList
+              ref={flatListRef}
+              data={sortedComments}
+              keyExtractor={(item) => item.commentId}
+              renderItem={({ item }) => renderComment(item)}
+              contentContainerStyle={styles.listContent}
+              keyboardShouldPersistTaps="handled"
+            />
+          )}
+        </View>
+
+        <View
           style={[
-            styles.modalContent,
-            { transform: [{ translateY: slideAnim }], marginBottom: Platform.OS === 'ios' ? keyboardHeight : 0 },
+            styles.inputContainer,
+            {
+              paddingBottom: Math.max(insets.bottom, 16),
+            },
           ]}
         >
-          <View style={styles.modalHeader}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Bình luận ({totalComments})</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* SORT BUTTON */}
-          <TouchableOpacity
-            style={styles.sortButton}
-            onPress={() => setShowSortModal(true)}
-          >
-            <Text style={styles.sortButtonText}>
-              {sortOption === 'relevant' && 'Phù hợp nhất'}
-              {sortOption === 'newest' && 'Mới nhất'}
-              {sortOption === 'oldest' && 'Tất cả bình luận'}
-            </Text>
-            <Text style={styles.sortButtonIcon}>▼</Text>
-          </TouchableOpacity>
-
-          <View style={styles.contentContainer}>
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#FF6B6B" />
-              </View>
-            ) : comments.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>💬</Text>
-                <Text style={styles.emptySubtext}>Chưa có bình luận nào</Text>
-                <Text style={styles.emptyHint}>Hãy là người đầu tiên!</Text>
-              </View>
-            ) : (
-              <FlatList
-                ref={flatListRef}
-                data={sortedComments}
-                keyExtractor={(item) => item.commentId}
-                renderItem={({ item }) => renderComment(item)}
-                contentContainerStyle={styles.listContent}
-                keyboardShouldPersistTaps="handled"
-                onScrollToIndexFailed={(info) => {
-                  setTimeout(() => {
-                    flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
-                  }, 100);
+          {(replyingTo || editingComment) && (
+            <View style={styles.replyingToBar}>
+              <Text style={styles.replyingToText}>
+                {editingComment ? (
+                  "Đang chỉnh sửa"
+                ) : (
+                  <>
+                    Trả lời{" "}
+                    <Text style={styles.replyingToName}>
+                      {replyingTo?.fullName}
+                    </Text>
+                  </>
+                )}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setReplyingTo(null);
+                  setEditingComment(null);
+                  setCommentText("");
                 }}
-              />
-            )}
-          </View>
+              >
+                <Text style={styles.cancelReply}>X</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-          {/* INPUT */}
-          <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-            {(replyingTo || editingComment) && (
-              <View style={styles.replyingToBar}>
-                <Text style={styles.replyingToText}>
-                  {editingComment
-                    ? '✏️ Đang chỉnh sửa'
-                    : <>💬 Trả lời <Text style={styles.replyingToName}>{replyingTo?.fullName}</Text></>}
-                </Text>
-                <TouchableOpacity onPress={() => { setReplyingTo(null); setEditingComment(null); setCommentText(''); }}>
-                  <Text style={styles.cancelReply}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            <View style={styles.inputRow}>
-              <Image
-                source={{ uri: currentUserAvatar || 'https://via.placeholder.com/36' }}
-                style={styles.inputAvatar}
-              />
+          <View style={styles.inputRow}>
+            <Image
+              source={{
+                uri: currentUserAvatar || "https://via.placeholder.com/36",
+              }}
+              style={styles.inputAvatar}
+            />
+
+            <View style={{ flex: 1 }}>
+
               <TextInput
                 ref={inputRef}
                 style={styles.input}
-                placeholder={replyingTo ? `Trả lời ${replyingTo.fullName}...` : 'Viết bình luận...'}
+                placeholder="Viết bình luận..."
                 placeholderTextColor="#999"
                 value={commentText}
                 onChangeText={setCommentText}
                 multiline
+                autoFocus={false}
               />
-              <TouchableOpacity
-                style={[styles.sendButton, (!commentText.trim() || submitting) && styles.sendButtonDisabled]}
-                onPress={handleSubmit}
-                disabled={!commentText.trim() || submitting}
-              >
-                {submitting
-                  ? <ActivityIndicator size="small" color="#FFF" />
-                  : <Text style={styles.sendButtonText}>{editingComment ? '✓' : '➤'}</Text>}
-              </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                (!commentText.trim() || submitting) &&
+                  styles.sendButtonDisabled,
+              ]}
+              onPress={handleSubmit}
+              disabled={!commentText.trim() || submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : editingComment ? (
+                <MaterialIcons name="check" size={22} color="#FFF" />
+              ) : (
+                <MaterialIcons
+                  name="send"
+                  size={22}
+                  color="#FFF"
+                  style={{ transform: [{ rotate: "-30deg" }], marginTop: -2 }}
+                />
+              )}
+            </TouchableOpacity>
           </View>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );
 };
 
-// ========================================================================
-// HELPERS
-// ========================================================================
+// ==================== HELPERS ====================
 function getTimeAgo(dateString: string) {
   const date = new Date(dateString);
   const now = new Date();
   const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diff < 60) return 'Vừa xong';
+  if (diff < 60) return "Vừa xong";
   if (diff < 3600) return `${Math.floor(diff / 60)} phút`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} giờ`;
   if (diff < 604800) return `${Math.floor(diff / 86400)} ngày`;
-  return date.toLocaleDateString('vi-VN');
+  return date.toLocaleDateString("vi-VN");
 }
 
 function normalizeCommentsRecursive(comments: any[]): any[] {
-  return comments.map((c) => {
-    const clones: any = {
-      ...c,
-      expandedRepliesCount: 0, // KHỞI TẠO luôn = 0
-      replies: c.replies && c.replies.length ? normalizeCommentsRecursive(c.replies) : [],
-    };
-    return clones;
-  });
+  return comments.map((c) => ({
+    ...c,
+    expandedRepliesCount: 0,
+    replies:
+      c.replies && c.replies.length
+        ? normalizeCommentsRecursive(c.replies)
+        : [],
+  }));
 }
 
 function countAllCommentsRecursive(comments: any[]): number {
   if (!comments || comments.length === 0) return 0;
-  return comments.reduce((sum, c) => sum + 1 + countAllCommentsRecursive(c.replies || []), 0);
+  return comments.reduce(
+    (sum, c) => sum + 1 + countAllCommentsRecursive(c.replies || []),
+    0
+  );
 }
 
-// trả về tổng số "hậu duệ" (không tính chính comment)
 function countDescendants(comment: any): number {
   return countAllCommentsRecursive(comment.replies || []);
 }
 
-// ============================================================================
-// STYLES
-// ============================================================================
+// ==================== STYLES ====================
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalBackdrop: {
-    flex: 1,
-  },
-  modalContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    height: SCREEN_HEIGHT * 0.9,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
-    flexDirection: 'column',
-  },
-  contentContainer: {
-    flex: 1,
-    overflow: 'hidden',
-  },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: "#E0E0E0",
   },
   modalHandle: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     width: 40,
     height: 4,
-    backgroundColor: '#DDD',
+    backgroundColor: "#DDD",
     borderRadius: 2,
   },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 4,
-  },
-  closeButtonText: {
-    fontSize: 24,
-    color: '#666',
-    fontWeight: '300',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  modalTitle: { fontSize: 16, fontWeight: "600", color: "#333" },
+  closeButton: { position: "absolute", right: 16, padding: 4 },
+  closeButtonText: { fontSize: 24, color: "#666", fontWeight: "300" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 40,
   },
-  emptyText: {
-    fontSize: 48,
-    marginBottom: 12,
+  emptyText: { fontSize: 48, marginBottom: 12 },
+  emptySubtext: { fontSize: 16, color: "#666", fontWeight: "500" },
+  emptyHint: { fontSize: 14, color: "#999", marginTop: 4 },
+  listContent: { padding: 16, paddingBottom: 5 },
+  commentContainer: { 
+    flexDirection: "row", 
+    marginBottom: 5,
   },
-  emptySubtext: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
-  },
-  emptyHint: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  commentContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  replyContainer: {
-    marginLeft: 10,
+  replyContainer: { 
+    marginLeft: 5, 
     marginTop: 8,
   },
-  optimisticComment: {
-    opacity: 1,
+  avatarTouchable: {
+    alignSelf: "flex-start",
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
   },
   avatarReply: {
     width: 25,
     height: 25,
     borderRadius: 12.5,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
   },
-  commentContent: {
-    flex: 1,
+  commentContent: { 
+    flex: 1, 
     marginLeft: 12,
   },
   commentBubble: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    alignSelf: 'flex-start',
-    maxWidth: '85%',
+    alignSelf: "flex-start",
+    maxWidth: "85%",
   },
-  userName: {
-    fontWeight: '600',
-    fontSize: 13,
-    color: '#333',
-    marginBottom: 2,
+  highlightedComment: {
+    backgroundColor: '#FFF9C4',
   },
-  commentText: {
-    fontSize: 14,
-    color: '#000',
-    lineHeight: 18,
+  userName: { 
+    fontWeight: "600", 
+    fontSize: 13, 
+    color: "#333", 
+    marginBottom: 2 
+  },
+  commentText: { 
+    fontSize: 14, 
+    color: "#000", 
+    lineHeight: 18 
   },
   commentMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 4,
     marginLeft: 12,
   },
-  timeAgo: {
-    fontSize: 12,
-    color: '#65676B',
-  },
-  metaButton: {
-    marginLeft: 12,
-  },
-  metaText: {
-    fontSize: 12,
-    color: '#65676B',
-    fontWeight: '600',
-  },
-  deleteText: {
-    color: '#F44336',
-  },
-  repliesContainer: {
-    marginTop: 4,
-    marginLeft: -10,
-  },
-  expandButton: {
-    marginTop: 8,
-    marginLeft: 12,
-  },
-  expandButtonText: {
-    fontSize: 13,
-    color: '#65676B',
-    fontWeight: '600',
-  },
+  timeAgo: { fontSize: 12, color: "#65676B" },
+  metaButton: { marginLeft: 12 },
+  metaText: { fontSize: 12, color: "#65676B", fontWeight: "600" },
+  deleteText: { color: "#F44336" },
+  repliesContainer: { marginTop: 4, marginLeft: -10 },
+  expandButton: { marginTop: 2, marginLeft: 8 },
+  expandButtonText: { fontSize: 13, color: "#65676B", fontWeight: "600" },
   sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    backgroundColor: '#F8F8F8',
+    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#F8F8F8",
   },
-  sortButtonText: {
-    fontSize: 13,
-    color: '#333',
-    fontWeight: '600',
-  },
-  sortButtonIcon: {
-    fontSize: 10,
-    color: '#666',
-  },
+  sortButtonText: { fontSize: 13, color: "#333", fontWeight: "600" },
   sortModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   sortModalContent: {
-    backgroundColor: '#FFF',
+    backgroundColor: "#FFF",
     borderRadius: 12,
     padding: 16,
-    width: '85%',
+    width: "85%",
     maxWidth: 400,
   },
   sortOption: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: "#E0E0E0",
   },
   sortOptionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
   },
-  sortOptionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-  },
-  sortOptionDesc: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 16,
-  },
-  checkMark: {
-    fontSize: 18,
-    color: '#1877F2',
-    fontWeight: 'bold',
-  },
+  sortOptionText: { fontSize: 15, fontWeight: "600", color: "#333" },
   inputContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    backgroundColor: '#FFF',
+    borderTopColor: "#E0E0E0",
+    backgroundColor: "#FFF",
     paddingTop: 8,
   },
   replyingToBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#E3F2FD",
     paddingVertical: 6,
     paddingHorizontal: 12,
     marginHorizontal: 12,
     marginBottom: 6,
     borderRadius: 6,
   },
-  replyingToText: {
-    fontSize: 12,
-    color: '#1976D2',
-  },
-  replyingToName: {
-    fontWeight: '600',
-    color: '#1565C0',
-  },
+  replyingToText: { fontSize: 12, color: "#1976D2" },
+  replyingToName: { fontWeight: "600", color: "#1565C0" },
   cancelReply: {
     fontSize: 16,
-    color: '#1976D2',
-    fontWeight: '500',
+    color: "#1976D2",
+    fontWeight: "500",
     paddingHorizontal: 4,
   },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingBottom: 8,
   },
@@ -953,36 +1001,30 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
     marginRight: 8,
   },
   input: {
     flex: 1,
-    backgroundColor: '#F0F2F5',
+    backgroundColor: "#F0F2F5",
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     fontSize: 14,
     maxHeight: 100,
     marginRight: 8,
-    color: '#000',
+    color: "#000",
   },
   sendButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FF6B6B",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  sendButtonDisabled: {
-    backgroundColor: '#CCC',
-  },
-  sendButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  sendButtonDisabled: { backgroundColor: "#CCC" },
+  contentContainer: { flex: 1, overflow: "hidden" },
 });
 
 export default CommentModal;

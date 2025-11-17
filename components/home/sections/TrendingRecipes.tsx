@@ -1,17 +1,17 @@
-import { useCollectionManager } from "@/hooks/useCollectionManager";
 import { Colors } from "@/styles/colors";
+import { CollectionUserDto } from "@/types/collection.types";
 import { Recipe } from "@/types/dish";
 import { recipeToDish } from "@/utils/recipeHelpers";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { CachedImage } from "../../ui/CachedImage";
 import RecipeSaveButton from "../RecipeSaveButton";
@@ -25,6 +25,17 @@ interface TrendingRecipesProps {
   likedRecipes?: Set<string>;
   likingRecipeId?: string | null;
   onToggleLike?: (recipeId: string) => Promise<void>;
+  isSaved: (recipeId: string) => boolean;
+  savedVersion: number;
+  collections: CollectionUserDto[];
+  userUUID: string;
+  isLoadingSaved: boolean;
+  handleUnsaveRecipe: (
+    recipeId: string,
+    currentSaveCount: number,
+    onSuccess: (newSaveCount: number) => void
+  ) => Promise<void>;
+  updateSavedCache: (recipeId: string, collectionId: string) => void;
 }
 
 export default function TrendingRecipes({
@@ -36,26 +47,25 @@ export default function TrendingRecipes({
   likedRecipes = new Set<string>(),
   likingRecipeId,
   onToggleLike,
+  isSaved,
+  savedVersion,
+  collections,
+  userUUID,
+  isLoadingSaved,
+  handleUnsaveRecipe,
+  updateSavedCache,
 }: TrendingRecipesProps) {
   const router = useRouter();
   const isLoadingRef = useRef(false);
-  
-  // Sử dụng collection manager hook
-  const {
-    isSaved,
-    collections,
-    userUUID,
-    isLoadingSaved,
-    handleUnsaveRecipe,
-    handleSaveRecipe: updateSavedCache,
-  } = useCollectionManager();
 
-  const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(new Map());
+  const [localSaveCounts, setLocalSaveCounts] = useState<Map<string, number>>(
+    new Map()
+  );
 
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const threshold = contentSize.width * 0.3;
-    
+
     if (
       layoutMeasurement.width + contentOffset.x >=
       contentSize.width - threshold
@@ -63,7 +73,7 @@ export default function TrendingRecipes({
       if (hasMore && !isLoadingMore && !isLoadingRef.current && onLoadMore) {
         isLoadingRef.current = true;
         onLoadMore();
-        
+
         setTimeout(() => {
           isLoadingRef.current = false;
         }, 1000);
@@ -77,20 +87,25 @@ export default function TrendingRecipes({
     await onToggleLike(recipeId);
   };
 
-  const handleSaveSuccess = (recipeId: string, collectionId: string, newSaveCount: number) => {
-    setLocalSaveCounts(prev => new Map(prev).set(recipeId, newSaveCount));
-    
+  const handleSaveSuccess = (
+    recipeId: string,
+    collectionId: string,
+    newSaveCount: number
+  ) => {
+    setLocalSaveCounts((prev) => new Map(prev).set(recipeId, newSaveCount));
+
     updateSavedCache(recipeId, collectionId);
   };
 
   const handleUnsaveSuccess = (recipeId: string, newSaveCount: number) => {
-    setLocalSaveCounts(prev => new Map(prev).set(recipeId, newSaveCount));
+    setLocalSaveCounts((prev) => new Map(prev).set(recipeId, newSaveCount));
   };
 
   const handleCreateNewCollection = () => {
-    router.push('/create-collection' as any);
+    router.push("/create-collection" as any);
   };
 
+  useEffect(() => {}, [savedVersion]);
   if (!recipes || recipes.length === 0) return null;
 
   return (
@@ -102,9 +117,9 @@ export default function TrendingRecipes({
           onPress={() =>
             router.push({
               pathname: "/_view-all",
-              params: { 
+              params: {
                 type: "trending",
-                liked: JSON.stringify([...likedRecipes])
+                liked: JSON.stringify([...likedRecipes]),
               },
             })
           }
@@ -114,14 +129,6 @@ export default function TrendingRecipes({
           <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
         </TouchableOpacity>
       </View>
-
-      {/* Hiển thị trạng thái tải bộ sưu tập */}
-      {isLoadingSaved && (
-        <View style={styles.loadingSaved}>
-          <ActivityIndicator size="small" color={Colors.primary} />
-          <Text style={styles.loadingText}>Đang tải bộ sưu tập...</Text>
-        </View>
-      )}
 
       <ScrollView
         horizontal
@@ -135,7 +142,8 @@ export default function TrendingRecipes({
           const isLiked = likedRecipes.has(recipe.recipeId);
           const isLoadingLike = likingRecipeId === recipe.recipeId;
           const saved = isSaved(recipe.recipeId);
-          const currentSaveCount = localSaveCounts.get(recipe.recipeId) ?? recipe.saveCount ?? 0;
+          const currentSaveCount =
+            localSaveCounts.get(recipe.recipeId) ?? recipe.saveCount ?? 0;
 
           return (
             <TouchableOpacity
@@ -146,17 +154,17 @@ export default function TrendingRecipes({
             >
               <View style={styles.imageWrapper}>
                 <View style={styles.imageContainer}>
-                <CachedImage
+                  <CachedImage
                     source={{ uri: dish.image }}
                     style={styles.image}
                     resizeMode="cover"
-                    priority={'normal'}
+                    priority={"normal"}
                     placeholder={
                       <View style={styles.imagePlaceholder}>
-                        <Ionicons 
-                          name="image-outline" 
-                          size={40} 
-                          color={Colors.gray[400]} 
+                        <Ionicons
+                          name="image-outline"
+                          size={40}
+                          color={Colors.gray[400]}
                         />
                       </View>
                     }
@@ -261,7 +269,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   image: { width: "100%", height: "100%" },
-   imagePlaceholder: {
+  imagePlaceholder: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
