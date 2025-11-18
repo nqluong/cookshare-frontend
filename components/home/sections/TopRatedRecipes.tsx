@@ -40,7 +40,7 @@ interface TopRatedRecipesProps {
 }
 
 export default function TopRatedRecipes({
-  recipes,
+  recipes = [],
   onRecipePress,
   onLoadMore,
   hasMore = false,

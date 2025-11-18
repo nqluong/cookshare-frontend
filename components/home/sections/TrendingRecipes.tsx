@@ -39,7 +39,7 @@ interface TrendingRecipesProps {
 }
 
 export default function TrendingRecipes({
-  recipes,
+  recipes = [],
   onRecipePress,
   onLoadMore,
   hasMore = false,

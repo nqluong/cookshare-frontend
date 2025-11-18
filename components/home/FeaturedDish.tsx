@@ -14,7 +14,7 @@ interface FeaturedDishProps {
   onRecipePress?: (recipe: Recipe) => void;
 }
 
-export default function FeaturedDish({ recipes, onRecipePress }: FeaturedDishProps) {
+export default function FeaturedDish({ recipes = [], onRecipePress }: FeaturedDishProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 

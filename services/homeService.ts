@@ -83,7 +83,7 @@ export const getHomeSuggestions = async () => {
 export const getNewestRecipes = async (page: number = 0, size: number = 10) => {
   try {
     const res = await api.get(`/recommendations/newest/page?page=${page}&size=${size}`);
-    return res.data;
+    return res.data; 
   } catch (error) {
     handleError(error);
   }
@@ -113,7 +113,8 @@ export const getPopularRecipes = async (page: number = 0, size: number = 10) => 
 export const getTopRatedRecipes = async (page: number = 0, size: number = 10) => {
   try {
     const res = await api.get(`/recommendations/top-rated/page?page=${page}&size=${size}`);
-    return res.data;
+  
+    return res.data; 
   } catch (error) {
     handleError(error);
   }

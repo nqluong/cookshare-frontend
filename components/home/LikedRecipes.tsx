@@ -39,7 +39,7 @@ interface LikedRecipesProps {
 
 // Component hiển thị danh sách công thức đã thích
 export default function LikedRecipes({
-  recipes,
+  recipes = [],
   onRecipePress,
   onLoadMore,
   hasMore = false,
