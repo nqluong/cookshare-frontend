@@ -1,3 +1,4 @@
+// services/useRecipePagination.ts (đã sửa – hỗ trợ cả 2 kiểu API)
 import { Recipe } from '@/types/dish';
 import { useState } from 'react';
 
@@ -20,19 +21,40 @@ export const useRecipePagination = ({ fetchFunction, pageSize = 10 }: Pagination
       const nextPage = page + 1;
       const response = await fetchFunction(nextPage, pageSize);
 
+      let content: any[] = [];
+      let isLast = true;
+
+      // Hỗ trợ cả 2 kiểu response
       if (response.success && response.data) {
-        const newRecipes = response.data.content || [];
+        // Kiểu cũ: trending, popular, newest...
+        content = response.data.content || [];
+        isLast = response.data.last ?? false;
+      } 
+      else if (response.code === 1000 && response.result) {
+        // Kiểu mới: getLikedRecipes, getRecipebyFollowing...
+        content = response.result.content || [];
+        isLast = response.result.last ?? true;
+      }
+      // Nếu cả 2 đều không match → bỏ qua
+
+      // Xử lý dữ liệu chung
+      if (content.length > 0) {
+        const newRecipes = content
+          .map((item: any) => item?.recipe || item) // vì getLikedRecipes bọc thêm { recipe: ... }
+          .filter((r: any) => r && r.recipeId);
+
         setRecipes(prev => {
           const merged = [...prev, ...newRecipes];
-          // Remove duplicates
           const unique = merged.filter(
             (r, i, self) => i === self.findIndex(x => x.recipeId === r.recipeId)
           );
           return unique;
         });
-        setPage(nextPage);
-        setHasMore(!response.data.last);
       }
+
+      setPage(nextPage);
+      setHasMore(!isLast && content.length >= pageSize); // thêm điều kiện an toàn
+
     } catch (err: any) {
       console.log('Error loading more recipes:', err);
     } finally {
@@ -42,8 +64,8 @@ export const useRecipePagination = ({ fetchFunction, pageSize = 10 }: Pagination
 
   const reset = (initialRecipes: Recipe[] = []) => {
     setRecipes(initialRecipes);
-    setPage(0);
-    setHasMore(true);
+    setPage(initialRecipes.length > 0 ? 1 : 0); // nếu có data → page tiếp theo là 1
+    setHasMore(initialRecipes.length >= pageSize);
     setIsLoadingMore(false);
   };
 

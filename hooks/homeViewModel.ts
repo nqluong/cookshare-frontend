@@ -27,6 +27,7 @@ export class HomeViewModel {
   private setIsLikedTabLoaded: (loaded: boolean) => void;
   private setIsFollowingTabLoaded: (loaded: boolean) => void;
   private setSearchQuery: (query: string) => void;
+  
   // Hooks
   public likeHook: ReturnType<typeof useRecipeLike>;
   public newestPagination: ReturnType<typeof useRecipePagination>;
@@ -35,7 +36,6 @@ export class HomeViewModel {
   public topRatedPagination: ReturnType<typeof useRecipePagination>;
   public likedPagination: ReturnType<typeof useRecipePagination>;
   public followingPagination: ReturnType<typeof useRecipePagination>;
-  //
 
   // Current states
   private searchQuery: string;
@@ -57,7 +57,6 @@ export class HomeViewModel {
       setIsLikedTabLoaded: (loaded: boolean) => void;
       setIsFollowingTabLoaded: (loaded: boolean) => void;
       setSearchQuery: (query: string) => void;
-
     },
     hooks: {
       likeHook: ReturnType<typeof useRecipeLike>;
@@ -87,6 +86,7 @@ export class HomeViewModel {
     this.setIsLikedTabLoaded = setters.setIsLikedTabLoaded;
     this.setIsFollowingTabLoaded = setters.setIsFollowingTabLoaded;
     this.setSearchQuery = setters.setSearchQuery;
+    
     this.likeHook = hooks.likeHook;
     this.newestPagination = hooks.newestPagination;
     this.trendingPagination = hooks.trendingPagination;
@@ -106,6 +106,7 @@ export class HomeViewModel {
     if (states.searchPage !== undefined) this.searchPage = states.searchPage;
     if (states.activeTab !== undefined) this.activeTab = states.activeTab;
   }
+
   async fetchUserSuggestions(query: string): Promise<string[]> {
     try {
       const response = await getUserSuggestions(query, 5);
@@ -128,6 +129,7 @@ export class HomeViewModel {
       this.setError(null);
     }
   }
+
   async fetchHomeSuggestions() {
     try {
       this.setLoading(true);
@@ -162,7 +164,7 @@ export class HomeViewModel {
           ...(topRatedRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(featuredRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(dailyRecommendations || []).map((r: DishRecipe) => r.recipeId),
-        ])).filter(Boolean); // Loại bỏ null/undefined
+        ])).filter(Boolean);
 
         console.log(`✅ Checking likes for ${allRecipeIds.length} unique recipes`);
 
@@ -182,7 +184,6 @@ export class HomeViewModel {
             }
           } catch (likeError: any) {
             console.log('Error checking likes (non-critical):', likeError.message);
-            // Không throw error, chỉ log - không ảnh hưởng đến việc hiển thị recipes
           }
         }
       }
@@ -240,10 +241,7 @@ export class HomeViewModel {
       this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
       return;
     }
-    if (reset && !queryToSearch) {
-      this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
-      return;
-    }
+
     console.log('🔍 Tìm kiếm người dùng với từ khóa:', queryToSearch);
     this.setLoading(true);
     this.setError(null);
@@ -303,11 +301,18 @@ export class HomeViewModel {
     }
   }
 
+  // ✅ HÀM TOGGLELIKE ĐÃ SỬA - CHỈ CÓ MỘT HÀM DUY NHẤT
   async toggleLike(
     recipeId: string,
     dailyRecommendations: DishRecipe[],
     featuredRecipes: DishRecipe[]
   ) {
+    // ✅ Kiểm tra trạng thái liked TRƯỚC khi toggle
+    const wasLiked = this.likeHook.likedRecipes.has(recipeId);
+    const currentTab = this.activeTab; // ✅ Lưu tab hiện tại
+    
+    console.log(`🔄 Toggle Like - Recipe: ${recipeId}, Was Liked: ${wasLiked}, Current Tab: ${currentTab}`);
+    
     const updateCount = (delta: number) => {
       this.newestPagination.updateRecipe(recipeId, {
         likeCount:
@@ -329,27 +334,52 @@ export class HomeViewModel {
         likeCount:
           (this.followingPagination.recipes.find((r) => r.recipeId === recipeId)?.likeCount || 0) + delta,
       });
+      // ✅ QUAN TRỌNG: Cập nhật likeCount cho liked tab
+      this.likedPagination.updateRecipe(recipeId, {
+        likeCount:
+          (this.likedPagination.recipes.find((r) => r.recipeId === recipeId)?.likeCount || 0) + delta,
+      });
     };
 
     const onSuccess = (recipeId: string, isLiked: boolean) => {
-      if (this.activeTab === 'Yêu thích') {
-        if (isLiked) {
-          const allRecipes = [
-            ...dailyRecommendations,
-            ...featuredRecipes,
-            ...this.popularPagination.recipes,
-            ...this.newestPagination.recipes,
-            ...this.topRatedPagination.recipes,
-            ...this.trendingPagination.recipes,
-            ...this.followingPagination.recipes,
-          ];
-          const found = allRecipes.find((r) => r.recipeId === recipeId);
-          if (found) {
-            this.likedPagination.setRecipes((prev) => [found, ...prev]);
-          }
+      console.log(`✅ Toggle Success - Recipe: ${recipeId}, Is Liked: ${isLiked}, Tab: ${currentTab}`);
+      
+      // ✅ XỬ LÝ CHO MỌI TAB, KHÔNG CHỈ TAB "YÊU THÍCH"
+      if (isLiked && !wasLiked) {
+        // ✅ LIKE MỚI: Thêm vào danh sách liked (dù đang ở tab nào)
+        console.log(`➕ Adding recipe ${recipeId} to liked list`);
+        const allRecipes = [
+          ...dailyRecommendations,
+          ...featuredRecipes,
+          ...this.popularPagination.recipes,
+          ...this.newestPagination.recipes,
+          ...this.topRatedPagination.recipes,
+          ...this.trendingPagination.recipes,
+          ...this.followingPagination.recipes,
+        ];
+        const found = allRecipes.find((r) => r.recipeId === recipeId);
+        if (found) {
+          this.likedPagination.setRecipes((prev) => {
+            // Tránh duplicate
+            const exists = prev.some((r) => r.recipeId === recipeId);
+            if (exists) {
+              console.log(`⚠️ Recipe ${recipeId} already in liked list`);
+              return prev;
+            }
+            console.log(`✅ Added recipe to liked list. Total: ${prev.length + 1}`);
+            return [found, ...prev];
+          });
         } else {
-          this.likedPagination.setRecipes((prev) => prev.filter((r) => r.recipeId !== recipeId));
+          console.warn(`⚠️ Recipe ${recipeId} not found in any list to add`);
         }
+      } else if (!isLiked && wasLiked) {
+        // ✅ UNLIKE: Xóa khỏi danh sách liked (dù đang ở tab nào)
+        console.log(`➖ Removing recipe ${recipeId} from liked list`);
+        this.likedPagination.setRecipes((prev) => {
+          const filtered = prev.filter((r) => r.recipeId !== recipeId);
+          console.log(`Liked list: ${prev.length} -> ${filtered.length} recipes`);
+          return filtered;
+        });
       }
     };
 

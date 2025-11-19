@@ -10,21 +10,21 @@ const DEV_CONFIG = {
   MANUAL_IP: null as string | null, 
 
 
-  FALLBACK_IP: 'http://192.168.0.100:8080',
+  FALLBACK_IP: 'http://192.168.131.177:8080',
   PORT: 8080,
 };
 
 const PROD_CONFIG = {
-  API_URL: 'http://192.168.0.100:8080', 
+  API_URL: 'http://192.168.131.177:8080', 
 };
 
 const getPlatformSpecificHost = (): string | null => {
   if (Platform.OS === 'web') {
-    return 'http://192.168.0.100:8080';
+    return 'http://192.168.131.177:8080';
   }
 
   if (Platform.OS === 'android') {
-    return 'http://192.168.0.100:8080'; // Thay bằng IP của máy dev khi chạy trên Android Emulator
+    return 'http://192.168.131.177:8080'; // Thay bằng IP của máy dev khi chạy trên Android Emulator
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật
