@@ -31,7 +31,7 @@ import {
   getTopRatedRecipes,
   getTrendingRecipes
 } from '../../services/homeService';
-import { CACHE_KEYS } from '../../services/offlineCacheService';
+import { CACHE_CATEGORIES as CACHE_KEYS } from '../../services/unifiedCacheService';
 import { useRecipeLike } from '../../services/userRecipeLike';
 
 // Types & Styles
@@ -70,6 +70,7 @@ export default function HomeScreen() {
   // Tab Load Flags
   const [isLikedTabLoaded, setIsLikedTabLoaded] = useState(false);
   const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const {
     isSaved,
@@ -84,8 +85,6 @@ export default function HomeScreen() {
   // Hooks
   // Cached Data with hooks
   // Note: dailyRecommendations và featuredRecipes sẽ được load từ state, không cache
-
-  // Hooks with cache (không tự động fetch vì ViewModel sẽ fetch qua getHomeSuggestions)
   const likeHook = useRecipeLike();
   const newest = useCachedPagination({ 
     cacheKey: CACHE_KEYS.NEWEST_RECIPES,
@@ -124,9 +123,6 @@ export default function HomeScreen() {
     autoFetch: false
   });
 
-  // Check if we're offline
-  const isOffline = newest.isOffline;
-
   // Init HomeViewModel with proper dependencies
   const viewModel = new HomeViewModel(
     {
@@ -143,6 +139,7 @@ export default function HomeScreen() {
       setIsLikedTabLoaded,
       setIsFollowingTabLoaded,
       setSearchQuery,
+      setIsOffline,
     },
     {
       likeHook,

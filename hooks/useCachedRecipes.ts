@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { offlineCacheService } from '../services/offlineCacheService';
+import { unifiedCacheService } from '../services/unifiedCacheService';
 import { Recipe } from '../types/dish';
 
 interface UseCachedRecipesOptions {
@@ -35,7 +35,7 @@ export function useCachedRecipes({
     setError(null);
 
     try {
-      const result = await offlineCacheService.fetchWithCache(
+      const result = await unifiedCacheService.fetchWithCache(
         cacheKey,
         fetchFunction,
         { forceRefresh }
@@ -46,9 +46,8 @@ export function useCachedRecipes({
         setIsFromCache(result.fromCache);
         setIsOffline(result.isOffline);
 
-        // Get cache age
-        const age = await offlineCacheService.getCacheAge(cacheKey);
-        setCacheAge(age);
+        // Get cache age - chưa có trong unified service, bỏ qua
+        setCacheAge(null);
       } else {
         setError('Không có dữ liệu');
       }
@@ -150,23 +149,38 @@ export function useCachedPagination({
   const [isFromCache, setIsFromCache] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
-  const loadInitialData = async () => {
+  const loadInitialData = async (shouldFetch: boolean = true) => {
     setLoading(true);
     
-    const online = await offlineCacheService.isConnected();
+    const online = await unifiedCacheService.isConnected();
     setIsOffline(!online);
 
     if (!online) {
       // Load all cached pages when offline
-      const cachedData = await offlineCacheService.getAllCachedPages<Recipe>(cacheKey);
+      console.log(`Offline - Đang tải ${cacheKey} từ cache...`);
+      const cachedData = await unifiedCacheService.getAllCachedPages<Recipe>(cacheKey);
       setRecipes(cachedData);
       setIsFromCache(true);
       setHasMore(false);
       setLoading(false);
+      console.log(`Đã tải ${cachedData.length} recipes từ cache cho ${cacheKey}`);
       return;
     }
 
-    // When online, fetch first page
+    // When online
+    if (!shouldFetch) {
+      // Nếu không fetch, vẫn load cache nếu có
+      const cachedData = await unifiedCacheService.getAllCachedPages<Recipe>(cacheKey);
+      if (cachedData.length > 0) {
+        setRecipes(cachedData);
+        setIsFromCache(true);
+        setHasMore(false);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Fetch first page from API
     try {
       const response = await fetchFunction(0, pageSize);
       const firstPage = parseRecipeArray(response);
@@ -176,11 +190,12 @@ export function useCachedPagination({
       setIsFromCache(false);
       
       // Cache the first page
-      await offlineCacheService.savePaginationCache(cacheKey, 0, firstPage);
+      await unifiedCacheService.savePaginationCache(cacheKey, 0, firstPage);
+      console.log(`Đã cache trang đầu cho ${cacheKey}`);
     } catch (error) {
-      console.error('Error loading initial data:', error);
+      console.log(`Lỗi khi tải dữ liệu cho ${cacheKey}:`, error);
       // Fallback to cache
-      const cachedData = await offlineCacheService.getAllCachedPages<Recipe>(cacheKey);
+      const cachedData = await unifiedCacheService.getAllCachedPages<Recipe>(cacheKey);
       setRecipes(cachedData);
       setIsFromCache(true);
     } finally {
@@ -203,12 +218,12 @@ export function useCachedPagination({
         setHasMore(newRecipes.length === pageSize);
         
         // Cache the new page
-        await offlineCacheService.savePaginationCache(cacheKey, nextPage, newRecipes);
+        await unifiedCacheService.savePaginationCache(cacheKey, nextPage, newRecipes);
       } else {
         setHasMore(false);
       }
     } catch (error) {
-      console.error('Error loading more:', error);
+      console.log('Error loading more:', error);
     } finally {
       setIsLoadingMore(false);
     }
@@ -218,7 +233,7 @@ export function useCachedPagination({
     setCurrentPage(0);
     setPage(0);
     setHasMore(true);
-    await loadInitialData();
+    await loadInitialData(true); // Luôn fetch khi refresh
   };
 
   const reset = (initialRecipes?: Recipe[]) => {
@@ -244,9 +259,9 @@ export function useCachedPagination({
   };
 
   useEffect(() => {
-    if (autoFetch) {
-      loadInitialData();
-    }
+    // Luôn gọi loadInitialData để kiểm tra online/offline
+    // Nhưng chỉ fetch nếu autoFetch = true
+    loadInitialData(autoFetch);
   }, []);
 
   return {

@@ -17,6 +17,17 @@ interface FeaturedDishProps {
 export default function FeaturedDish({ recipes = [], onRecipePress }: FeaturedDishProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  
+  // Hooks phải được gọi trước mọi câu lệnh return có điều kiện
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentIndex(viewableItems[0].index || 0);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
   if (!recipes || recipes.length === 0) {
     return (
@@ -39,16 +50,6 @@ export default function FeaturedDish({ recipes = [], onRecipePress }: FeaturedDi
 
   // Lấy tối đa 3 công thức từ dailyRecommendations
   const displayRecipes = recipes.slice(0, 3);
-
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index || 0);
-    }
-  }).current;
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
-  }).current;
 
   const renderRecipeCard = ({ item: recipe }: { item: Recipe }) => {
     const totalTime = recipe.prepTime + recipe.cookTime;
