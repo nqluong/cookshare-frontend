@@ -126,7 +126,48 @@ difficultyText: {
   fontWeight: 'bold',
 },
 
-
+ratingContainer: {
+  marginTop: 15,
+  paddingTop: 15,
+  borderTopWidth: 1,
+  borderTopColor: '#EEE',
+},
+ratingLabel: {
+  fontSize: 16,
+  fontWeight: '600',
+  marginBottom: 10,
+  color: '#333',
+},
+starsContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 8,
+},
+starButton: {
+  padding: 4,
+},
+starIcon: {
+  fontSize: 32,
+},
+ratingText: {
+  marginTop: 8,
+  fontSize: 14,
+  color: '#666',
+  fontStyle: 'italic',
+},
+averageRatingContainer: {
+  marginBottom: 10,
+},
+averageRatingRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+},
+averageRatingText: {
+  fontSize: 16,
+  color: '#333',
+  fontWeight: '600',
+},
 });
 
 export default styles;

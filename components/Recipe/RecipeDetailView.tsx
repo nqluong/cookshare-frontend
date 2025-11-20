@@ -1,8 +1,16 @@
 import { commentService } from "@/services/commentService";
+import { ratingService } from "@/services/ratingService"; // ← ĐÃ THÊM
 import { CommentResponse } from "@/types/comment";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Toast from "react-native-toast-message";
 import { getImageUrl } from "../../config/api.config";
 import styles from "../../styles/RecipeDetailView.styles";
 import CommentModal from "./CommentSection";
@@ -46,6 +54,8 @@ type Recipe = {
   video?: string;
   likes?: number;
   views?: number;
+  averageRating?: number;
+  totalRatings?: number;
 };
 
 type AuthorInfo = {
@@ -68,6 +78,7 @@ type Props = {
   onBack: () => void;
   onSearch: () => void;
 };
+
 type RecipeDetailParams = {
   openComments?: string;
   focusCommentId?: string;
@@ -85,18 +96,24 @@ export default function RecipeDetailView({
   const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
   const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
 
+  // RATING STATE
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [hasRated, setHasRated] = useState(false);
+  const [isLoadingRating, setIsLoadingRating] = useState(false);
+
   // Debug
   useEffect(() => {
-    console.log('RecipeDetailView - authorInfo:', authorInfo);
-    console.log('RecipeDetailView - recipe.image:', recipe.image);
+    console.log("RecipeDetailView - authorInfo:", authorInfo);
+    console.log("RecipeDetailView - recipe.image:", recipe.image);
   }, [authorInfo, recipe.image]);
 
   const totalComments = useMemo(
     () => countAllCommentsRecursive(comments),
     [comments]
   );
-  const [commentCount, setCommentCount] = useState(totalComments);
 
+  // Load comments
   useEffect(() => {
     if (!recipe?.id) return;
 
@@ -113,8 +130,28 @@ export default function RecipeDetailView({
     loadCommentCount();
   }, [recipe?.id]);
 
+  // Kiểm tra user đã rating chưa
+ useEffect(() => {
+  if (!recipe?.id || !currentUserId) return;
+
+  const loadUserRating = async () => {
+    const myRating = await ratingService.getMyRating(recipe.id);
+
+    if (myRating !== null && myRating >= 1 && myRating <= 5) {
+      setUserRating(myRating);
+      setHasRated(true);
+    } else {
+      setUserRating(0);
+      setHasRated(false);
+    }
+  };
+
+  loadUserRating();
+}, [recipe?.id, currentUserId]);
+
+  // Mở modal bình luận nếu có param
   useEffect(() => {
-    if (params.openComments === 'true') {
+    if (params.openComments === "true") {
       setCommentModalVisible(true);
       if (params.focusCommentId) {
         setFocusCommentId(params.focusCommentId as string);
@@ -137,14 +174,108 @@ export default function RecipeDetailView({
 
   const difficulty = getDifficultyLabel(recipe.difficulty);
 
-  // Determine avatar source - use default if no avatar URL
   const getAvatarSource = () => {
     const avatarUrl = authorInfo?.avatarUrl?.trim();
     if (avatarUrl && avatarUrl !== "") {
       return { uri: getImageUrl(avatarUrl) };
     }
-    return require('../../assets/images/default-avatar.png');
+    return require("../../assets/images/default-avatar.png");
   };
+
+  // XỬ LÝ GỬI ĐÁNH GIÁ
+const handleRatingPress = async (rating: number) => {
+  if (isLoadingRating || !currentUserId) return;
+
+  setIsLoadingRating(true);
+  try {
+    await ratingService.submitRating(recipe.id, rating);
+
+    setUserRating(rating);
+    setHasRated(true); // luôn true sau khi rate lần đầu
+
+    Toast.show({
+      type: "success",
+      text1: hasRated ? "Đã cập nhật đánh giá!" : "Cảm ơn bạn!",
+      text2: hasRated 
+        ? `Bạn đã đổi thành ${rating} sao` 
+        : `Bạn đã đánh giá ${rating} sao`,
+      position: "bottom",
+    });
+  } catch (error: any) {
+    Toast.show({
+      type: "error",
+      text1: "Lỗi",
+      text2: error.response?.data?.message || "Không thể gửi đánh giá",
+    });
+  } finally {
+    setIsLoadingRating(false);
+  }
+};
+
+  // Render sao trung bình
+  const renderStarRating = (rating: number, size: number = 16, color: string = "#FFD700") => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      if (i <= Math.floor(rating)) {
+        stars.push(<Text key={i} style={{ fontSize: size, color }}>★</Text>);
+      } else if (i === Math.ceil(rating) && rating % 1 !== 0) {
+        stars.push(<Text key={i} style={{ fontSize: size, color }}>Half Star</Text>);
+      } else {
+        stars.push(<Text key={i} style={{ fontSize: size, color: "#DDD" }}>★</Text>);
+      }
+    }
+    return <View style={{ flexDirection: "row" }}>{stars}</View>;
+  };
+
+  // Render sao tương tác
+  const renderInteractiveStars = () => {
+  const displayRating = hoverRating || userRating;
+
+  return (
+    <View style={styles.ratingContainer}>
+      <Text style={styles.ratingLabel}>
+        {hasRated ? "Thay đổi đánh giá của bạn:" : "Đánh giá công thức:"}
+      </Text>
+
+      <View style={styles.starsContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <TouchableOpacity
+            key={star}
+            disabled={isLoadingRating}
+            onPress={() => handleRatingPress(star)}
+            onPressIn={() => setHoverRating(star)}
+            onPressOut={() => setHoverRating(0)}
+            style={{ marginHorizontal: 4 }}
+          >
+            <Text
+              style={[
+                styles.starIcon,
+                {
+                  color: star <= displayRating ? "#FFD700" : "#DDD",
+                  opacity: isLoadingRating ? 0.5 : 1,
+                },
+              ]}
+            >
+              ★
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Hiển thị thông báo */}
+      {hasRated && userRating >= 1 && (
+        <Text style={styles.ratingText}>
+          Bạn đã đánh giá: {userRating} sao
+        </Text>
+      )}
+      {isLoadingRating && (
+        <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+          Đang cập nhật...
+        </Text>
+      )}
+    </View>
+  );
+};
 
   return (
     <View style={styles.container}>
@@ -155,7 +286,7 @@ export default function RecipeDetailView({
         {/* Ảnh chính */}
         <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.image} />
 
-        {/* Thông tin lượt thích / xem / bình luận */}
+        {/* Info row */}
         <View style={styles.infoRow}>
           <TouchableOpacity style={styles.infoButton}>
             <Text style={styles.infoText}>❤️ {recipe.likes ?? 0}</Text>
@@ -165,37 +296,33 @@ export default function RecipeDetailView({
             style={styles.infoButton}
             onPress={() => setCommentModalVisible(true)}
           >
-            <Text style={styles.infoText}>💬 {totalComments}</Text>
+            <Text style={styles.infoText}>Comment {totalComments}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.infoButton}>
-            <Text style={styles.infoText}>👁️ {recipe.views ?? 0}</Text>
+            <Text style={styles.infoText}>Views {recipe.views ?? 0}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Tác giả + thời gian + khẩu phần + độ khó */}
-        <TouchableOpacity 
+        {/* Author row */}
+        <TouchableOpacity
           style={styles.authorRow}
           onPress={() => {
             if (router && authorInfo?.userId) {
-              // Nếu là profile của chính mình, navigate tới (tabs)/profile, nếu không thì public profile
               if (currentUserId === authorInfo.userId) {
-                router.push('/(tabs)/profile');
+                router.push("/(tabs)/profile");
               } else {
                 router.push(`/profile/${authorInfo.userId}`);
               }
             }
           }}
         >
-          <Image 
-            source={getAvatarSource()} 
-            style={styles.avatar} 
-          />
+          <Image source={getAvatarSource()} style={styles.avatar} />
           <View style={{ flex: 1 }}>
             <Text style={styles.author}>{recipe.author}</Text>
             <Text style={styles.time}>
-              ⏱️ Chuẩn bị: {recipe.prepTime}p | Nấu: {recipe.cookTime}p
-              {recipe.servings ? ` | Khẩu phần: ${recipe.servings}` : ""}
+              Time Prep: {recipe.prepTime}p | Cook: {recipe.cookTime}p
+              {recipe.servings ? ` | Serves: ${recipe.servings}` : ""}
             </Text>
           </View>
           {difficulty.text && (
@@ -207,27 +334,25 @@ export default function RecipeDetailView({
           )}
         </TouchableOpacity>
 
-        {/* Danh mục & Tag */}
+        {/* Tags & Category */}
         {(recipe.category || (recipe.tags && recipe.tags.length > 0)) && (
           <View style={styles.tagContainer}>
-            {/* Hiển thị danh mục */}
             {recipe.category && recipe.category.length > 0 && (
               <View style={styles.tagGroup}>
                 {recipe.category.map((cat, index) => (
-                  <View key={index} style={[styles.tagItem, { backgroundColor: '#FFF4E6' }]}>
-                    <Text style={[styles.tagText, { color: '#FF8C00' }]}>📂 {cat}</Text>
+                  <View key={index} style={[styles.tagItem, { backgroundColor: "#FFF4E6" }]}>
+                    <Text style={[styles.tagText, { color: "#FF8C00" }]}>Folder {cat}</Text>
                   </View>
                 ))}
               </View>
             )}
 
-            {/* Hiển thị tag với màu từ database */}
             {recipe.tags && recipe.tags.length > 0 && (
               <View style={styles.tagGroup}>
                 {recipe.tags.map((tag, index) => {
-                  const tagName = typeof tag === 'string' ? tag : tag.name;
-                  const tagColor = typeof tag === 'object' && tag.color ? tag.color : '#3A5BA0';
-                  const bgColor = typeof tag === 'object' && tag.color ? `${tag.color}20` : '#EEF3FF';
+                  const tagName = typeof tag === "string" ? tag : tag.name;
+                  const tagColor = typeof tag === "object" && tag.color ? tag.color : "#3A5BA0";
+                  const bgColor = typeof tag === "object" && tag.color ? `${tag.color}20` : "#EEF3FF";
                   return (
                     <View key={index} style={[styles.tagItem, { backgroundColor: bgColor }]}>
                       <Text style={[styles.tagText, { color: tagColor }]}> #{tagName} </Text>
@@ -239,28 +364,48 @@ export default function RecipeDetailView({
           </View>
         )}
 
-        {/* Tiêu đề & mô tả */}
         <Text style={styles.title}>{recipe.title}</Text>
-        {recipe.description ? (
+        {recipe.description && (
           <View style={styles.card}>
             <Text style={styles.cardDesc}>{recipe.description}</Text>
           </View>
-        ) : null}
+        )}
+
+        {/* RATING SECTION */}
+        <View style={styles.card}>
+          {recipe.averageRating !== undefined && recipe.totalRatings !== undefined && (
+            <View style={styles.averageRatingContainer}>
+              <View style={styles.averageRatingRow}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  {renderStarRating(recipe.averageRating, 20)}
+                </View>
+                <Text style={styles.averageRatingText}>
+                  {recipe.averageRating.toFixed(1)} ({recipe.totalRatings} đánh giá)
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {renderInteractiveStars()}
+        </View>
 
         {/* Nguyên liệu */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🧂 Nguyên liệu:</Text>
-          {recipe.ingredients && recipe.ingredients.length > 0 ? (
+          <Text style={styles.cardTitle}>Ingredients:</Text>
+          {recipe.ingredients?.length > 0 ? (
             recipe.ingredients.map((item, i) => {
-              const qtyNum = item.quantity !== undefined && item.quantity !== null ? Number(item.quantity) : NaN;
+              const qtyNum = item.quantity ? Number(item.quantity) : NaN;
               const showQuantity = !isNaN(qtyNum) && qtyNum !== 0;
               const qtyText = showQuantity ? ` - ${qtyNum}` : "";
-              const unitText = item.unit && item.unit.toString().trim() !== "" ? ` ${item.unit}` : "";
+              const unitText = item.unit ? ` ${item.unit}` : "";
               const notesText = item.notes ? ` (${item.notes})` : "";
 
               return (
                 <Text key={i} style={{ marginVertical: 2 }}>
-                  • {item.name}{qtyText}{unitText}{notesText}
+                  • {item.name}
+                  {qtyText}
+                  {unitText}
+                  {notesText}
                 </Text>
               );
             })
@@ -269,15 +414,16 @@ export default function RecipeDetailView({
           )}
         </View>
 
-        {/* Các bước nấu */}
-        <Text style={styles.section}>👨‍🍳 Các bước nấu:</Text>
+        {/* Các bước */}
+        <Text style={styles.section}>Steps:</Text>
         <View style={styles.cardLarge}>
-          {recipe.steps && recipe.steps.length > 0 ? (
+          {recipe.steps?.length > 0 ? (
             recipe.steps
               .sort((a, b) => a.stepNumber - b.stepNumber)
               .map((s) => (
-                <Text key={s.stepId} style={{ marginBottom: 6 }}>
-                  {s.stepNumber}. {s.instruction}
+                <Text key={s.stepId} style={{ marginBottom: 12, lineHeight: 22 }}>
+                  <Text style={{ fontWeight: "bold" }}>{s.stepNumber}. </Text>
+                  {s.instruction}
                 </Text>
               ))
           ) : (
@@ -285,12 +431,12 @@ export default function RecipeDetailView({
           )}
         </View>
 
-        {/* Video hướng dẫn */}
-        {recipe.video ? (
+        {/* Video */}
+        {recipe.video && (
           <TouchableOpacity style={styles.videoCard}>
-            <Text>🎥 Xem video hướng dẫn</Text>
+            <Text>Video hướng dẫn</Text>
           </TouchableOpacity>
-        ) : null}
+        )}
 
         {/* Nút bình luận */}
         <TouchableOpacity
@@ -298,7 +444,7 @@ export default function RecipeDetailView({
           onPress={() => setCommentModalVisible(true)}
         >
           <Text style={styles.commentButtonText}>
-            💬 Xem tất cả {totalComments} bình luận
+            Xem tất cả {totalComments} bình luận
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -313,25 +459,23 @@ export default function RecipeDetailView({
         recipeId={recipe.id}
         currentUserId={currentUserId}
         currentUserAvatar={currentUserAvatar}
-        onCommentCountChange={setCommentCount}
+        onCommentCountChange={() => {}}
         focusCommentId={focusCommentId}
       />
     </View>
   );
 }
 
+// Helper functions
 function normalizeCommentsRecursive(comments: any[]): any[] {
   return comments.map((c) => ({
     ...c,
     expandedRepliesCount: 0,
-    replies: c.replies && c.replies.length ? normalizeCommentsRecursive(c.replies) : [],
+    replies: c.replies?.length ? normalizeCommentsRecursive(c.replies) : [],
   }));
 }
 
 function countAllCommentsRecursive(comments: any[]): number {
   if (!comments || comments.length === 0) return 0;
-  return comments.reduce(
-    (sum, c) => sum + 1 + countAllCommentsRecursive(c.replies || []),
-    0
-  );
+  return comments.reduce((sum, c) => sum + 1 + countAllCommentsRecursive(c.replies || []), 0);
 }
