@@ -25,7 +25,7 @@ export const ratingService = {
     },
       }
     );
-    return response.data;
+    return response.data.data;
   },
   getMyRating: async (recipeId: string): Promise<number | null> => {
     try {

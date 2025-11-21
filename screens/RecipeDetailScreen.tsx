@@ -181,6 +181,8 @@ export default function RecipeDetailScreen() {
           cookTime: recipe.cookTime ?? 0,
           servings: recipe.servings ?? 1,
           difficulty: recipe.difficulty || recipe.level || "Không rõ",
+          averageRating: recipe.averageRating,
+          ratingCount: recipe.ratingCount,
           // Xử lý category - lấy name từ array of objects
           category: (() => {
             const catField = recipe.categories || recipe.categoryName || recipe.category;

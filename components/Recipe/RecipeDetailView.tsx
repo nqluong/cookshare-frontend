@@ -55,7 +55,7 @@ type Recipe = {
   likes?: number;
   views?: number;
   averageRating?: number;
-  totalRatings?: number;
+  ratingCount?: number;
 };
 
 type AuthorInfo = {
@@ -101,7 +101,8 @@ export default function RecipeDetailView({
   const [hoverRating, setHoverRating] = useState(0);
   const [hasRated, setHasRated] = useState(false);
   const [isLoadingRating, setIsLoadingRating] = useState(false);
-
+  const [currentAvgRating, setCurrentAvgRating] = useState(recipe.averageRating || 0);
+  const [currentTotalRatings, setCurrentTotalRatings] = useState(recipe.ratingCount || 0);
   // Debug
   useEffect(() => {
     console.log("RecipeDetailView - authorInfo:", authorInfo);
@@ -188,11 +189,19 @@ const handleRatingPress = async (rating: number) => {
 
   setIsLoadingRating(true);
   try {
-    await ratingService.submitRating(recipe.id, rating);
+    const response = await ratingService.submitRating(recipe.id, rating);
 
     setUserRating(rating);
-    setHasRated(true); // luôn true sau khi rate lần đầu
+    setHasRated(true);
 
+    // ✅ CẬP NHẬT AVG VÀ TOTAL TỪ RESPONSE
+    if (response.averageRating !== undefined) {
+      setCurrentAvgRating(response.averageRating);
+    }
+    if (response.ratingCount !== undefined) {
+      setCurrentTotalRatings(response.ratingCount);
+    }
+  router.setParams({ refetchTrigger: Date.now().toString() });
     Toast.show({
       type: "success",
       text1: hasRated ? "Đã cập nhật đánh giá!" : "Cảm ơn bạn!",
@@ -213,19 +222,39 @@ const handleRatingPress = async (rating: number) => {
 };
 
   // Render sao trung bình
-  const renderStarRating = (rating: number, size: number = 16, color: string = "#FFD700") => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      if (i <= Math.floor(rating)) {
-        stars.push(<Text key={i} style={{ fontSize: size, color }}>★</Text>);
-      } else if (i === Math.ceil(rating) && rating % 1 !== 0) {
-        stars.push(<Text key={i} style={{ fontSize: size, color }}>Half Star</Text>);
-      } else {
-        stars.push(<Text key={i} style={{ fontSize: size, color: "#DDD" }}>★</Text>);
-      }
-    }
-    return <View style={{ flexDirection: "row" }}>{stars}</View>;
-  };
+  const renderStarRating = (rating: number, size: number = 20) => {
+  const fullStars = Math.floor(rating);
+  const hasHalf = rating % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+      {/* Full stars */}
+      {[...Array(fullStars)].map((_, i) => (
+        <Text key={`full-${i}`} style={{ fontSize: size, color: "#FFD700" }}>★</Text>
+      ))}
+
+      {/* Half star giả lập */}
+      {hasHalf && (
+  <View style={{ position: 'relative' }}>
+    <Text style={{ fontSize: size, color: "#E0E0E0" }}>★</Text>
+    <Text style={{ 
+      fontSize: size, 
+      color: "#FFD700", 
+      position: 'absolute',
+      width: '50%',
+      overflow: 'hidden'
+    }}>★</Text>
+  </View>
+)}
+
+      {/* Empty stars */}
+      {[...Array(emptyStars)].map((_, i) => (
+        <Text key={`empty-${i}`} style={{ fontSize: size, color: "#E0E0E0" }}>★</Text>
+      ))}
+    </View>
+  );
+};
 
   // Render sao tương tác
   const renderInteractiveStars = () => {
@@ -296,11 +325,11 @@ const handleRatingPress = async (rating: number) => {
             style={styles.infoButton}
             onPress={() => setCommentModalVisible(true)}
           >
-            <Text style={styles.infoText}>Comment {totalComments}</Text>
+            <Text style={styles.infoText}>💬{totalComments}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.infoButton}>
-            <Text style={styles.infoText}>Views {recipe.views ?? 0}</Text>
+            <Text style={styles.infoText}>👁️ {recipe.views ?? 0}</Text>
           </TouchableOpacity>
         </View>
 
@@ -373,21 +402,21 @@ const handleRatingPress = async (rating: number) => {
 
         {/* RATING SECTION */}
         <View style={styles.card}>
-          {recipe.averageRating !== undefined && recipe.totalRatings !== undefined && (
-            <View style={styles.averageRatingContainer}>
-              <View style={styles.averageRatingRow}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  {renderStarRating(recipe.averageRating, 20)}
-                </View>
-                <Text style={styles.averageRatingText}>
-                  {recipe.averageRating.toFixed(1)} ({recipe.totalRatings} đánh giá)
-                </Text>
-              </View>
-            </View>
-          )}
+  {/* ĐIỂM TRUNG BÌNH - DÙNG STATE ĐÃ CẬP NHẬT */}
+  <View style={styles.averageRatingContainer}>
+    <View style={styles.averageRatingRow}>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        {renderStarRating(currentAvgRating, 22)}
+      </View>
+      <Text style={styles.averageRatingText}>
+        {currentAvgRating.toFixed(1)} ({currentTotalRatings} đánh giá)
+      </Text>
+    </View>
+  </View>
 
-          {renderInteractiveStars()}
-        </View>
+  {/* Phần đánh giá của user */}
+  {renderInteractiveStars()}
+</View>
 
         {/* Nguyên liệu */}
         <View style={styles.card}>

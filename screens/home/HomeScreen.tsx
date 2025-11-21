@@ -1,5 +1,7 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useGlobalSearchParams, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import {
   ActivityIndicator,
   FlatList,
@@ -135,7 +137,24 @@ export default function HomeScreen() {
     },
     { searchQuery, searchPage, activeTab }
   );
+ const globalParams = useGlobalSearchParams(); // ← Dùng global để chắc chắn bắt được param từ màn khác
 
+const lastRefetchTrigger = useRef<string>("0");
+
+useFocusEffect(
+  useCallback(() => {
+    const trigger = globalParams.refetchTrigger as string;
+    if (trigger && trigger !== lastRefetchTrigger.current) {
+      lastRefetchTrigger.current = trigger;
+
+      console.log("Rating completed → Refreshing entire Home feed...");
+      viewModel.fetchHomeSuggestions();
+
+     
+      router.setParams({ refetchTrigger: undefined });
+    }
+  }, [globalParams.refetchTrigger, viewModel])
+);
   // Effects
   useEffect(() => {
     viewModel.fetchHomeSuggestions();
