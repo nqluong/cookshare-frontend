@@ -111,7 +111,7 @@ export default function SearchScreen() {
   const handleSearch = async (reset = true, requestedPage?: number, queryOverride?: string) => {
     const queryToSearch = queryOverride?.trim() || searchQuery.trim();
     if (reset && !queryToSearch) {
-      setError('Vui lòng nhập tên người dùng cần tìm kiếm');
+      setError('Vui lòng nhập từ khóa cần tìm kiếm');
       return;
     }
 

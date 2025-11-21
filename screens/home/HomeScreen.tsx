@@ -239,7 +239,13 @@ useFocusEffect(
         onGetSuggestions={(query) => viewModel.fetchUserSuggestions(query)}
         showSuggestions={!hasSearched}
       />
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} onPress={() => setHasSearched(false)} />
+      {!hasSearched && (
+  <TabBar 
+    activeTab={activeTab} 
+    onTabChange={setActiveTab} 
+    onPress={() => setHasSearched(false)} 
+  />
+)}
 
       {hasSearched ? (
         <SearchResults

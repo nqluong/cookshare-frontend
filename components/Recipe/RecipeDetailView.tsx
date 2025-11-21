@@ -1,5 +1,5 @@
 import { commentService } from "@/services/commentService";
-import { ratingService } from "@/services/ratingService"; // ← ĐÃ THÊM
+import { ratingService } from "@/services/ratingService";
 import { CommentResponse } from "@/types/comment";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -103,6 +103,7 @@ export default function RecipeDetailView({
   const [isLoadingRating, setIsLoadingRating] = useState(false);
   const [currentAvgRating, setCurrentAvgRating] = useState(recipe.averageRating || 0);
   const [currentTotalRatings, setCurrentTotalRatings] = useState(recipe.ratingCount || 0);
+
   // Debug
   useEffect(() => {
     console.log("RecipeDetailView - authorInfo:", authorInfo);
@@ -124,7 +125,7 @@ export default function RecipeDetailView({
         const normalized = normalizeCommentsRecursive(data);
         setComments(normalized);
       } catch (error) {
-        console.error("Lỗi tải số bình luận:", error);
+        console.log("Lỗi tải số bình luận:", error); // ← ĐÃ THAY console.error → console.log
       }
     };
 
@@ -132,23 +133,23 @@ export default function RecipeDetailView({
   }, [recipe?.id]);
 
   // Kiểm tra user đã rating chưa
- useEffect(() => {
-  if (!recipe?.id || !currentUserId) return;
+  useEffect(() => {
+    if (!recipe?.id || !currentUserId) return;
 
-  const loadUserRating = async () => {
-    const myRating = await ratingService.getMyRating(recipe.id);
+    const loadUserRating = async () => {
+      const myRating = await ratingService.getMyRating(recipe.id);
 
-    if (myRating !== null && myRating >= 1 && myRating <= 5) {
-      setUserRating(myRating);
-      setHasRated(true);
-    } else {
-      setUserRating(0);
-      setHasRated(false);
-    }
-  };
+      if (myRating !== null && myRating >= 1 && myRating <= 5) {
+        setUserRating(myRating);
+        setHasRated(true);
+      } else {
+        setUserRating(0);
+        setHasRated(false);
+      }
+    };
 
-  loadUserRating();
-}, [recipe?.id, currentUserId]);
+    loadUserRating();
+  }, [recipe?.id, currentUserId]);
 
   // Mở modal bình luận nếu có param
   useEffect(() => {
@@ -184,127 +185,129 @@ export default function RecipeDetailView({
   };
 
   // XỬ LÝ GỬI ĐÁNH GIÁ
-const handleRatingPress = async (rating: number) => {
-  if (isLoadingRating || !currentUserId) return;
+  const handleRatingPress = async (rating: number) => {
+    if (isLoadingRating || !currentUserId) return;
 
-  setIsLoadingRating(true);
-  try {
-    const response = await ratingService.submitRating(recipe.id, rating);
+    setIsLoadingRating(true);
+    try {
+      const response = await ratingService.submitRating(recipe.id, rating);
 
-    setUserRating(rating);
-    setHasRated(true);
+      setUserRating(rating);
+      setHasRated(true);
 
-    // ✅ CẬP NHẬT AVG VÀ TOTAL TỪ RESPONSE
-    if (response.averageRating !== undefined) {
-      setCurrentAvgRating(response.averageRating);
+      // CẬP NHẬT AVG VÀ TOTAL TỪ RESPONSE
+      if (response.averageRating !== undefined) {
+        setCurrentAvgRating(response.averageRating);
+      }
+      if (response.ratingCount !== undefined) {
+        setCurrentTotalRatings(response.ratingCount);
+      }
+      router.setParams({ refetchTrigger: Date.now().toString() });
+
+      Toast.show({
+        type: "success",
+        text1: hasRated ? "Đã cập nhật đánh giá!" : "Cảm ơn bạn!",
+        text2: hasRated 
+          ? `Bạn đã đổi thành ${rating} sao` 
+          : `Bạn đã đánh giá ${rating} sao`,
+        position: "bottom",
+      });
+    } catch (error: any) {
+      console.log("Lỗi gửi đánh giá:", error); // ← ĐÃ THAY console.error → console.log
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: error.response?.data?.message || "Không thể gửi đánh giá",
+      });
+    } finally {
+      setIsLoadingRating(false);
     }
-    if (response.ratingCount !== undefined) {
-      setCurrentTotalRatings(response.ratingCount);
-    }
-  router.setParams({ refetchTrigger: Date.now().toString() });
-    Toast.show({
-      type: "success",
-      text1: hasRated ? "Đã cập nhật đánh giá!" : "Cảm ơn bạn!",
-      text2: hasRated 
-        ? `Bạn đã đổi thành ${rating} sao` 
-        : `Bạn đã đánh giá ${rating} sao`,
-      position: "bottom",
-    });
-  } catch (error: any) {
-    Toast.show({
-      type: "error",
-      text1: "Lỗi",
-      text2: error.response?.data?.message || "Không thể gửi đánh giá",
-    });
-  } finally {
-    setIsLoadingRating(false);
-  }
-};
+  };
 
   // Render sao trung bình
   const renderStarRating = (rating: number, size: number = 20) => {
-  const fullStars = Math.floor(rating);
-  const hasHalf = rating % 1 >= 0.5;
-  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
 
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-      {/* Full stars */}
-      {[...Array(fullStars)].map((_, i) => (
-        <Text key={`full-${i}`} style={{ fontSize: size, color: "#FFD700" }}>★</Text>
-      ))}
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+        {/* Full stars */}
+        {[...Array(fullStars)].map((_, i) => (
+          <Text key={`full-${i}`} style={{ fontSize: size, color: "#FFD700" }}>★</Text>
+        ))}
 
-      {/* Half star giả lập */}
-      {hasHalf && (
-  <View style={{ position: 'relative' }}>
-    <Text style={{ fontSize: size, color: "#E0E0E0" }}>★</Text>
-    <Text style={{ 
-      fontSize: size, 
-      color: "#FFD700", 
-      position: 'absolute',
-      width: '50%',
-      overflow: 'hidden'
-    }}>★</Text>
-  </View>
-)}
+        {/* Half star giả lập */}
+        {hasHalf && (
+          <View style={{ position: 'relative' }}>
+            <Text style={{ fontSize: size, color: "#E0E0E0" }}>★</Text>
+            <Text style={{ 
+              fontSize: size, 
+              color: "#FFD700", 
+              position: 'absolute',
+              width: '50%',
+              overflow: 'hidden'
+            }}>★</Text>
+          </View>
+        )}
 
-      {/* Empty stars */}
-      {[...Array(emptyStars)].map((_, i) => (
-        <Text key={`empty-${i}`} style={{ fontSize: size, color: "#E0E0E0" }}>★</Text>
-      ))}
-    </View>
-  );
-};
+        {/* Empty stars */}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Text key={`empty-${i}`} style={{ fontSize: size, color: "#E0E0E0" }}>★</Text>
+        ))}
+      </View>
+    );
+  };
 
   // Render sao tương tác
   const renderInteractiveStars = () => {
-  const displayRating = hoverRating || userRating;
+    const displayRating = hoverRating || userRating;
 
-  return (
-    <View style={styles.ratingContainer}>
-      <Text style={styles.ratingLabel}>
-        {hasRated ? "Thay đổi đánh giá của bạn:" : "Đánh giá công thức:"}
-      </Text>
+    return (
+      <View style={styles.ratingContainer}>
+        <Text style={styles.ratingLabel}>
+          {hasRated ? "Thay đổi đánh giá của bạn:" : "Đánh giá công thức:"}
+        </Text>
 
-      <View style={styles.starsContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity
-            key={star}
-            disabled={isLoadingRating}
-            onPress={() => handleRatingPress(star)}
-            onPressIn={() => setHoverRating(star)}
-            onPressOut={() => setHoverRating(0)}
-            style={{ marginHorizontal: 4 }}
-          >
-            <Text
-              style={[
-                styles.starIcon,
-                {
-                  color: star <= displayRating ? "#FFD700" : "#DDD",
-                  opacity: isLoadingRating ? 0.5 : 1,
-                },
-              ]}
+        <View style={styles.starsContainer}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <TouchableOpacity
+              key={star}
+              disabled={isLoadingRating}
+              onPress={() => handleRatingPress(star)}
+              onPressIn={() => setHoverRating(star)}
+              onPressOut={() => setHoverRating(0)}
+              style={{ marginHorizontal: 4 }}
             >
-              ★
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text
+                style={[
+                  styles.starIcon,
+                  {
+                    color: star <= displayRating ? "#FFD700" : "#DDD",
+                    opacity: isLoadingRating ? 0.5 : 1,
+                  },
+                ]}
+              >
+                ★
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* Hiển thị thông báo */}
-      {hasRated && userRating >= 1 && (
-        <Text style={styles.ratingText}>
-          Bạn đã đánh giá: {userRating} sao
-        </Text>
-      )}
-      {isLoadingRating && (
-        <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
-          Đang cập nhật...
-        </Text>
-      )}
-    </View>
-  );
-};
+        {/* Hiển thị thông báo */}
+        {hasRated && userRating >= 1 && (
+          <Text style={styles.ratingText}>
+            Bạn đã đánh giá: {userRating} sao
+          </Text>
+        )}
+        {isLoadingRating && (
+          <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+            Đang cập nhật...
+          </Text>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -402,21 +405,21 @@ const handleRatingPress = async (rating: number) => {
 
         {/* RATING SECTION */}
         <View style={styles.card}>
-  {/* ĐIỂM TRUNG BÌNH - DÙNG STATE ĐÃ CẬP NHẬT */}
-  <View style={styles.averageRatingContainer}>
-    <View style={styles.averageRatingRow}>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        {renderStarRating(currentAvgRating, 22)}
-      </View>
-      <Text style={styles.averageRatingText}>
-        {currentAvgRating.toFixed(1)} ({currentTotalRatings} đánh giá)
-      </Text>
-    </View>
-  </View>
+          {/* ĐIỂM TRUNG BÌNH - DÙNG STATE ĐÃ CẬP NHẬT */}
+          <View style={styles.averageRatingContainer}>
+            <View style={styles.averageRatingRow}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                {renderStarRating(currentAvgRating, 22)}
+              </View>
+              <Text style={styles.averageRatingText}>
+                {currentAvgRating.toFixed(1)} ({currentTotalRatings} đánh giá)
+              </Text>
+            </View>
+          </View>
 
-  {/* Phần đánh giá của user */}
-  {renderInteractiveStars()}
-</View>
+          {/* Phần đánh giá của user */}
+          {renderInteractiveStars()}
+        </View>
 
         {/* Nguyên liệu */}
         <View style={styles.card}>
