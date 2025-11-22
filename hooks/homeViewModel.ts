@@ -7,6 +7,7 @@ import {
   getUserSuggestions,
   searchRecipeByUser,
 } from '../services/homeService';
+import { CACHE_CATEGORIES, unifiedCacheService } from '../services/unifiedCacheService';
 import { useRecipePagination } from '../services/useRecipePagination';
 import { useRecipeLike } from '../services/userRecipeLike';
 import { Recipe as DishRecipe } from '../types/dish';
@@ -27,7 +28,7 @@ export class HomeViewModel {
   private setIsLikedTabLoaded: (loaded: boolean) => void;
   private setIsFollowingTabLoaded: (loaded: boolean) => void;
   private setSearchQuery: (query: string) => void;
-  
+  private setIsOffline: (offline: boolean) => void;
   // Hooks
   public likeHook: ReturnType<typeof useRecipeLike>;
   public newestPagination: ReturnType<typeof useRecipePagination>;
@@ -57,6 +58,7 @@ export class HomeViewModel {
       setIsLikedTabLoaded: (loaded: boolean) => void;
       setIsFollowingTabLoaded: (loaded: boolean) => void;
       setSearchQuery: (query: string) => void;
+      setIsOffline: (offline: boolean) => void;
     },
     hooks: {
       likeHook: ReturnType<typeof useRecipeLike>;
@@ -86,7 +88,7 @@ export class HomeViewModel {
     this.setIsLikedTabLoaded = setters.setIsLikedTabLoaded;
     this.setIsFollowingTabLoaded = setters.setIsFollowingTabLoaded;
     this.setSearchQuery = setters.setSearchQuery;
-    
+    this.setIsOffline = setters.setIsOffline;
     this.likeHook = hooks.likeHook;
     this.newestPagination = hooks.newestPagination;
     this.trendingPagination = hooks.trendingPagination;
@@ -115,7 +117,7 @@ export class HomeViewModel {
       }
       return [];
     } catch (error) {
-      console.log('Error fetching user suggestions:', error);
+      console.log('Lỗi khi lấy gợi ý người dùng:', error);
       return [];
     }
   }
@@ -135,6 +137,40 @@ export class HomeViewModel {
       this.setLoading(true);
       this.setError(null);
 
+      // Kiểm tra kết nối mạng
+      const isOnline = await unifiedCacheService.isConnected();
+      this.setIsOffline(!isOnline);
+
+      if (!isOnline) {
+        // Nếu offline, load từ cache
+        console.log('Offline - Đang tải gợi ý trang chủ từ cache...');
+        const cachedData = await unifiedCacheService.getFromCache<any>(CACHE_CATEGORIES.HOME_SUGGESTIONS);
+        
+        if (cachedData) {
+          const {
+            trendingRecipes,
+            popularRecipes,
+            newestRecipes,
+            topRatedRecipes,
+            featuredRecipes,
+            dailyRecommendations,
+          } = cachedData;
+
+          this.newestPagination.reset(newestRecipes || []);
+          this.trendingPagination.reset(trendingRecipes || []);
+          this.popularPagination.reset(popularRecipes || []);
+          this.topRatedPagination.reset(topRatedRecipes || []);
+          this.setFeaturedRecipes(featuredRecipes || []);
+          this.setDailyRecommendations(dailyRecommendations || []);
+          
+          console.log('Đã tải gợi ý trang chủ từ cache');
+        } else {
+          this.setError('Không có dữ liệu offline');
+        }
+        return;
+      }
+
+      // Nếu online, fetch từ API
       const response = await getHomeSuggestions();
 
       if (response.success && response.data) {
@@ -147,6 +183,10 @@ export class HomeViewModel {
           dailyRecommendations,
         } = response.data;
 
+        // Lưu vào cache
+        await unifiedCacheService.saveToCache(CACHE_CATEGORIES.HOME_SUGGESTIONS, response.data);
+        console.log('Đã lưu gợi ý trang chủ vào cache');
+
         // Reset paginations với data từ API
         this.newestPagination.reset(newestRecipes || []);
         this.trendingPagination.reset(trendingRecipes || []);
@@ -156,7 +196,7 @@ export class HomeViewModel {
         this.setFeaturedRecipes(featuredRecipes || []);
         this.setDailyRecommendations(dailyRecommendations || []);
 
-        // ✅ Thu thập và loại bỏ duplicate recipeIds
+        // Thu thập và loại bỏ duplicate recipeIds
         const allRecipeIds = Array.from(new Set([
           ...(trendingRecipes || []).map((r: DishRecipe) => r.recipeId),
           ...(popularRecipes || []).map((r: DishRecipe) => r.recipeId),
@@ -166,7 +206,7 @@ export class HomeViewModel {
           ...(dailyRecommendations || []).map((r: DishRecipe) => r.recipeId),
         ])).filter(Boolean);
 
-        console.log(`✅ Checking likes for ${allRecipeIds.length} unique recipes`);
+        console.log(`Đang kiểm tra likes cho ${allRecipeIds.length} công thức duy nhất`);
 
         if (allRecipeIds.length > 0) {
           try {
@@ -179,16 +219,17 @@ export class HomeViewModel {
                   .map(([recipeId, _]) => recipeId)
               );
 
-              console.log(`Found ${likedSet.size} liked recipes`);
+              console.log(`Tìm thấy ${likedSet.size} công thức đã like`);
               this.likeHook.setLikedRecipes(likedSet);
             }
           } catch (likeError: any) {
-            console.log('Error checking likes (non-critical):', likeError.message);
+            console.log('Lỗi khi kiểm tra likes (không nghiêm trọng):', likeError.message);
+            // Không throw error, chỉ log - không ảnh hưởng đến việc hiển thị recipes
           }
         }
       }
     } catch (err: any) {
-      console.log('❌ Error fetching home suggestions:', err);
+      console.log('Lỗi khi lấy gợi ý trang chủ:', err);
       this.setError(err.message || 'Không thể tải dữ liệu');
     } finally {
       this.setLoading(false);
@@ -241,8 +282,11 @@ export class HomeViewModel {
       this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
       return;
     }
-
-    console.log('🔍 Tìm kiếm người dùng với từ khóa:', queryToSearch);
+    if (reset && !queryToSearch) {
+      this.setError('Vui lòng nhập tên người dùng cần tìm kiếm');
+      return;
+    }
+    console.log('Tìm kiếm người dùng với từ khóa:', queryToSearch);
     this.setLoading(true);
     this.setError(null);
     this.setHasSearched(true);

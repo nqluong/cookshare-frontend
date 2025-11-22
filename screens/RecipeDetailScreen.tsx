@@ -2,6 +2,7 @@ import { useAuth } from '@/context/AuthContext';
 import { userService } from '@/services/userService';
 import { UserProfile } from '@/types/user.types';
 import { Ionicons } from '@expo/vector-icons';
+import NetInfo from '@react-native-community/netinfo';
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -15,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RecipeDetailView from "../components/Recipe/RecipeDetailView";
 import { getRecipeById } from "../services/recipeService";
+import { CACHE_CATEGORIES, unifiedCacheService } from '../services/unifiedCacheService';
 import { Colors } from '../styles/colors';
 
 type Ingredient = {
@@ -63,6 +65,8 @@ export default function RecipeDetailScreen() {
   const { user } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authorInfo, setAuthorInfo] = useState<RecipeAuthor | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   const recipeId = id || "";
 
@@ -73,33 +77,80 @@ export default function RecipeDetailScreen() {
         const fetchData = async () => {
           try {
             setLoading(true);
+            setIsFromCache(false);
+            
+            // Kiểm tra kết nối mạng
+            const netInfo = await NetInfo.fetch();
+            const online = netInfo.isConnected ?? false;
+            setIsOffline(!online);
+          
+            if (!online) {
+              // Nếu offline, thử load từ cache
+              const cachedData = await unifiedCacheService.getFromCache(CACHE_CATEGORIES.RECIPE_DETAIL, recipeId) as any;
+              
+              if (cachedData) {
+                setRecipe(cachedData.recipe);
+                if (cachedData.authorInfo) {
+                  setAuthorInfo(cachedData.authorInfo);
+                }
+                setIsFromCache(true);
+                setError(null);
+                return;
+              } else {
+                return;
+              }
+            }
+
+            // Nếu online, fetch từ API
             const data = await fetchWithTimeout(getRecipeById(recipeId), 7000);
             setRecipe(data);
 
             // Load author info from API
+            let loadedAuthorInfo = null;
             if (data?.userId) {
               try {
                 const authorData = await userService.getUserById(data.userId);
-                setAuthorInfo({
+                loadedAuthorInfo = {
                   userId: data.userId,
                   username: authorData?.username || data?.username || "",
                   fullName: authorData?.fullName || data?.fullName || "",
                   avatarUrl: authorData?.avatarUrl || data?.avatarUrl || data?.userAvatarUrl || "",
-                });
+                };
+                setAuthorInfo(loadedAuthorInfo);
               } catch (authorErr) {
-                console.error("Error loading author info:", authorErr);
-                setAuthorInfo({
+                loadedAuthorInfo = {
                   userId: data.userId,
                   username: data?.username || "",
                   fullName: data?.fullName || "",
                   avatarUrl: data?.avatarUrl || data?.userAvatarUrl || "",
-                });
+                };
+                setAuthorInfo(loadedAuthorInfo);
               }
             }
+
+            await unifiedCacheService.saveToCache(CACHE_CATEGORIES.RECIPE_DETAIL, {
+              recipe: data,
+              authorInfo: loadedAuthorInfo,
+            }, recipeId);
+            
+            // Xác minh cache
+            const isCached = await unifiedCacheService.isCached(CACHE_CATEGORIES.RECIPE_DETAIL, recipeId);
+
             setError(null);
           } catch (err: any) {
-            console.error("Lỗi khi refetch:", err.message);
-            setError(err.message);
+            
+            const cachedData = await unifiedCacheService.getFromCache(CACHE_CATEGORIES.RECIPE_DETAIL, recipeId) as any;
+            
+            if (cachedData) {
+              setRecipe(cachedData.recipe);
+              if (cachedData.authorInfo) {
+                setAuthorInfo(cachedData.authorInfo);
+              }
+              setIsFromCache(true);
+              setError(null);
+            } else {
+              setError(err.message);
+            }
           } finally {
             setLoading(false);
           }
@@ -123,7 +174,6 @@ export default function RecipeDetailScreen() {
       const profile = await userService.getUserByUsername(user.username);
       setUserProfile(profile);
     } catch (error: any) {
-      console.error("Error loading profile:", error);
       Alert.alert("Lỗi", error.message || "Không thể tải thông tin cá nhân");
     }
   };
@@ -168,6 +218,14 @@ export default function RecipeDetailScreen() {
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <Header router={router} />
+        {(isOffline || isFromCache) && (
+          <View style={styles.offlineBanner}>
+            <Ionicons name="cloud-offline-outline" size={16} color="#FFF" />
+            <Text style={styles.offlineText}>
+              {isOffline ? 'Chế độ offline - Hiển thị dữ liệu đã lưu' : 'Dữ liệu từ cache'}
+            </Text>
+          </View>
+        )}
       </SafeAreaView>
 
       <RecipeDetailView
@@ -277,5 +335,19 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  offlineBanner: {
+    backgroundColor: '#FF9500',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  offlineText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Colors } from '../../styles/colors';
 
 interface SearchBarProps {
   searchQuery: string;
@@ -153,6 +154,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     zIndex: 1000,
+    backgroundColor: Colors.background,
   },
   searchContainer: {
     flexDirection: 'row',

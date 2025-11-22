@@ -41,7 +41,7 @@ interface PopularRecipesProps {
 
 // Component hiển thị danh sách công thức phổ biến (theo saveCount)
 export default function PopularRecipes({
-  recipes,
+  recipes = [],
   onRecipePress,
   onLoadMore,
   hasMore = false,

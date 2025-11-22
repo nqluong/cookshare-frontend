@@ -39,7 +39,7 @@ interface NewestRecipesProps {
 }
 
 export default function NewestRecipes({
-  recipes,
+  recipes = [],
   onRecipePress,
   onLoadMore,
   hasMore = false,

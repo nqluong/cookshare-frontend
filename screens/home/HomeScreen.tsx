@@ -24,15 +24,16 @@ import TopRatedRecipes from '../../components/home/sections/TopRatedRecipes';
 import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
 
 // Services & Hooks
+import { useCachedPagination } from '../../hooks/useCachedRecipes';
 import {
   getLikedRecipes,
   getNewestRecipes,
   getPopularRecipes,
   getRecipebyFollowing,
   getTopRatedRecipes,
-  getTrendingRecipes,
+  getTrendingRecipes
 } from '../../services/homeService';
-import { useRecipePagination } from '../../services/useRecipePagination';
+import { CACHE_CATEGORIES as CACHE_KEYS } from '../../services/unifiedCacheService';
 import { useRecipeLike } from '../../services/userRecipeLike';
 
 // Types & Styles
@@ -71,6 +72,7 @@ export default function HomeScreen() {
   // Tab Load Flags
   const [isLikedTabLoaded, setIsLikedTabLoaded] = useState(false);
   const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const {
     isSaved,
@@ -83,33 +85,47 @@ export default function HomeScreen() {
   } = useCollectionManager();
 
   // Hooks
+  // Cached Data with hooks
+  // Note: dailyRecommendations và featuredRecipes sẽ được load từ state, không cache
   const likeHook = useRecipeLike();
-  const newest = useRecipePagination({
-    fetchFunction: getNewestRecipes,
+  const newest = useCachedPagination({ 
+    cacheKey: CACHE_KEYS.NEWEST_RECIPES,
+    fetchFunction: getNewestRecipes, 
     pageSize: 10,
+    autoFetch: false // Không tự động fetch
   });
-  const trending = useRecipePagination({
-    fetchFunction: getTrendingRecipes,
+  const trending = useCachedPagination({ 
+    cacheKey: CACHE_KEYS.TRENDING_RECIPES,
+    fetchFunction: getTrendingRecipes, 
     pageSize: 10,
+    autoFetch: false
   });
-  const popular = useRecipePagination({
-    fetchFunction: getPopularRecipes,
+  const popular = useCachedPagination({ 
+    cacheKey: CACHE_KEYS.POPULAR_RECIPES,
+    fetchFunction: getPopularRecipes, 
     pageSize: 20,
+    autoFetch: false
   });
-  const topRated = useRecipePagination({
-    fetchFunction: getTopRatedRecipes,
+  const topRated = useCachedPagination({ 
+    cacheKey: CACHE_KEYS.TOP_RATED_RECIPES,
+    fetchFunction: getTopRatedRecipes, 
     pageSize: 10,
+    autoFetch: false
   });
-  const liked = useRecipePagination({
-    fetchFunction: getLikedRecipes,
+  const liked = useCachedPagination({ 
+    cacheKey: CACHE_KEYS.LIKED_RECIPES,
+    fetchFunction: getLikedRecipes, 
     pageSize: 10,
+    autoFetch: false
   });
-  const following = useRecipePagination({
-    fetchFunction: getRecipebyFollowing,
+  const following = useCachedPagination({ 
+    cacheKey: CACHE_KEYS.FOLLOWING_RECIPES,
+    fetchFunction: getRecipebyFollowing, 
     pageSize: 10,
+    autoFetch: false
   });
 
-  // ViewModel
+  // Init HomeViewModel with proper dependencies
   const viewModel = new HomeViewModel(
     {
       setActiveTab,
@@ -125,6 +141,7 @@ export default function HomeScreen() {
       setIsLikedTabLoaded,
       setIsFollowingTabLoaded,
       setSearchQuery,
+      setIsOffline,
     },
     {
       likeHook,
@@ -135,7 +152,11 @@ export default function HomeScreen() {
       likedPagination: liked,
       followingPagination: following,
     },
-    { searchQuery, searchPage, activeTab }
+    {
+      searchQuery,
+      searchPage,
+      activeTab,
+    }
   );
  const globalParams = useGlobalSearchParams(); // ← Dùng global để chắc chắn bắt được param từ màn khác
 
@@ -157,22 +178,34 @@ useFocusEffect(
 );
   // Effects
   useEffect(() => {
+    setLoading(newest.loading);
+  }, [newest.loading]);
+
+  useEffect(() => {
+    // Load initial data
     viewModel.fetchHomeSuggestions();
   }, []);
 
   useEffect(() => {
     if (refresh) {
       viewModel.fetchHomeSuggestions();
+      newest.refresh();
+      trending.refresh();
+      popular.refresh();
+      topRated.refresh();
+      liked.refresh();
+      following.refresh();
     }
   }, [refresh]);
 
   useEffect(() => {
-    viewModel.updateCurrentStates({ activeTab });
-    viewModel.handleTabChange(
-      activeTab,
-      isLikedTabLoaded,
-      isFollowingTabLoaded
-    );
+    if (activeTab === 'Yêu thích' && !isLikedTabLoaded) {
+      liked.refresh();
+      setIsLikedTabLoaded(true);
+    } else if (activeTab === 'Theo dõi' && !isFollowingTabLoaded) {
+      following.refresh();
+      setIsFollowingTabLoaded(true);
+    }
   }, [activeTab]);
 
   // Event Handlers
@@ -180,26 +213,30 @@ useFocusEffect(
     router.push(`/_recipe-detail/${recipe.recipeId}` as any);
   };
 
-  const handleSearch = (
+  const handleSearch = async (
     reset = true,
     requestedPage?: number,
     queryOverride?: string
   ) => {
-    if (queryOverride !== undefined) {
-      viewModel.updateCurrentStates({ searchQuery: queryOverride });
-      viewModel.handleSearch(reset, requestedPage, queryOverride);
-    } else {
-      viewModel.updateCurrentStates({ searchQuery, searchPage });
-      viewModel.handleSearch(reset, requestedPage);
-    }
+    await viewModel.handleSearch(reset, requestedPage, queryOverride);
   };
-  const handleToggleLike = (recipeId: string) => {
-    viewModel.updateCurrentStates({ activeTab });
-    viewModel.toggleLike(recipeId, dailyRecommendations, featuredRecipes);
+
+  const handleToggleLike = async (recipeId: string) => {
+    await viewModel.toggleLike(recipeId, dailyRecommendations, featuredRecipes);
+  };
+
+  const handleRefreshAll = () => {
+    viewModel.fetchHomeSuggestions();
+    newest.refresh();
+    trending.refresh();
+    popular.refresh();
+    topRated.refresh();
+    if (activeTab === 'Yêu thích') liked.refresh();
+    if (activeTab === 'Theo dõi') following.refresh();
   };
 
   // Loading State
-  if (loading && !newest.recipes.length) {
+  if (loading && !newest.recipes.length && !dailyRecommendations.length) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
@@ -216,10 +253,7 @@ useFocusEffect(
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>⚠ {error}</Text>
-          <Text
-            style={styles.retryText}
-            onPress={() => viewModel.fetchHomeSuggestions()}
-          >
+          <Text style={styles.retryText} onPress={() => viewModel.fetchHomeSuggestions()}>
             Thử lại
           </Text>
         </View>
@@ -227,9 +261,18 @@ useFocusEffect(
     );
   }
 
+
   // Main Content
   return (
     <SafeAreaView style={styles.container}>
+
+       {isOffline && (
+        <View style={styles.offlineBar}>
+          <Text style={styles.offlineText}>
+            📵 Chế độ offline - Hiển thị dữ liệu đã lưu
+          </Text>
+        </View>
+      )}
       <SearchBar
         searchQuery={searchQuery}
         setSearchQuery={(query) =>
@@ -333,17 +376,12 @@ function MainContent({
 
   const renderItem = ({ item }: { item: any }) => {
     switch (item.type) {
-      case "featured":
-        return (
-          <FeaturedDish
-            recipes={dailyRecommendations}
-            onRecipePress={onRecipePress}
-          />
-        );
-      case "trending":
+      case 'featured':
+        return <FeaturedDish recipes={dailyRecommendations} onRecipePress={onRecipePress} />;
+      case 'trending':
         return (
           <TrendingRecipes
-            recipes={trending.recipes}
+            recipes={trending.recipes || []}
             onRecipePress={onRecipePress}
             onLoadMore={trending.loadMore}
             hasMore={trending.hasMore}
@@ -363,7 +401,7 @@ function MainContent({
       case "popular":
         return (
           <PopularRecipes
-            recipes={popular.recipes}
+            recipes={popular.recipes || []}
             onRecipePress={onRecipePress}
             onLoadMore={popular.loadMore}
             hasMore={popular.hasMore}
@@ -383,7 +421,7 @@ function MainContent({
       case "topRated":
         return (
           <TopRatedRecipes
-            recipes={topRated.recipes}
+            recipes={topRated.recipes || []}
             onRecipePress={onRecipePress}
             onLoadMore={topRated.loadMore}
             hasMore={topRated.hasMore}
@@ -403,7 +441,7 @@ function MainContent({
       case "newest":
         return (
           <NewestRecipes
-            recipes={newest.recipes}
+            recipes={newest.recipes || []}
             onRecipePress={onRecipePress}
             onLoadMore={newest.loadMore}
             hasMore={newest.hasMore}
@@ -423,7 +461,7 @@ function MainContent({
       case "liked":
         return (
           <LikedRecipes
-            recipes={liked.recipes}
+            recipes={liked.recipes || []}
             onRecipePress={onRecipePress}
             onLoadMore={liked.loadMore}
             hasMore={liked.hasMore}
@@ -443,7 +481,7 @@ function MainContent({
       case "following":
         return (
           <RecipeFollowing
-            recipes={following.recipes}
+            recipes={following.recipes || []}
             onRecipePress={onRecipePress}
             onLoadMore={following.loadMore}
             hasMore={following.hasMore}
@@ -514,5 +552,16 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "600",
     textDecorationLine: "underline",
+  },
+  offlineBar: {
+    backgroundColor: '#FFA500',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  offlineText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

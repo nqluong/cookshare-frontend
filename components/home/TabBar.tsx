@@ -65,7 +65,7 @@ export default function TabBar({ activeTab, onTabChange, onPress }: TabBarProps)
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
