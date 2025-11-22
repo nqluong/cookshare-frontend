@@ -4,6 +4,8 @@ import { CategoryService } from "@/services/categoryService";
 import { IngredientService } from "@/services/ingredientService";
 import { RecipeService } from "@/services/recipeService";
 import { TagService } from "@/services/tagService";
+import styles from "@/styles/EditRecipeStyle";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -14,7 +16,6 @@ import {
   Image,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -33,6 +34,7 @@ interface ListItem {
   name: string;
   description?: string;
   color?: string;
+  isLocal?: boolean;
 }
 
 interface SelectedIngredient {
@@ -50,279 +52,14 @@ const DIFFICULTY_LEVELS = [
   { value: "HARD", label: "Khó", emoji: "😰" },
 ];
 
-const styles = StyleSheet.create({
-  container: { 
-    flex: 1,
-    padding: 15, 
-    backgroundColor: "#fff"
-  },
-  center: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    flex: 1,
-    textAlign: "center",
-  },
-  backButton: {
-    padding: 5,
-    width: 40,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: "#FF385C",
-  },
-  headerRight: {
-    width: 40,
-  },
-  label: { fontSize: 16, fontWeight: "bold", marginTop: 15 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 5,
-    fontSize: 14,
-  },
-  image: {
-    width: "100%",
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
-  },
-  imagePlaceholder: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#eee",
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  multiContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 5,
-  },
-  option: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  optionSelected: {
-    backgroundColor: "#FF385C20",
-    borderColor: "#FF385C",
-  },
-  addButton: {
-    backgroundColor: "#FF385C",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  ingredientList: {
-    marginTop: 10,
-  },
-  ingredientItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#f8f8f8",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  ingredientName: {
-    flex: 1,
-    fontSize: 16,
-  },
-  removeButton: {
-    padding: 5,
-  },
-  removeButtonText: {
-    color: "#FF385C",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  createBtn: {
-    backgroundColor: "#4CAF50",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  closeBtn: {
-    backgroundColor: "#FF385C",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  listItem: {
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 4,
-    borderWidth: 1,
-    borderColor: "#eee",
-  },
-  saveButton: {
-    marginTop: 25,
-    backgroundColor: "#FF385C",
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  saveText: { 
-    color: "#fff", 
-    fontWeight: "bold", 
-    fontSize: 16 
-  },
-  stepRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  removeStepBtn: {
-    backgroundColor: "#ff4444",
-    padding: 8,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  removeStepText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  imagePickerSmall: {
-    height: 120,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  selectedItems: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-  },
-  selectedItem: {
-    backgroundColor: "#FF385C20",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#FF385C",
-  },
-  selectedItemText: {
-    color: "#FF385C",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  selectBtn: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 10,
-  },
-  card: {
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    padding: 15,
-    marginVertical: 10,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  ingredientsList: {
-    gap: 8,
-  },
-  ingredientRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "white",
-    padding: 10,
-    borderRadius: 8,
-  },
-  ingredientText: {
-    flex: 1,
-    fontSize: 14,
-  },
-  emptyText: {
-    textAlign: "center",
-    color: "#999",
-    fontStyle: "italic",
-    padding: 15,
-  },
-  // Styles cho độ khó
-  difficultyContainer: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 8,
-  },
-  difficultyButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: "#ddd",
-    backgroundColor: "#fff",
-    alignItems: "center",
-  },
-  difficultyButtonSelected: {
-    borderColor: "#FF385C",
-    backgroundColor: "#FF385C10",
-  },
-  difficultyEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  difficultyLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-  },
-  difficultyLabelSelected: {
-    color: "#FF385C",
-  },
+// Local storage keys for temporary created items (theo user)
+const getStorageKeys = (userId: string) => ({
+  NEW_CATEGORIES: `@recipe_new_categories_${userId}`,
+  NEW_TAGS: `@recipe_new_tags_${userId}`,
+  NEW_INGREDIENTS: `@recipe_new_ingredients_${userId}`
 });
+
+
 
 export default function EditRecipeScreen() {
   const router = useRouter();
@@ -339,11 +76,17 @@ export default function EditRecipeScreen() {
   const [servings, setServings] = useState("");
   const [prepTime, setPrepTime] = useState("");
   const [cookTime, setCookTime] = useState("");
-  const [difficulty, setDifficulty] = useState<string>("MEDIUM"); // Độ khó (chữ HOA)
+  const [difficulty, setDifficulty] = useState<string>("MEDIUM");
 
+  // Data from backend
   const [categories, setCategories] = useState<ListItem[]>([]);
   const [ingredients, setIngredients] = useState<ListItem[]>([]);
   const [tags, setTags] = useState<ListItem[]>([]);
+
+  // Data from localStorage (chưa lưu vào DB)
+  const [localCategories, setLocalCategories] = useState<ListItem[]>([]);
+  const [localTags, setLocalTags] = useState<ListItem[]>([]);
+  const [localIngredients, setLocalIngredients] = useState<ListItem[]>([]);
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedIngredients, setSelectedIngredients] = useState<SelectedIngredient[]>([]);
@@ -362,6 +105,11 @@ export default function EditRecipeScreen() {
   
   const [hasChanges, setHasChanges] = useState(false);
   const [originalData, setOriginalData] = useState<any>(null);
+
+  // Combined data (server + local)
+  const allCategories = [...localCategories, ...categories];
+  const allTags = [...localTags, ...tags];
+  const allIngredients = [...localIngredients, ...ingredients];
 
   useEffect(() => {
     fetchRecipe();
@@ -402,7 +150,6 @@ export default function EditRecipeScreen() {
       setTitle(data.title);
       setDescription(data.description);
       setFeaturedImage(data.featuredImage);
-      // Đảm bảo difficulty luôn là chữ HOA
       setDifficulty(data.difficulty?.toUpperCase() || "MEDIUM");
       
       const normalizedSteps = (data.steps || []).map((s: any) => ({
@@ -473,21 +220,57 @@ export default function EditRecipeScreen() {
         id: c.categoryId,
         name: c.name,
         description: c.description,
+        isLocal: false
       })));
-      
+
       setIngredients((ingRes || []).map((i: any) => ({
         id: i.ingredientId,
         name: i.name,
         description: i.description || undefined,
+        isLocal: false
       })));
-      
+
       setTags((tagRes || []).map((t: any) => ({
         id: t.tagId,
         name: t.name,
         color: t.color,
+        isLocal: false
       })));
+
+      await loadLocalStorageData();
     } catch (err) {
       console.error("Lỗi khi tải dữ liệu:", err);
+    }
+  };
+
+  const loadLocalStorageData = async () => {
+    if (!user?.userId) return;
+    
+    const STORAGE_KEYS = getStorageKeys(user.userId);
+    
+    try {
+      const [catData, tagData, ingData] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.NEW_CATEGORIES),
+        AsyncStorage.getItem(STORAGE_KEYS.NEW_TAGS),
+        AsyncStorage.getItem(STORAGE_KEYS.NEW_INGREDIENTS)
+      ]);
+
+      if (catData) {
+        const parsed = JSON.parse(catData);
+        setLocalCategories(parsed.map((item: any) => ({ ...item, isLocal: true })));
+      }
+
+      if (tagData) {
+        const parsed = JSON.parse(tagData);
+        setLocalTags(parsed.map((item: any) => ({ ...item, isLocal: true })));
+      }
+
+      if (ingData) {
+        const parsed = JSON.parse(ingData);
+        setLocalIngredients(parsed.map((item: any) => ({ ...item, isLocal: true })));
+      }
+    } catch (err) {
+      console.error("Error loading localStorage:", err);
     }
   };
 
@@ -615,79 +398,159 @@ export default function EditRecipeScreen() {
     }
   };
 
+  const handleDeleteLocalItem = async (item: ListItem) => {
+    if (!user?.userId) return;
+    
+    const STORAGE_KEYS = getStorageKeys(user.userId);
+
+    try {
+      if (modalType === "category") {
+        const updated = localCategories.filter(c => c.id !== item.id);
+        setLocalCategories(updated);
+        await AsyncStorage.setItem(STORAGE_KEYS.NEW_CATEGORIES, JSON.stringify(updated));
+        setSelectedCategories(prev => prev.filter(id => id !== item.id));
+        Alert.alert("✅ Đã xóa", `Đã xóa danh mục "${item.name}"`);
+      } else if (modalType === "ingredient") {
+        const updated = localIngredients.filter(i => i.id !== item.id);
+        setLocalIngredients(updated);
+        await AsyncStorage.setItem(STORAGE_KEYS.NEW_INGREDIENTS, JSON.stringify(updated));
+        setSelectedIngredients(prev => prev.filter(si => si.id !== item.id));
+        setIngredientInputs(prev => {
+          const copy = { ...prev };
+          delete copy[item.id];
+          return copy;
+        });
+        Alert.alert("✅ Đã xóa", `Đã xóa nguyên liệu "${item.name}"`);
+      } else if (modalType === "tag") {
+        const updated = localTags.filter(t => t.id !== item.id);
+        setLocalTags(updated);
+        await AsyncStorage.setItem(STORAGE_KEYS.NEW_TAGS, JSON.stringify(updated));
+        setSelectedTags(prev => prev.filter(id => id !== item.id));
+        Alert.alert("✅ Đã xóa", `Đã xóa tag "${item.name}"`);
+      }
+    } catch (err) {
+      console.error("Error deleting local item:", err);
+      Alert.alert("Lỗi", "Không thể xóa!");
+    }
+  };
+
   const handleCreateNew = async () => {
     if (!searchTerm.trim()) {
       Alert.alert("Lỗi", "Vui lòng nhập tên!");
       return;
     }
-    
-    try {
-      let created = false;
 
+    if (!user?.userId) {
+      Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng!");
+      return;
+    }
+
+    const STORAGE_KEYS = getStorageKeys(user.userId);
+
+    try {
       if (modalType === "category") {
-        const categoryRes = await CategoryService.createCategory({
+        const exists = allCategories.find(
+          c => c.name.toLowerCase().trim() === searchTerm.toLowerCase().trim()
+        );
+        
+        if (exists) {
+          Alert.alert("Đã tồn tại", `Danh mục "${exists.name}" đã có. Bạn có thể chọn nó.`);
+          setSelectedCategories(prev => prev.includes(exists.id) ? prev : [...prev, exists.id]);
+          setSearchTerm("");
+          return;
+        }
+
+        const newItem: ListItem = {
+          id: `local_cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: searchTerm,
           description: extraField || "",
-        });
-        if (categoryRes && categoryRes.categoryId) {
-          const newCategory: ListItem = {
-            id: categoryRes.categoryId,
-            name: categoryRes.name,
-            description: categoryRes.description
-          };
-          setCategories(prev => [newCategory, ...prev]);
-          setSelectedCategories(prev => [...prev, newCategory.id]);
-          created = true;
-        }
-      } 
-      else if (modalType === "ingredient") {
-        const ingredientRes = await IngredientService.createIngredient({ name: searchTerm });
-        if (ingredientRes && ingredientRes.ingredientId) {
-          const newIngredient: ListItem = {
-            id: ingredientRes.ingredientId,
-            name: ingredientRes.name,
-            description: ingredientRes.description || undefined
-          };
-          setIngredients(prev => [newIngredient, ...prev]);
-          
-          Alert.alert(
-            "✅ Đã tạo nguyên liệu",
-            `"${searchTerm}" đã được thêm vào danh sách. Vui lòng nhập số lượng và đơn vị, sau đó nhấn "Chọn".`,
-            [{ text: "OK" }]
-          );
-          
-          setIngredientInputs(prev => ({
-            ...prev,
-            [newIngredient.id]: { quantity: '', unit: '', selected: false }
-          }));
-          
-          setSearchTerm("");
-          created = true;
-        }
-      } 
-      else if (modalType === "tag") {
-        // Random màu cho tag
-        const randomColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
-        const tagRes = await TagService.createTag({ name: searchTerm, color: randomColor });
-        if (tagRes && tagRes.tagId) {
-          const newTag: ListItem = {
-            id: tagRes.tagId,
-            name: tagRes.name,
-            color: tagRes.color
-          };
-          setTags(prev => [newTag, ...prev]);
-          setSelectedTags(prev => [...prev, newTag.id]);
-          created = true;
-        }
-      }
+          isLocal: true
+        };
 
-      if (created && modalType !== "ingredient") {
-        Alert.alert("✅ Thành công", `Đã thêm mới ${searchTerm}`);
+        const updated = [...localCategories, newItem];
+        setLocalCategories(updated);
+        await AsyncStorage.setItem(STORAGE_KEYS.NEW_CATEGORIES, JSON.stringify(updated));
+        
+        setSelectedCategories(prev => [...prev, newItem.id]);
+        Alert.alert("✅ Thành công", `Đã thêm danh mục "${searchTerm}"`);
         setSearchTerm("");
         setExtraField("");
       }
+      else if (modalType === "ingredient") {
+        const exists = allIngredients.find(
+          i => i.name.toLowerCase().trim() === searchTerm.toLowerCase().trim()
+        );
+        
+        if (exists) {
+          // If the ingredient exists on server, select it immediately (auto-select)
+          Alert.alert("Đã tồn tại", `Nguyên liệu "${exists.name}" đã có và đã được chọn.`);
+          setIngredientInputs(prev => ({
+            ...prev,
+            [exists.id]: { quantity: '', unit: '', selected: true }
+          }));
+          setSelectedIngredients(prev => {
+            const existsEntry = prev.find(s => s.id === exists.id);
+            if (existsEntry) return prev.map(s => s.id === exists.id ? { id: exists.id, quantity: existsEntry.quantity || '', unit: existsEntry.unit || '' } : s);
+            return [...prev, { id: exists.id, quantity: '', unit: '' }];
+          });
+          setSearchTerm("");
+          return;
+        }
+
+        const newId = `local_ing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const newItem: ListItem = {
+          id: newId,
+          name: searchTerm,
+          description: extraField || "",
+          isLocal: true
+        };
+
+        const updated = [...localIngredients, newItem];
+        setLocalIngredients(updated);
+        await AsyncStorage.setItem(STORAGE_KEYS.NEW_INGREDIENTS, JSON.stringify(updated));
+        
+        // Auto-select the newly created local ingredient so user sees it in selection
+        setIngredientInputs(prev => ({
+          ...prev,
+          [newItem.id]: { quantity: '', unit: '', selected: true }
+        }));
+
+        setSelectedIngredients(prev => [...prev, { id: newItem.id, quantity: '', unit: '' }]);
+
+        Alert.alert("✅ Thành công", `Đã thêm nguyên liệu "${searchTerm}" và đã được chọn.`);
+        setSearchTerm("");
+        setExtraField("");
+      }
+      else if (modalType === "tag") {
+        const exists = allTags.find(
+          t => t.name.toLowerCase().trim() === searchTerm.toLowerCase().trim()
+        );
+        
+        if (exists) {
+          Alert.alert("Đã tồn tại", `Tag "${exists.name}" đã có. Bạn có thể chọn nó.`);
+          setSelectedTags(prev => prev.includes(exists.id) ? prev : [...prev, exists.id]);
+          setSearchTerm("");
+          return;
+        }
+
+        const randomColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
+        const newItem: ListItem = {
+          id: `local_tag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: searchTerm,
+          color: randomColor,
+          isLocal: true
+        };
+
+        const updated = [...localTags, newItem];
+        setLocalTags(updated);
+        await AsyncStorage.setItem(STORAGE_KEYS.NEW_TAGS, JSON.stringify(updated));
+        
+        setSelectedTags(prev => [...prev, newItem.id]);
+        Alert.alert("✅ Thành công", `Đã thêm tag "${searchTerm}"`);
+        setSearchTerm("");
+      }
     } catch (err: any) {
-      Alert.alert("Lỗi", err.message || "Không thể tạo mới!");
+      Alert.alert("Lỗi", err.message || "Không thể lưu!");
     }
   };
 
@@ -696,10 +559,8 @@ export default function EditRecipeScreen() {
     if (!description || !description.trim()) return Alert.alert("Lỗi", "Vui lòng nhập mô tả");
     if (!user?.userId) return Alert.alert("Lỗi", "Bạn cần đăng nhập để cập nhật công thức");
 
-    // Allow ingredients even if quantity/unit are empty.
-    // Keep only entries that exist in the master ingredients list.
     const validIngredients = selectedIngredients.filter(ingredient => {
-      const ingredientExists = ingredients.find((i: ListItem) => i.id === ingredient.id);
+      const ingredientExists = allIngredients.find((i: ListItem) => i.id === ingredient.id);
       return ingredientExists != null;
     });
 
@@ -711,33 +572,88 @@ export default function EditRecipeScreen() {
     try {
       setUpdating(true);
 
+      const STORAGE_KEYS = getStorageKeys(user.userId);
+
+      // Categories mới (chỉ local)
+      const newCategories = selectedCategories
+        .map(id => localCategories.find(c => c.id === id))
+        .filter(c => c != null)
+        .map(c => ({
+          name: c!.name,
+          description: c!.description || ""
+        }));
+
+      const existingCategoryIds = selectedCategories.filter(id => 
+        categories.find(c => c.id === id)
+      );
+
+      // Tags mới
+      const newTags = selectedTags
+        .map(id => localTags.find(t => t.id === id))
+        .filter(t => t != null)
+        .map(t => ({
+          name: t!.name,
+          color: t!.color || '#666666'
+        }));
+
+      const existingTagIds = selectedTags.filter(id => 
+        tags.find(t => t.id === id)
+      );
+
+      // Ingredients: tạo trên server trước
+      const localToCreate = validIngredients
+        .map(si => ({ si, item: localIngredients.find(i => i.id === si.id) }))
+        .filter(x => x.item != null)
+        .map(x => ({ localId: x.item!.id, name: x.item!.name, description: x.item!.description || '' }));
+
+      const createdMap: Record<string, string> = {};
+
+      if (localToCreate.length > 0) {
+        for (const row of localToCreate) {
+          try {
+            const created = await IngredientService.createIngredient({ 
+              name: row.name, 
+              description: row.description 
+            });
+            createdMap[row.localId] = created.ingredientId || created.id;
+          } catch (e) {
+            console.error('Failed to create ingredient:', row.name, e);
+            Alert.alert('Lỗi', `Không thể tạo nguyên liệu "${row.name}"`);
+            setUpdating(false);
+            return;
+          }
+        }
+      }
+
+      const finalIngredientDetails = validIngredients.map((ing: SelectedIngredient) => {
+        const quantity = ing.quantity && ing.quantity.trim() !== '' ? parseFloat(ing.quantity) : 0;
+        const unit = ing.unit && ing.unit.trim() !== '' ? ing.unit : '';
+        const localItem = localIngredients.find(i => i.id === ing.id);
+        const finalId = localItem ? createdMap[localItem.id] : ing.id;
+
+        return {
+          ingredientId: finalId,
+          quantity: isNaN(quantity) ? 0 : quantity,
+          unit: unit
+        };
+      }).filter(d => d.ingredientId);
+
       const formData = new FormData();
       
       const recipeData = {
         title,
         description: description.trim(),
-        difficulty: difficulty.toUpperCase(), // Đảm bảo luôn gửi chữ HOA
+        difficulty: difficulty.toUpperCase(),
         steps: steps.map((step, index) => ({
           instruction: step.instruction ?? '',
           stepNumber: index + 1,
           imageUrl: step.image && typeof step.image === 'string' && step.image.startsWith('file://') ? null : step.image
         })).filter(step => step.instruction.trim() !== ''),
-        categoryIds: selectedCategories.filter(Boolean),
-        // NOTE: backend currently calls toString() on quantity without null-check.
-        // To avoid server-side NPE, always send a numeric quantity (0 when empty)
-        // and send empty string for unit when missing.
-        ingredientDetails: validIngredients.map((ing: SelectedIngredient) => {
-          const entry: any = { ingredientId: ing.id };
-          if (ing.quantity && ing.quantity.toString().trim() !== '') {
-            const parsed = parseFloat(ing.quantity);
-            entry.quantity = !isNaN(parsed) ? parsed : 0;
-          } else {
-            entry.quantity = 0;
-          }
-          entry.unit = ing.unit && ing.unit.toString().trim() !== '' ? ing.unit : "";
-          return entry;
-        }),
-        tagIds: selectedTags.filter(Boolean),
+        categoryIds: existingCategoryIds,
+        tagIds: existingTagIds,
+        newCategories: newCategories.length > 0 ? newCategories : undefined,
+        newTags: newTags.length > 0 ? newTags : undefined,
+        ingredientDetails: finalIngredientDetails,
         featuredImage: featuredImage?.startsWith('file://') ? null : featuredImage,
         servings: servings ? parseInt(servings) : null,
         prepTime: prepTime ? parseInt(prepTime) : null,
@@ -745,11 +661,8 @@ export default function EditRecipeScreen() {
         userId: user.userId
       };
 
-      // Debug: print payload so we can verify ingredientDetails fields
-      try {
-        console.log('DEBUG recipeData payload:', JSON.stringify(recipeData, null, 2));
-        console.log('DEBUG ingredientDetails:', JSON.stringify(recipeData.ingredientDetails, null, 2));
-      } catch (e) {}
+      console.log('DEBUG recipeData payload:', JSON.stringify(recipeData, null, 2));
+      
       formData.append('data', JSON.stringify(recipeData));
 
       if (featuredImage?.startsWith('file://')) {
@@ -782,6 +695,25 @@ export default function EditRecipeScreen() {
       const response = await RecipeService.updateRecipe(recipeId!, formData);
       
       if (response) {
+        // Xóa localStorage sau khi thành công
+        await AsyncStorage.multiRemove([
+          STORAGE_KEYS.NEW_CATEGORIES,
+          STORAGE_KEYS.NEW_TAGS,
+          STORAGE_KEYS.NEW_INGREDIENTS
+        ]);
+
+        // Clear in-memory local temp arrays and refresh metadata so UI shows server items
+        try {
+          setLocalCategories([]);
+          setLocalTags([]);
+          setLocalIngredients([]);
+        } catch (e) {
+          console.warn('Không thể xóa state temp items:', e);
+        }
+
+        console.log('🔄 Cập nhật dữ liệu metadata từ server...');
+        await fetchMetaData();
+
         console.log('🔄 Đang tải lại công thức từ server...');
         await fetchRecipe();
         
@@ -819,7 +751,6 @@ export default function EditRecipeScreen() {
             text: "Thoát (không lưu)",
             style: "destructive",
             onPress: () => {
-              // Restore local state from original data so unsaved choices are discarded
               if (originalData) {
                 try {
                   setTitle(originalData.title || "");
@@ -861,7 +792,7 @@ export default function EditRecipeScreen() {
 
   const renderModal = () => {
     const data =
-      modalType === "category" ? categories : modalType === "ingredient" ? ingredients : tags;
+      modalType === "category" ? allCategories : modalType === "ingredient" ? allIngredients : allTags;
 
     const filtered = data.filter((item) =>
       item.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -896,8 +827,18 @@ export default function EditRecipeScreen() {
             />
           )}
 
+          {modalType === "ingredient" && (
+            <TextInput
+              placeholder="Mô tả nguyên liệu (tùy chọn)"
+              placeholderTextColor={defaultPlaceholderColor}
+              value={extraField}
+              onChangeText={setExtraField}
+              style={styles.input}
+            />
+          )}
+
           <TouchableOpacity onPress={handleCreateNew} style={styles.createBtn}>
-            <Text style={{ color: "white", fontWeight: "600" }}>➕ Tạo mới</Text>
+            <Text style={{ color: "white", fontWeight: "600" }}>✅ Tạo mới</Text>
           </TouchableOpacity>
 
           <FlatList
@@ -913,9 +854,23 @@ export default function EditRecipeScreen() {
                       { backgroundColor: inputs.selected ? '#cce5ff' : 'white' },
                     ]}
                   >
-                    <Text style={{ fontWeight: '600' }}>{item.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ fontWeight: '600', flex: 1 }}>
+                        {item.name}
+                        {item.isLocal && <Text style={{ color: '#ff9800' }}> (mới)</Text>}
+                      </Text>
+                      
+                      {item.isLocal && (
+                        <TouchableOpacity 
+                          onPress={() => handleDeleteLocalItem(item)}
+                          style={{ padding: 4 }}
+                        >
+                          <Text style={{ fontSize: 18, color: '#d32f2f' }}>🗑️</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
 
-                    <View style={{ flexDirection: 'row', marginTop: 8, alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <TextInput
                         placeholder="Số lượng"
                         placeholderTextColor={defaultPlaceholderColor}
@@ -934,7 +889,7 @@ export default function EditRecipeScreen() {
                       />
 
                       <TouchableOpacity onPress={() => handleSelectItem(item)} style={styles.addButton}>
-                        <Text style={styles.addButtonText}>{inputs.selected ? 'Bỏ chọn' : 'Chọn'}</Text>
+                        <Text style={styles.addButtonText}>{inputs.selected ? 'Bỏ' : 'Chọn'}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -960,21 +915,37 @@ export default function EditRecipeScreen() {
                     },
                   ]}
                 >
-                  <Text style={{ fontWeight: '600' }}>{item.name}</Text>
-                  {modalType === 'category' && !!item.description && (
-                    <Text style={{ fontSize: 12, color: '#555' }}>{item.description}</Text>
-                  )}
-                  {modalType === 'tag' && !!item.color && (
-                    <View
-                      style={{
-                        width: 16,
-                        height: 16,
-                        backgroundColor: item.color,
-                        borderRadius: 8,
-                        marginTop: 4,
-                      }}
-                    />
-                  )}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: '600' }}>
+                        {item.name}
+                        {item.isLocal && <Text style={{ color: '#ff9800' }}> (mới)</Text>}
+                      </Text>
+                      {modalType === 'category' && !!item.description && (
+                        <Text style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{item.description}</Text>
+                      )}
+                      {modalType === 'tag' && !!item.color && (
+                        <View
+                          style={{
+                            width: 16,
+                            height: 16,
+                            backgroundColor: item.color,
+                            borderRadius: 8,
+                            marginTop: 4,
+                          }}
+                        />
+                      )}
+                    </View>
+                    
+                    {item.isLocal && (
+                      <TouchableOpacity 
+                        onPress={() => handleDeleteLocalItem(item)}
+                        style={{ padding: 4, marginLeft: 8 }}
+                      >
+                        <Text style={{ fontSize: 18, color: '#d32f2f' }}>🗑️</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </TouchableOpacity>
               );
             }}
@@ -1047,7 +1018,6 @@ export default function EditRecipeScreen() {
           placeholderTextColor={defaultPlaceholderColor}
         />
 
-        {/* Độ khó */}
         <Text style={styles.label}>Độ khó</Text>
         <View style={styles.difficultyContainer}>
           {DIFFICULTY_LEVELS.map((level) => (
@@ -1103,13 +1073,16 @@ export default function EditRecipeScreen() {
         />
 
         <TouchableOpacity onPress={() => openModal("category")} style={styles.selectBtn}>
-          <Text style={styles.label}>Danh mục đã chọn:</Text>
+          <Text style={styles.label}>📁 Danh mục đã chọn:</Text>
           <View style={styles.selectedItems}>
             {selectedCategories.map((id: string, index: number) => {
-              const category = categories.find((c: ListItem) => c.id === id);
+              const category = allCategories.find((c: ListItem) => c.id === id);
               return category ? (
                 <View key={`category-${id || index}`} style={styles.selectedItem}>
-                  <Text style={styles.selectedItemText}>{category.name}</Text>
+                  <Text style={styles.selectedItemText}>
+                    {category.name}
+                    {category.isLocal && " (mới)"}
+                  </Text>
                 </View>
               ) : null;
             })}
@@ -1133,11 +1106,13 @@ export default function EditRecipeScreen() {
           <View style={styles.ingredientsList}>
             {selectedIngredients.length > 0 ? (
               selectedIngredients.map((item: SelectedIngredient, index: number) => {
-                const ingredient = ingredients.find((i: ListItem) => i.id === item.id);
+                const ingredient = allIngredients.find((i: ListItem) => i.id === item.id);
                 return ingredient ? (
                   <View key={`ingredient-${item.id || index}`} style={styles.ingredientRow}>
                     <Text style={styles.ingredientText}>
-                      • {ingredient.name} - {item.quantity} {item.unit}
+                      • {ingredient.name}
+                      {ingredient.isLocal && " (mới)"}
+                      {item.quantity && item.unit && ` - ${item.quantity} ${item.unit}`}
                     </Text>
                     <TouchableOpacity 
                       onPress={() => {
@@ -1161,13 +1136,16 @@ export default function EditRecipeScreen() {
         </View>
 
         <TouchableOpacity onPress={() => openModal("tag")} style={styles.selectBtn}>
-          <Text style={styles.label}>Tag đã chọn:</Text>
+          <Text style={styles.label}>🏷️ Tag đã chọn:</Text>
           <View style={styles.selectedItems}>
             {selectedTags.map((id: string, index: number) => {
-              const tag = tags.find((t: ListItem) => t.id === id);
+              const tag = allTags.find((t: ListItem) => t.id === id);
               return tag ? (
                 <View key={`tag-${id || index}`} style={[styles.selectedItem, { backgroundColor: tag.color || '#ccc' }]}>
-                  <Text style={[styles.selectedItemText, { color: 'white' }]}>{tag.name}</Text>
+                  <Text style={[styles.selectedItemText, { color: 'white' }]}>
+                    {tag.name}
+                    {tag.isLocal && " (mới)"}
+                  </Text>
                 </View>
               ) : null;
             })}

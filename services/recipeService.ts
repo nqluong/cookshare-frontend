@@ -12,7 +12,7 @@ const api = axios.create({
   },
   maxBodyLength: Infinity,
   maxContentLength: Infinity,
-  validateStatus: (status) => status < 500, // không crash với lỗi 4xx
+  validateStatus: (status) => status < 500,
 });
 
 // ✅ Tự động thêm token vào header
@@ -44,51 +44,6 @@ const handleError = (error: any) => {
   } else {
     throw new Error(`❌ Server error: ${error.response.status}`);
   }
-};
-
-// ✅ Helper: loại trùng / dữ liệu null để tránh vi phạm ràng buộc DB
-const sanitizeRecipePayload = (recipe: any) => {
-  if (!recipe || typeof recipe !== "object") return recipe;
-
-  const unique = (arr: any[]) =>
-    Array.from(new Set((arr || []).filter((v) => v !== null && v !== undefined && v !== "")));
-
-  const cleaned: any = { ...recipe };
-
-  if (Array.isArray(cleaned.categoryIds)) cleaned.categoryIds = unique(cleaned.categoryIds);
-  if (Array.isArray(cleaned.tagIds)) cleaned.tagIds = unique(cleaned.tagIds);
-
-  if (Array.isArray(cleaned.ingredientDetails)) {
-    cleaned.ingredientDetails = cleaned.ingredientDetails
-      .filter((d: any) => d && d.ingredientId)
-      .map((d: any) => ({
-        ingredientId: d.ingredientId,
-        quantity:
-          d.quantity !== undefined && d.quantity !== null
-            ? Number(d.quantity)
-            : null,
-        unit: d.unit || null,
-        notes: d.notes || null,
-      }));
-  }
-
-  if (Array.isArray(cleaned.steps)) {
-    cleaned.steps = cleaned.steps
-      .map((s: any, idx: number) => ({
-        stepNumber: s?.stepNumber ?? idx + 1,
-        instruction: s?.instruction ?? "",
-        imageUrl: s?.imageUrl ?? null,
-      }))
-      .filter(
-        (s: any) => (s.instruction && s.instruction.trim() !== "") || s.imageUrl
-      );
-  }
-
-  if (cleaned.prepTime !== undefined) cleaned.prepTime = Number(cleaned.prepTime) || 0;
-  if (cleaned.cookTime !== undefined) cleaned.cookTime = Number(cleaned.cookTime) || 0;
-  if (cleaned.servings !== undefined) cleaned.servings = Number(cleaned.servings) || 0;
-
-  return cleaned;
 };
 
 // ============================== API METHODS ==============================
@@ -131,18 +86,40 @@ export const createRecipe = async (formData: FormData) => {
     const image = formData.get("image");
     const stepImages = formData.getAll("stepImages");
 
-    const sanitizedData = sanitizeRecipePayload(jsonData);
-
-    const uploadForm = new FormData();
-    uploadForm.append("data", JSON.stringify(sanitizedData));
-    if (image) uploadForm.append("image", image as any);
-    if (stepImages?.length)
-      stepImages.forEach((si: any) => uploadForm.append("stepImages", si));
-
-    console.log("📤 Creating recipe:", {
+    console.log("📋 Original recipe data from frontend:", {
       title: jsonData.title,
-      stepCount: jsonData.steps?.length || 0,
-      stepImages: stepImages.length,
+      newCategories: jsonData.newCategories?.length || 0,
+      newTags: jsonData.newTags?.length || 0,
+      newIngredients: jsonData.newIngredients?.length || 0,
+      categoryIds: jsonData.categoryIds?.length || 0,
+      tagIds: jsonData.tagIds?.length || 0,
+      ingredientDetails: jsonData.ingredientDetails?.length || 0,
+      steps: jsonData.steps?.length || 0,
+    });
+
+    // ✅ LOG CHI TIẾT newIngredients và ingredientDetails
+    if (jsonData.newIngredients && jsonData.newIngredients.length > 0) {
+      console.log("🔍 newIngredients structure:", JSON.stringify(jsonData.newIngredients, null, 2));
+    }
+    
+    if (jsonData.ingredientDetails && jsonData.ingredientDetails.length > 0) {
+      console.log("🔍 ingredientDetails structure:", JSON.stringify(jsonData.ingredientDetails, null, 2));
+    }
+
+    // ✅ Tạo FormData mới - GỬI NGUYÊN DATA
+    const uploadForm = new FormData();
+    uploadForm.append("data", JSON.stringify(jsonData));
+    
+    if (image) uploadForm.append("image", image as any);
+    
+    if (stepImages?.length) {
+      stepImages.forEach((si: any) => uploadForm.append("stepImages", si));
+    }
+
+    console.log("📤 Sending to backend:", {
+      hasImage: !!image,
+      stepImagesCount: stepImages.length,
+      dataKeys: Object.keys(jsonData)
     });
 
     const res = await api.post("", uploadForm, {
@@ -156,7 +133,11 @@ export const createRecipe = async (formData: FormData) => {
       maxContentLength: Infinity,
     });
 
-    console.log("✅ Recipe created:", res.data.title);
+    console.log("✅ Recipe created successfully:", {
+      id: res.data.recipeId,
+      title: res.data.title,
+    });
+    
     return res.data;
   } catch (error) {
     console.error("❌ Recipe creation failed:", error);
@@ -164,7 +145,7 @@ export const createRecipe = async (formData: FormData) => {
   }
 };
 
-// ✅ Cập nhật công thức
+// ✅ Cập nhật công thức - IMPROVED VERSION
 export const updateRecipe = async (id: string, data: any) => {
   try {
     if (data instanceof FormData) {
@@ -176,10 +157,88 @@ export const updateRecipe = async (id: string, data: any) => {
         title: jsonData.title,
         stepCount: jsonData.steps?.length || 0,
         newStepImages: stepImages.length,
-        existingStepsWithImages: jsonData.steps?.filter((s: any) => s.imageUrl).length || 0
+        existingStepsWithImages: jsonData.steps?.filter((s: any) => s.imageUrl).length || 0,
+        newCategories: jsonData.newCategories?.length || 0,
+        newTags: jsonData.newTags?.length || 0,
+        newIngredients: jsonData.newIngredients?.length || 0,
       });
 
-      const res = await api.put(`/${id}`, data, {
+      // ✅ VALIDATION: Đảm bảo ingredientDetails có đủ thông tin
+      if (jsonData.ingredientDetails && jsonData.ingredientDetails.length > 0) {
+        console.log("🔍 Before validation - ingredientDetails:", 
+          JSON.stringify(jsonData.ingredientDetails, null, 2)
+        );
+        
+        jsonData.ingredientDetails = jsonData.ingredientDetails.map((detail: any, idx: number) => {
+          if (!detail.ingredientId) {
+            console.warn(`⚠️ ingredientDetails[${idx}] missing ingredientId`);
+          }
+          return {
+            ingredientId: detail.ingredientId,
+            quantity: detail.quantity !== undefined ? detail.quantity : 0,
+            unit: detail.unit || "",
+            notes: detail.notes || "",
+            orderIndex: detail.orderIndex !== undefined ? detail.orderIndex : idx
+          };
+        });
+
+        console.log("✅ After validation - ingredientDetails:", 
+          JSON.stringify(jsonData.ingredientDetails, null, 2)
+        );
+      }
+
+      // ✅ LOG CHI TIẾT về newIngredients
+      if (jsonData.newIngredients && jsonData.newIngredients.length > 0) {
+        console.log("🆕 New ingredients to be created:", 
+          jsonData.newIngredients.map((i: any) => ({
+            name: i.name,
+            category: i.category
+          }))
+        );
+      }
+
+      // ✅ LOG CHI TIẾT về steps có ảnh
+      if (jsonData.steps && jsonData.steps.length > 0) {
+        console.log("📋 Steps image summary:");
+        jsonData.steps.forEach((step: any, idx: number) => {
+          const imageStatus = step.imageUrl 
+            ? (step.imageUrl.startsWith('http') ? '🔗 OLD URL' : '🆕 NEW') 
+            : '❌ NO IMAGE';
+          console.log(`  Step ${step.stepNumber || idx + 1}: ${imageStatus}`, 
+            step.imageUrl ? `(${step.imageUrl.substring(0, 50)}...)` : ''
+          );
+        });
+      }
+
+      // ✅ LOG CHI TIẾT về step images files
+      if (stepImages && stepImages.length > 0) {
+        console.log("📸 Step images being uploaded:");
+        stepImages.forEach((si: any, idx: number) => {
+          const fileName = si instanceof File ? si.name : "unknown";
+          console.log(`  [${idx + 1}] ${fileName}`);
+        });
+      }
+
+      // ✅ GỬI NGUYÊN DATA - KHÔNG XÓA GÌ CẢ
+      const uploadForm = new FormData();
+      uploadForm.append("data", JSON.stringify(jsonData));
+      
+      if (data.get("image")) {
+        uploadForm.append("image", data.get("image") as any);
+        console.log("📷 Featured image will be updated");
+      }
+      
+      if (stepImages && stepImages.length > 0) {
+        stepImages.forEach((si: any) => uploadForm.append("stepImages", si));
+      }
+
+      console.log("📤 Final FormData being sent with:", {
+        hasData: !!uploadForm.get("data"),
+        hasImage: !!uploadForm.get("image"),
+        stepImagesCount: stepImages.length
+      });
+
+      const res = await api.put(`/${id}`, uploadForm, {
         headers: {
           "Content-Type": "multipart/form-data",
           Accept: "application/json",
@@ -191,16 +250,22 @@ export const updateRecipe = async (id: string, data: any) => {
       });
       
       console.log("✅ Recipe updated successfully:", {
+        id: res.data?.recipeId,
         title: res.data?.title,
-        stepsCount: res.data?.steps?.length,
-        stepsWithImages: res.data?.steps?.filter((s: any) => s.imageUrl).length
+        stepsCount: res.data?.steps?.length || 0,
+        stepsWithImages: res.data?.steps?.filter((s: any) => s.imageUrl).length || 0,
+        categories: res.data?.categories?.length || 0,
+        tags: res.data?.tags?.length || 0,
+        ingredients: res.data?.ingredients?.length || 0,
       });
       
       return res.data;
     }
 
-    const payload = sanitizeRecipePayload(data);
-    const res = await api.put(`/${id}`, payload);
+    // ✅ Nếu không phải FormData, gửi nguyên data
+    console.log("📤 Updating recipe with JSON data:", id);
+    const res = await api.put(`/${id}`, data);
+    console.log("✅ Recipe updated (JSON mode):", res.data?.title);
     return res.data;
   } catch (error) {
     console.error("❌ Recipe update failed:", error);
