@@ -13,6 +13,7 @@ import {
 import Toast from "react-native-toast-message";
 import { getImageUrl } from "../../config/api.config";
 import styles from "../../styles/RecipeDetailView.styles";
+import ReportModal from "../componentsModal/ReportModal";
 import CommentModal from "./CommentSection";
 
 type Ingredient = {
@@ -93,6 +94,7 @@ export default function RecipeDetailView({
 }: Props) {
   const params = useLocalSearchParams<RecipeDetailParams>();
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
   const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
 
@@ -479,6 +481,16 @@ export default function RecipeDetailView({
             Xem tất cả {totalComments} bình luận
           </Text>
         </TouchableOpacity>
+
+        {/* Nút báo cáo */}
+        <TouchableOpacity
+          style={styles.reportButton}
+          onPress={() => setReportModalVisible(true)}
+        >
+          <Text style={styles.reportButtonText}>
+            🚨 Báo cáo công thức này
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Comment Modal */}
@@ -493,6 +505,14 @@ export default function RecipeDetailView({
         currentUserAvatar={currentUserAvatar}
         onCommentCountChange={() => {}}
         focusCommentId={focusCommentId}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        recipeId={recipe.id}
+        recipeTitle={recipe.title}
       />
     </View>
   );

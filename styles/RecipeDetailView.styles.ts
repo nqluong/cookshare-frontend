@@ -90,6 +90,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#666',
   },
+  reportButton: {
+    backgroundColor: '#FFF4F4',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE0E0',
+  },
+  reportButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#DC3545',
+  },
   tagContainer: {
   flexDirection: "row",
   flexWrap: "wrap",
