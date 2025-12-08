@@ -218,8 +218,97 @@ class AdminReportService {
 
     return response.blob();
   }
+
+
+  /**
+   * Lấy danh sách báo cáo với phân trang và filter
+   */
+  async getReports(params?: {
+    reportType?: string;
+    status?: string;
+    reporterId?: string;
+    reportedId?: string;
+    recipeId?: string;
+    fromDate?: string;
+    toDate?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDirection?: string;
+  }): Promise<{
+    content: any[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+  }> {
+    const url = new URL(`${BASE_URL}/api/reports`);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, value.toString());
+        }
+      });
+    }
+    return this.handleFetchRequest(url.toString());
+  }
+
+  /**
+   * Lấy chi tiết một báo cáo
+   */
+  async getReportById(reportId: string): Promise<any> {
+    return this.handleFetchRequest<any>(`${BASE_URL}/api/reports/${reportId}`);
+  }
+
+  /**
+   * Phê duyệt/từ chối báo cáo (review)
+   */
+  async reviewReport(
+    reportId: string,
+    status: string,
+    adminNote?: string
+  ): Promise<any> {
+    return this.handleFetchRequest<any>(
+      `${BASE_URL}/api/reports/${reportId}/review`,
+      'PATCH',
+      { status, adminNote }
+    );
+  }
+
+  /**
+   * Xóa báo cáo
+   */
+  async deleteReport(reportId: string): Promise<void> {
+    return this.handleFetchRequest<void>(
+      `${BASE_URL}/api/reports/${reportId}`,
+      'DELETE'
+    );
+  }
+
+  /**
+   * Lấy thống kê báo cáo
+   */
+  async getReportStatistics(): Promise<{
+    totalReports: number;
+    pendingReports: number;
+    reviewedReports: number;
+    resolvedReports: number;
+    rejectedReports: number;
+    reportsByType: Record<string, number>;
+    reportsByStatus: Record<string, number>;
+  }> {
+    return this.handleFetchRequest(`${BASE_URL}/api/reports/statistics`);
+  }
+
+  /**
+   * Lấy số lượng báo cáo chờ xử lý
+   */
+  async getPendingCount(): Promise<{ pendingCount: number; totalCount: number }> {
+    return this.handleFetchRequest(`${BASE_URL}/api/reports/pending/count`);
+  }
 }
 
 export const adminApi = new AdminReportService();
+export const adminReportService = adminApi; // Export thêm alias
 
 export default adminApi;
