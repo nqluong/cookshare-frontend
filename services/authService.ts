@@ -38,11 +38,11 @@ class AuthService {
 
         try {
           const errorData = JSON.parse(errorText);
-          // Kiểm tra error code từ backend
-          if (errorData.code === 4002 || errorData.message?.includes("không hoạt động")) {
-            errorMessage = "Tài khoản này đã bị khóa";
-          } else if (errorData.message) {
+          // Lấy message trực tiếp từ backend (đã bao gồm thông tin số ngày còn lại)
+          if (errorData.message) {
             errorMessage = errorData.message;
+          } else if (errorData.code === 4002) {
+            errorMessage = "Tài khoản này đã bị khóa";
           }
         } catch (e) {
           // Nếu không parse được JSON, dùng errorText hoặc message mặc định
