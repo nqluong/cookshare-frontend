@@ -14,7 +14,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_HOST": "https://api.cookshare.com",
+        "EXPO_PUBLIC_API_HOST": "https://cookshare-app.io.vn",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "930367083527-chtbv453jhlmdllanvtrf18sfigeqsvj.apps.googleusercontent.com",
         "EXPO_PUBLIC_FACEBOOK_APP_ID": "1213805893870945"
       },
