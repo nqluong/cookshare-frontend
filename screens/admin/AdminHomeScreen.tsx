@@ -2,16 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CustomAlert from "../../components/ui/CustomAlert";
-import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { useAuth } from "../../context/AuthContext";
+import { useCustomAlert } from "../../hooks/useCustomAlert";
 import adminStatisticApi, { getDefaultDateRange } from "../../services/adminStatisticsService";
 import { Colors } from "../../styles/colors";
 
@@ -153,6 +153,13 @@ export default function AdminHomeScreen() {
       description: "Xem danh sách người dùng",
       color: "#8b5cf6",
       onPress: () => router.push('/admin/users' as any),
+    },
+    {
+      icon: "shield-checkmark",
+      label: "Quản Lý Báo Cáo",
+      description: "Xử lý báo cáo vi phạm",
+      color: "#ef4444",
+      onPress: () => router.push('/admin/reports' as any),
     },
   ];
 

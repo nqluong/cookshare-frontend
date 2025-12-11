@@ -123,14 +123,14 @@ export default function AdminLayout() {
       />
 
       <Tabs.Screen
-        name="reports/[id]"
+        name="reports/index"
         options={{
           href: null,
         }}
       />
 
       <Tabs.Screen
-        name="reports/index"
+        name="reports/[id]"
         options={{
           href: null,
         }}
