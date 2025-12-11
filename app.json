@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "cookshare-app",
+    "name": "Cookshare",
     "slug": "cookshare-app",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "cookshareapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
@@ -37,8 +37,7 @@
             "backgroundColor": "#000000"
           }
         }
-      ],
-      "expo-web-browser"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
