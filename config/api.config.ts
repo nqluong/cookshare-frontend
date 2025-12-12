@@ -28,7 +28,7 @@ const getPlatformSpecificHost = (): string | null => {
   }
 
   if (Platform.OS === 'android') {
-    return 'https://cookshare-app.io.vn'; // Thay bằng production URL
+    return 'http://192.168.31.253:8080'; // Thay bằng production URL
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật

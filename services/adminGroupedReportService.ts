@@ -1,6 +1,6 @@
 // services/adminGroupedReportService.ts
 import { API_CONFIG } from '@/config/api.config';
-import { GroupedReportResponse } from '@/types/admin/groupedReport.types';
+import { GroupedReportDetail, GroupedReportResponse } from '@/types/admin/groupedReport.types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const BASE_URL = API_CONFIG.BASE_URL;
@@ -99,9 +99,9 @@ class AdminGroupedReportService {
    * Lấy chi tiết báo cáo của một công thức
    * @param recipeId ID của công thức
    */
-  async getReportDetails(recipeId: string): Promise<any> {
-    return this.handleFetchRequest<any>(
-      `${BASE_URL}/api/admin/reports/recipe/${recipeId}`
+  async getReportDetails(recipeId: string): Promise<GroupedReportDetail> {
+    return this.handleFetchRequest<GroupedReportDetail>(
+      `${BASE_URL}/api/admin/reports/grouped/recipe/${recipeId}`
     );
   }
 

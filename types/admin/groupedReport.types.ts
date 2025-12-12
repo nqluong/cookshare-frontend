@@ -95,3 +95,37 @@ export const REPORT_TYPE_COLORS: Record<ReportType, string> = {
   MISLEADING: '#3B82F6',
   OTHER: '#6B7280',
 };
+
+// Chi tiết một báo cáo cá nhân
+export interface IndividualReport {
+  reportId: string; // ID của người báo cáo 
+  reporterId: string;
+  reporterUsername: string;
+  reporterFullName: string;
+  reporterAvatar: string;
+  reportType: ReportType;
+  reason: string;
+  description: string;
+  createdAt: string;
+}
+
+// Response chi tiết nhóm báo cáo của một công thức
+export interface GroupedReportDetail {
+  recipeId: string;
+  recipeTitle: string;
+  recipeThumbnail: string;
+  
+  authorId: string;
+  authorUsername: string;
+  authorFullName: string;
+  
+  reportCount: number;
+  weightedScore: number;
+  mostSevereType: ReportType;
+  exceedsThreshold: boolean;
+  threshold: number;
+  
+  reportTypeBreakdown: { [key in ReportType]?: number };
+  
+  reports: IndividualReport[];
+}
