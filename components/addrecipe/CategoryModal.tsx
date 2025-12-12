@@ -1,11 +1,12 @@
 import { useState } from "react";
 import {
-    Alert,
-    FlatList,
-    Modal,
-    Text, TextInput, TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  Modal,
+  Text, TextInput, TouchableOpacity,
+  View
 } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons';
 import { defaultPlaceholderColor, styles } from "../../styles/RecipeStyle";
 
 interface ListItem {
@@ -68,7 +69,10 @@ export default function CategoryModal({
         />
 
         <TouchableOpacity onPress={handleCreate} style={styles.createBtn}>
-          <Text style={{ color: "white", fontWeight: "600" }}>✅ Tạo mới</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialIcons name="add-circle" size={18} color="white" />
+            <Text style={{ color: "white", fontWeight: "600" }}>Tạo mới</Text>
+          </View>
         </TouchableOpacity>
 
         <FlatList
@@ -94,13 +98,13 @@ export default function CategoryModal({
                     </Text>
                   )}
                 </View>
-                
+
                 {item.isLocal && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => onDelete(item)}
                     style={{ padding: 4, marginLeft: 8 }}
                   >
-                    <Text style={{ fontSize: 18, color: '#d32f2f' }}>🗑️</Text>
+                    <MaterialIcons name="delete" size={20} color="#d32f2f" />
                   </TouchableOpacity>
                 )}
               </View>

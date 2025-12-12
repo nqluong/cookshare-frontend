@@ -1,4 +1,5 @@
 import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons';
 import { defaultPlaceholderColor, styles } from "../../styles/RecipeStyle";
 
 interface Step {
@@ -41,19 +42,22 @@ export default function RecipeSteps({
               style={styles.removeStepBtn}
               accessibilityLabel={`Xóa bước ${i + 1}`}
             >
-              <Text style={styles.removeStepText}>✖</Text>
+              <MaterialIcons name="close" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity onPress={() => onStepImagePick(i)} style={styles.imagePickerSmall}>
             {s.image ? (
-              <Image 
-                source={{ uri: s.image }} 
+              <Image
+                source={{ uri: s.image }}
                 style={{ width: "100%", height: "100%", borderRadius: 10 }}
                 resizeMode="cover"
               />
             ) : (
-              <Text>🖼 Ảnh bước {i + 1}</Text>
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <MaterialIcons name="add-photo-alternate" size={32} color="#999" />
+                <Text style={{ marginTop: 4, color: '#999', fontSize: 12 }}>Ảnh bước {i + 1}</Text>
+              </View>
             )}
           </TouchableOpacity>
         </View>

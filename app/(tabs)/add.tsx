@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 
@@ -41,7 +42,7 @@ const getStorageKeys = (userId: string) => ({
 export default function AddRecipeScreen({ navigation }: any) {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   // Form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -105,7 +106,7 @@ export default function AddRecipeScreen({ navigation }: any) {
         IngredientService.getAllIngredients(),
         TagService.getAllTags(),
       ]);
-      
+
       setCategories(cat.map((c: any) => ({ id: c.categoryId, name: c.name, description: c.description, isLocal: false })));
       setIngredients(ing.map((i: any) => ({ id: i.ingredientId, name: i.name, description: i.description, isLocal: false })));
       setTags(tag.map((t: any) => ({ id: t.tagId, name: t.name, color: t.color, isLocal: false })));
@@ -119,7 +120,7 @@ export default function AddRecipeScreen({ navigation }: any) {
   const loadLocalStorageData = async () => {
     if (!user?.userId) return;
     const KEYS = getStorageKeys(user.userId);
-    
+
     try {
       const [catData, tagData, ingData] = await Promise.all([
         AsyncStorage.getItem(KEYS.NEW_CATEGORIES),
@@ -262,7 +263,7 @@ export default function AddRecipeScreen({ navigation }: any) {
       return;
     }
 
-    const color = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
+    const color = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
     const newItem: ListItem = {
       id: `local_tag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name, color, isLocal: true
@@ -471,7 +472,7 @@ export default function AddRecipeScreen({ navigation }: any) {
       await AsyncStorage.multiRemove([KEYS.NEW_CATEGORIES, KEYS.NEW_TAGS, KEYS.NEW_INGREDIENTS]);
       resetForm();
 
-      Alert.alert("🎉 Thành công", "Công thức đã tạo và chờ duyệt!", [
+      Alert.alert("Thành công", "Công thức đã tạo và chờ duyệt!", [
         { text: "Tạo mới", style: "default" },
         { text: "Xem trang", onPress: () => router.push({ pathname: "/(tabs)/profile", params: { reload: Date.now().toString() } }) },
         { text: "Đóng", style: "cancel" }
@@ -495,7 +496,7 @@ export default function AddRecipeScreen({ navigation }: any) {
         prevTabIndex.current = navigationState.index;
         return;
       }
-      const hasContent = !!(title.trim() || description.trim() || image || prepTime.trim() || 
+      const hasContent = !!(title.trim() || description.trim() || image || prepTime.trim() ||
         cookTime.trim() || servings.trim() || steps.some(s => s.description.trim() || s.image) ||
         selectedCategories.length || selectedIngredients.length || selectedTags.length);
 
@@ -525,13 +526,14 @@ export default function AddRecipeScreen({ navigation }: any) {
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#f0f0f0', borderRadius: 8, marginBottom: 16 }}>
-          <View style={{ flex: 1 }}>
-            {isSaving && <Text style={{ fontSize: 14, color: '#666' }}>💾 Đang lưu...</Text>}
-            {lastSaved && !isSaving && <Text style={{ fontSize: 14, color: '#28a745' }}>✅ Lưu lúc {lastSaved.toLocaleTimeString('vi-VN')}</Text>}
-            {!lastSaved && !isSaving && <Text style={{ fontSize: 14, color: '#999' }}>Chưa lưu</Text>}
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {isSaving && <><MaterialIcons name="save" size={18} color="#666" /><Text style={{ fontSize: 14, color: '#666' }}>Đang lưu...</Text></>}
+            {lastSaved && !isSaving && <><MaterialIcons name="check-circle" size={18} color="#28a745" /><Text style={{ fontSize: 14, color: '#28a745' }}>Lưu lúc {lastSaved.toLocaleTimeString('vi-VN')}</Text></>}
+            {!lastSaved && !isSaving && <><MaterialIcons name="info" size={18} color="#999" /><Text style={{ fontSize: 14, color: '#999' }}>Chưa lưu</Text></>}
           </View>
-          <TouchableOpacity onPress={() => setAutosaveEnabled(!autosaveEnabled)} style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#ddd' }}>
-            <Text style={{ fontSize: 12, fontWeight: '600' }}>{autosaveEnabled ? '✅' : '❌'} Tự động lưu</Text>
+          <TouchableOpacity onPress={() => setAutosaveEnabled(!autosaveEnabled)} style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#ddd', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MaterialIcons name={autosaveEnabled ? 'check-circle' : 'cancel'} size={16} color={autosaveEnabled ? '#28a745' : '#dc3545'} />
+            <Text style={{ fontSize: 12, fontWeight: '600' }}>Tự động lưu</Text>
           </TouchableOpacity>
         </View>
 
@@ -559,11 +561,12 @@ export default function AddRecipeScreen({ navigation }: any) {
         />
 
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-          <TouchableOpacity onPress={handleSaveDraft} style={{ flex: 1, backgroundColor: '#6c757d', paddingVertical: 16, borderRadius: 8, alignItems: 'center' }}>
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>💾 Lưu nháp</Text>
+          <TouchableOpacity onPress={handleSaveDraft} style={{ flex: 1, backgroundColor: '#6c757d', paddingVertical: 16, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
+            <MaterialIcons name="save" size={20} color="white" />
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Lưu nháp</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleSubmit} disabled={loading} style={{ flex: 1, backgroundColor: '#ff6600', paddingVertical: 16, borderRadius: 8, alignItems: 'center', opacity: loading ? 0.6 : 1 }}>
-            {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>🚀 Đăng</Text>}
+          <TouchableOpacity onPress={handleSubmit} disabled={loading} style={{ flex: 1, backgroundColor: '#ff6600', paddingVertical: 16, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, opacity: loading ? 0.6 : 1 }}>
+            {loading ? <ActivityIndicator color="white" /> : <><MaterialIcons name="send" size={20} color="white" /><Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Đăng</Text></>}
           </TouchableOpacity>
         </View>
       </ScrollView>

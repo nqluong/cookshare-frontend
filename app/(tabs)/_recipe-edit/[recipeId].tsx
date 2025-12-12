@@ -9,6 +9,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   Alert,
@@ -47,9 +49,9 @@ const defaultPlaceholderColor = "#999";
 
 // Độ khó - phải khớp với backend enum (chữ HOA)
 const DIFFICULTY_LEVELS = [
-  { value: "EASY", label: "Dễ", emoji: "😊" },
-  { value: "MEDIUM", label: "Trung bình", emoji: "🙂" },
-  { value: "HARD", label: "Khó", emoji: "😰" },
+  { value: "EASY", label: "Dễ", color: "#4CAF50" },
+  { value: "MEDIUM", label: "Trung bình", color: "#FF9800" },
+  { value: "HARD", label: "Khó", color: "#F44336" },
 ];
 
 // Local storage keys for temporary created items (theo user)
@@ -92,9 +94,9 @@ export default function EditRecipeScreen() {
   const [selectedIngredients, setSelectedIngredients] = useState<SelectedIngredient[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  const [ingredientInputs, setIngredientInputs] = useState<Record<string, { 
-    quantity: string; 
-    unit: string; 
+  const [ingredientInputs, setIngredientInputs] = useState<Record<string, {
+    quantity: string;
+    unit: string;
     selected: boolean;
   }>>({});
 
@@ -102,7 +104,7 @@ export default function EditRecipeScreen() {
   const [modalType, setModalType] = useState<"category" | "ingredient" | "tag" | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [extraField, setExtraField] = useState("");
-  
+
   const [hasChanges, setHasChanges] = useState(false);
   const [originalData, setOriginalData] = useState<any>(null);
 
@@ -119,8 +121,8 @@ export default function EditRecipeScreen() {
   // Theo dõi thay đổi
   useEffect(() => {
     if (!originalData) return;
-    
-    const changed = 
+
+    const changed =
       title !== originalData.title ||
       description !== originalData.description ||
       featuredImage !== originalData.featuredImage ||
@@ -132,7 +134,7 @@ export default function EditRecipeScreen() {
       JSON.stringify(selectedCategories) !== JSON.stringify(originalData.selectedCategories) ||
       JSON.stringify(selectedIngredients) !== JSON.stringify(originalData.selectedIngredients) ||
       JSON.stringify(selectedTags) !== JSON.stringify(originalData.selectedTags);
-    
+
     setHasChanges(changed);
   }, [title, description, featuredImage, steps, servings, prepTime, cookTime, difficulty, selectedCategories, selectedIngredients, selectedTags, originalData]);
 
@@ -140,35 +142,35 @@ export default function EditRecipeScreen() {
     try {
       console.log('🔄 Đang tải công thức:', recipeId);
       const data = await RecipeService.getRecipeById(recipeId!);
-      
+
       console.log('📦 Đã tải công thức:', {
         title: data.title,
         difficulty: data.difficulty,
         stepsCount: data.steps?.length,
       });
-      
+
       setTitle(data.title);
       setDescription(data.description);
       setFeaturedImage(data.featuredImage);
       setDifficulty(data.difficulty?.toUpperCase() || "MEDIUM");
-      
+
       const normalizedSteps = (data.steps || []).map((s: any) => ({
         instruction: s.instruction ?? s.description ?? '',
         image: s.imageUrl ?? null,
         stepNumber: s.stepNumber ?? null,
       }));
-      
+
       setSteps(normalizedSteps.length > 0 ? normalizedSteps : [{ instruction: '', image: null, stepNumber: 1 }]);
-      
+
       setSelectedCategories(data.categories?.map((c: any) => c.categoryId) || []);
-      
+
       const ingredientDetails = (data.ingredients || []).map((i: any) => ({
         id: i.ingredientId,
         quantity: String(i.quantity || 0),
         unit: i.unit || '',
       }));
       setSelectedIngredients(ingredientDetails);
-      
+
       const inputs: Record<string, any> = {};
       ingredientDetails.forEach((item: any) => {
         inputs[item.id] = {
@@ -178,13 +180,13 @@ export default function EditRecipeScreen() {
         };
       });
       setIngredientInputs(inputs);
-      
+
       setSelectedTags(data.tags?.map((t: any) => t.tagId) || []);
-      
+
       setServings(data.servings ? String(data.servings) : "");
       setPrepTime(data.prepTime ? String(data.prepTime) : "");
       setCookTime(data.cookTime ? String(data.cookTime) : "");
-      
+
       setOriginalData({
         title: data.title,
         description: data.description,
@@ -198,11 +200,11 @@ export default function EditRecipeScreen() {
         selectedIngredients: ingredientDetails,
         selectedTags: data.tags?.map((t: any) => t.tagId) || [],
       });
-      
+
       console.log('✅ Tải công thức thành công');
     } catch (err: any) {
       console.error('❌ Lỗi khi tải công thức:', err);
-      Alert.alert("❌ Lỗi tải công thức", err.message);
+      Alert.alert("Lỗi tải công thức", err.message);
     } finally {
       setLoading(false);
     }
@@ -215,7 +217,7 @@ export default function EditRecipeScreen() {
         IngredientService.getAllIngredients(),
         TagService.getAllTags(),
       ]);
-      
+
       setCategories((catRes || []).map((c: any) => ({
         id: c.categoryId,
         name: c.name,
@@ -245,9 +247,9 @@ export default function EditRecipeScreen() {
 
   const loadLocalStorageData = async () => {
     if (!user?.userId) return;
-    
+
     const STORAGE_KEYS = getStorageKeys(user.userId);
-    
+
     try {
       const [catData, tagData, ingData] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.NEW_CATEGORIES),
@@ -400,7 +402,7 @@ export default function EditRecipeScreen() {
 
   const handleDeleteLocalItem = async (item: ListItem) => {
     if (!user?.userId) return;
-    
+
     const STORAGE_KEYS = getStorageKeys(user.userId);
 
     try {
@@ -409,7 +411,7 @@ export default function EditRecipeScreen() {
         setLocalCategories(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_CATEGORIES, JSON.stringify(updated));
         setSelectedCategories(prev => prev.filter(id => id !== item.id));
-        Alert.alert("✅ Đã xóa", `Đã xóa danh mục "${item.name}"`);
+        Alert.alert("Đã xóa", `Đã xóa danh mục "${item.name}"`);
       } else if (modalType === "ingredient") {
         const updated = localIngredients.filter(i => i.id !== item.id);
         setLocalIngredients(updated);
@@ -420,13 +422,13 @@ export default function EditRecipeScreen() {
           delete copy[item.id];
           return copy;
         });
-        Alert.alert("✅ Đã xóa", `Đã xóa nguyên liệu "${item.name}"`);
+        Alert.alert("Đã xóa", `Đã xóa nguyên liệu "${item.name}"`);
       } else if (modalType === "tag") {
         const updated = localTags.filter(t => t.id !== item.id);
         setLocalTags(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_TAGS, JSON.stringify(updated));
         setSelectedTags(prev => prev.filter(id => id !== item.id));
-        Alert.alert("✅ Đã xóa", `Đã xóa tag "${item.name}"`);
+        Alert.alert("Đã xóa", `Đã xóa tag "${item.name}"`);
       }
     } catch (err) {
       console.error("Error deleting local item:", err);
@@ -452,7 +454,7 @@ export default function EditRecipeScreen() {
         const exists = allCategories.find(
           c => c.name.toLowerCase().trim() === searchTerm.toLowerCase().trim()
         );
-        
+
         if (exists) {
           Alert.alert("Đã tồn tại", `Danh mục "${exists.name}" đã có. Bạn có thể chọn nó.`);
           setSelectedCategories(prev => prev.includes(exists.id) ? prev : [...prev, exists.id]);
@@ -470,7 +472,7 @@ export default function EditRecipeScreen() {
         const updated = [...localCategories, newItem];
         setLocalCategories(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_CATEGORIES, JSON.stringify(updated));
-        
+
         setSelectedCategories(prev => [...prev, newItem.id]);
         Alert.alert("✅ Thành công", `Đã thêm danh mục "${searchTerm}"`);
         setSearchTerm("");
@@ -480,7 +482,7 @@ export default function EditRecipeScreen() {
         const exists = allIngredients.find(
           i => i.name.toLowerCase().trim() === searchTerm.toLowerCase().trim()
         );
-        
+
         if (exists) {
           // If the ingredient exists on server, select it immediately (auto-select)
           Alert.alert("Đã tồn tại", `Nguyên liệu "${exists.name}" đã có và đã được chọn.`);
@@ -508,7 +510,7 @@ export default function EditRecipeScreen() {
         const updated = [...localIngredients, newItem];
         setLocalIngredients(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_INGREDIENTS, JSON.stringify(updated));
-        
+
         // Auto-select the newly created local ingredient so user sees it in selection
         setIngredientInputs(prev => ({
           ...prev,
@@ -525,7 +527,7 @@ export default function EditRecipeScreen() {
         const exists = allTags.find(
           t => t.name.toLowerCase().trim() === searchTerm.toLowerCase().trim()
         );
-        
+
         if (exists) {
           Alert.alert("Đã tồn tại", `Tag "${exists.name}" đã có. Bạn có thể chọn nó.`);
           setSelectedTags(prev => prev.includes(exists.id) ? prev : [...prev, exists.id]);
@@ -533,7 +535,7 @@ export default function EditRecipeScreen() {
           return;
         }
 
-        const randomColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
+        const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
         const newItem: ListItem = {
           id: `local_tag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: searchTerm,
@@ -544,7 +546,7 @@ export default function EditRecipeScreen() {
         const updated = [...localTags, newItem];
         setLocalTags(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_TAGS, JSON.stringify(updated));
-        
+
         setSelectedTags(prev => [...prev, newItem.id]);
         Alert.alert("✅ Thành công", `Đã thêm tag "${searchTerm}"`);
         setSearchTerm("");
@@ -583,7 +585,7 @@ export default function EditRecipeScreen() {
           description: c!.description || ""
         }));
 
-      const existingCategoryIds = selectedCategories.filter(id => 
+      const existingCategoryIds = selectedCategories.filter(id =>
         categories.find(c => c.id === id)
       );
 
@@ -596,7 +598,7 @@ export default function EditRecipeScreen() {
           color: t!.color || '#666666'
         }));
 
-      const existingTagIds = selectedTags.filter(id => 
+      const existingTagIds = selectedTags.filter(id =>
         tags.find(t => t.id === id)
       );
 
@@ -611,9 +613,9 @@ export default function EditRecipeScreen() {
       if (localToCreate.length > 0) {
         for (const row of localToCreate) {
           try {
-            const created = await IngredientService.createIngredient({ 
-              name: row.name, 
-              description: row.description 
+            const created = await IngredientService.createIngredient({
+              name: row.name,
+              description: row.description
             });
             createdMap[row.localId] = created.ingredientId || created.id;
           } catch (e) {
@@ -639,7 +641,7 @@ export default function EditRecipeScreen() {
       }).filter(d => d.ingredientId);
 
       const formData = new FormData();
-      
+
       const recipeData = {
         title,
         description: description.trim(),
@@ -662,7 +664,7 @@ export default function EditRecipeScreen() {
       };
 
       console.log('DEBUG recipeData payload:', JSON.stringify(recipeData, null, 2));
-      
+
       formData.append('data', JSON.stringify(recipeData));
 
       if (featuredImage?.startsWith('file://')) {
@@ -680,7 +682,7 @@ export default function EditRecipeScreen() {
         if (typeof step.image === 'string' && step.image.startsWith('file://')) {
           const filename = step.image.split("/").pop()!;
           const ext = filename.split(".").pop()!.toLowerCase();
-          
+
           const fileObj = {
             uri: step.image,
             type: `image/${ext}`,
@@ -693,7 +695,7 @@ export default function EditRecipeScreen() {
       console.log('📤 Đang cập nhật công thức với độ khó:', difficulty);
 
       const response = await RecipeService.updateRecipe(recipeId!, formData);
-      
+
       if (response) {
         // Xóa localStorage sau khi thành công
         await AsyncStorage.multiRemove([
@@ -716,8 +718,8 @@ export default function EditRecipeScreen() {
 
         console.log('🔄 Đang tải lại công thức từ server...');
         await fetchRecipe();
-        
-        Alert.alert("✅ Cập nhật thành công!", "", [
+
+        Alert.alert("Cập nhật thành công!", "", [
           {
             text: "OK",
             onPress: () => {
@@ -731,7 +733,7 @@ export default function EditRecipeScreen() {
       }
     } catch (err: any) {
       console.error('❌ Cập nhật thất bại:', err);
-      Alert.alert("❌ Lỗi khi cập nhật", err.message);
+      Alert.alert("Lỗi khi cập nhật", err.message);
     } finally {
       setUpdating(false);
     }
@@ -805,8 +807,8 @@ export default function EditRecipeScreen() {
             {modalType === "category"
               ? "Chọn danh mục"
               : modalType === "ingredient"
-              ? "Chọn nguyên liệu"
-              : "Chọn tag"}
+                ? "Chọn nguyên liệu"
+                : "Chọn tag"}
           </Text>
 
           <TextInput
@@ -859,9 +861,9 @@ export default function EditRecipeScreen() {
                         {item.name}
                         {item.isLocal && <Text style={{ color: '#ff9800' }}> (mới)</Text>}
                       </Text>
-                      
+
                       {item.isLocal && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           onPress={() => handleDeleteLocalItem(item)}
                           style={{ padding: 4 }}
                         >
@@ -936,9 +938,9 @@ export default function EditRecipeScreen() {
                         />
                       )}
                     </View>
-                    
+
                     {item.isLocal && (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={() => handleDeleteLocalItem(item)}
                         style={{ padding: 4, marginLeft: 8 }}
                       >
@@ -971,8 +973,8 @@ export default function EditRecipeScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={handleBackPress}
         >
           <Text style={styles.backButtonText}>←</Text>
@@ -994,7 +996,8 @@ export default function EditRecipeScreen() {
             />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Text>📸 Chọn ảnh món</Text>
+              <MaterialIcons name="add-a-photo" size={40} color="#999" />
+              <Text style={{ marginTop: 8, color: '#999' }}>Chọn ảnh món</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -1029,7 +1032,7 @@ export default function EditRecipeScreen() {
               ]}
               onPress={() => setDifficulty(level.value)}
             >
-              <Text style={styles.difficultyEmoji}>{level.emoji}</Text>
+              <MaterialCommunityIcons name="fire" size={24} color={level.color} />
               <Text
                 style={[
                   styles.difficultyLabel,
@@ -1073,7 +1076,10 @@ export default function EditRecipeScreen() {
         />
 
         <TouchableOpacity onPress={() => openModal("category")} style={styles.selectBtn}>
-          <Text style={styles.label}>📁 Danh mục đã chọn:</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialIcons name="folder" size={20} color="#FF6B35" />
+            <Text style={styles.label}>Danh mục đã chọn:</Text>
+          </View>
           <View style={styles.selectedItems}>
             {selectedCategories.map((id: string, index: number) => {
               const category = allCategories.find((c: ListItem) => c.id === id);
@@ -1094,15 +1100,18 @@ export default function EditRecipeScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>🧂 Nguyên liệu</Text>
-            <TouchableOpacity 
-              onPress={() => openModal("ingredient")} 
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <MaterialCommunityIcons name="food-variant" size={20} color="#FF6B35" />
+              <Text style={styles.cardTitle}>Nguyên liệu</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => openModal("ingredient")}
               style={styles.addButton}
             >
               <Text style={styles.addButtonText}>+ Thêm</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.ingredientsList}>
             {selectedIngredients.length > 0 ? (
               selectedIngredients.map((item: SelectedIngredient, index: number) => {
@@ -1114,7 +1123,7 @@ export default function EditRecipeScreen() {
                       {ingredient.isLocal && " (mới)"}
                       {item.quantity && item.unit && ` - ${item.quantity} ${item.unit}`}
                     </Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => {
                         setSelectedIngredients(prev => prev.filter(i => i.id !== item.id));
                         setIngredientInputs(prev => ({
@@ -1124,7 +1133,7 @@ export default function EditRecipeScreen() {
                       }}
                       style={styles.removeButton}
                     >
-                      <Text style={styles.removeButtonText}>✕</Text>
+                      <MaterialIcons name="close" size={16} color="#dc3545" />
                     </TouchableOpacity>
                   </View>
                 ) : null;
@@ -1136,7 +1145,10 @@ export default function EditRecipeScreen() {
         </View>
 
         <TouchableOpacity onPress={() => openModal("tag")} style={styles.selectBtn}>
-          <Text style={styles.label}>🏷️ Tag đã chọn:</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialIcons name="local-offer" size={20} color="#4A90E2" />
+            <Text style={styles.label}>Tag đã chọn:</Text>
+          </View>
           <View style={styles.selectedItems}>
             {selectedTags.map((id: string, index: number) => {
               const tag = allTags.find((t: ListItem) => t.id === id);
@@ -1177,31 +1189,34 @@ export default function EditRecipeScreen() {
                 style={styles.removeStepBtn}
                 accessibilityLabel={`Xóa bước ${index + 1}`}
               >
-                <Text style={styles.removeStepText}>✖</Text>
+                <MaterialIcons name="close" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => pickStepImage(index)}
               style={styles.imagePickerSmall}
             >
               {step.image ? (
                 <Image
-                  source={{ 
-                    uri: step.image.startsWith('file://') 
-                      ? step.image 
+                  source={{
+                    uri: step.image.startsWith('file://')
+                      ? step.image
                       : getImageUrl(step.image)
                   }}
                   style={{ width: '100%', height: '100%', borderRadius: 10 }}
                   resizeMode="cover"
                 />
               ) : (
-                <Text>🖼 Ảnh bước {index + 1}</Text>
+                <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                  <MaterialIcons name="add-photo-alternate" size={32} color="#999" />
+                  <Text style={{ marginTop: 4, color: '#999', fontSize: 12 }}>Ảnh bước {index + 1}</Text>
+                </View>
               )}
             </TouchableOpacity>
           </View>
         ))}
-        
+
         <TouchableOpacity
           style={[styles.addButton, { marginVertical: 15, alignSelf: 'flex-start' }]}
           onPress={addStepLocal}
@@ -1217,7 +1232,10 @@ export default function EditRecipeScreen() {
           {updating ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveText}>💾 Lưu thay đổi</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <MaterialIcons name="save" size={20} color="#fff" />
+              <Text style={styles.saveText}>Lưu thay đổi</Text>
+            </View>
           )}
         </TouchableOpacity>
       </ScrollView>
