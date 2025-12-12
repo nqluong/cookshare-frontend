@@ -1,4 +1,5 @@
 import { getImageUrl } from "@/config/api.config";
+import { useCachedUserRecipes } from '@/hooks/useCachedUserRecipes';
 import { RecipeService } from "@/services/recipeService";
 import { Recipe } from "@/types/search";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -29,44 +30,39 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
   isOwnProfile = false,
   currentProfileId,
 }) => {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortOption, setSortOption] = useState<string>("newest");
   const router = useRouter();
 
-  // Determine if this is the user's own profile
-  const isOwn =
-    isOwnProfile || (currentProfileId && userId && currentProfileId === userId);
+ const {
+    recipes,
+    loading,
+    isOffline,
+    loadRecipes,
+    refresh: refreshRecipes,
+    clearCache,
+    setRecipes
+  } = useCachedUserRecipes({ userId, autoFetch: false });
+
+  const isOwn = isOwnProfile || (currentProfileId && userId && currentProfileId === userId);
 
   useEffect(() => {
-    fetchRecipes();
-  }, [userId, refreshKey]);
+    loadRecipes(RecipeService.getAllRecipesByUserId);
+  }, [userId, loadRecipes]);
 
-  // Re-sort current list when sort option changes
+  // Reload when refreshKey changes
+  useEffect(() => {
+    if ((refreshKey ?? 0) > 0) {
+      refreshRecipes(RecipeService.getAllRecipesByUserId);
+    }
+  }, [refreshKey, refreshRecipes]);
+
+  // Re-sort when option changes
   useEffect(() => {
     setRecipes((prev) => sortRecipes(prev, sortOption));
   }, [sortOption]);
-
-  const fetchRecipes = async () => {
-    try {
-      const data = await RecipeService.getAllRecipesByUserId(userId);
-      const list: Recipe[] = data || [];
-      try {
-        console.log(
-          "DEBUG RecipeGrid fetched sample:",
-          list.length > 0 ? Object.keys(list[0]) : "empty"
-        );
-      } catch (e) {}
-      setRecipes(sortRecipes(list, sortOption));
-    } catch (error) {
-      console.error("Failed to fetch recipes:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const sortRecipes = (items: Recipe[], option: string) => {
     if (!items || items.length === 0) return items;
@@ -128,8 +124,10 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
           try {
             await RecipeService.deleteRecipe(id);
             Alert.alert("✅ Đã xóa công thức");
-            fetchRecipes();
-            // Navigate to home and include a changing param so HomeScreen can detect and refresh
+            await clearCache();
+            await refreshRecipes(RecipeService.getAllRecipesByUserId);
+            
+            Alert.alert("✅ Đã xóa công thức");
             router.push({
               pathname: "/(tabs)/home",
               params: { refresh: Date.now() },
@@ -213,6 +211,14 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
 
   return (
     <View style={styles.container}>
+
+      {isOffline && (
+        <View style={styles.offlineBar}>
+          <Text style={styles.offlineText}>
+            📵 Chế độ offline - Hiển thị dữ liệu đã lưu
+          </Text>
+        </View>
+      )}
       {/* Sort controls */}
       <View style={styles.sortBar}>
         <Text style={styles.sortLabel}>Sắp xếp:</Text>
@@ -478,6 +484,18 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: "#444",
     fontWeight: "600",
+  },
+  offlineBar: {
+    backgroundColor: '#FFA500',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  offlineText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

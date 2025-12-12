@@ -25,6 +25,22 @@ const CACHE_CONFIGS: Record<string, CacheConfig> = {
     maxItems: 20, 
     useLRU: true 
   },
+  USER_COLLECTIONS: { expiryTime: 60 * 60 * 1000 },
+  COLLECTION_DETAIL: { 
+    expiryTime: 7 * 24 * 60 * 60 * 1000, 
+    maxItems: 20, 
+    useLRU: true 
+  },
+  COLLECTION_RECIPES: { 
+    expiryTime: 7 * 24 * 60 * 60 * 1000, 
+    maxItems: 20, 
+    useLRU: true 
+  },
+  USER_RECIPES: { 
+    expiryTime: 7 * 24 * 60 * 60 * 1000, 
+    maxItems: 10, 
+    useLRU: true 
+  },
 };
 
 // Prefix cho các cache key
@@ -440,4 +456,8 @@ export const CACHE_CATEGORIES = {
   LIKED_RECIPES: 'LIKED_RECIPES',
   FOLLOWING_RECIPES: 'FOLLOWING_RECIPES',
   RECIPE_DETAIL: 'RECIPE_DETAIL',
+  USER_COLLECTIONS: 'USER_COLLECTIONS',
+  COLLECTION_DETAIL: 'COLLECTION_DETAIL',
+  COLLECTION_RECIPES: 'COLLECTION_RECIPES',
+  USER_RECIPES: 'USER_RECIPES',
 } as const;
