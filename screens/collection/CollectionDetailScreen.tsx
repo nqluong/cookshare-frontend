@@ -1,6 +1,7 @@
 import { getImageUrl } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
 import { collectionService } from "@/services/collectionService";
+import { CACHE_CATEGORIES, unifiedCacheService } from '@/services/unifiedCacheService';
 import { userService } from "@/services/userService";
 import { CollectionUserDto } from "@/types/collection.types";
 import { Recipe } from "@/types/dish";
@@ -29,6 +30,7 @@ export default function CollectionDetailScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [userUUID, setUserUUID] = useState<string>("");
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     console.log(
@@ -59,23 +61,31 @@ export default function CollectionDetailScreen() {
     if (!uuid || !collectionId) return;
 
     try {
-      setLoading(true);
+       setLoading(true);
 
-      // Lấy chi tiết collection
-      const collectionData = await collectionService.getCollectionDetail(
-        uuid,
-        collectionId
+      // Lấy collection detail với cache
+      const collectionResult = await unifiedCacheService.fetchWithCache(
+        CACHE_CATEGORIES.COLLECTION_DETAIL,
+        () => collectionService.getCollectionDetail(uuid, collectionId),
+        { id: collectionId }
       );
-      setCollection(collectionData.data);
 
-      // Lấy danh sách recipes trong collection
-      const recipesData = await collectionService.getCollectionRecipes(
-        uuid,
-        collectionId,
-        0,
-        100
+      if (collectionResult.data) {
+        setCollection(collectionResult.data.data);
+      }
+
+      // Lấy recipes với cache
+      const recipesResult = await unifiedCacheService.fetchWithCache(
+        CACHE_CATEGORIES.COLLECTION_RECIPES,
+        () => collectionService.getCollectionRecipes(uuid, collectionId, 0, 100),
+        { id: collectionId }
       );
-      setRecipes(recipesData.content || []);
+
+      if (recipesResult.data) {
+        setRecipes(recipesResult.data.content || []);
+      }
+
+      setIsOffline(collectionResult.isOffline || recipesResult.isOffline);
     } catch (error) {
       console.log("Error loading collection detail:", error);
       Alert.alert("Lỗi", "Không thể tải chi tiết collection");
@@ -96,12 +106,18 @@ export default function CollectionDetailScreen() {
           onPress: async () => {
             try {
               if (userUUID && collectionId) {
-                await collectionService.removeRecipeFromCollection(
-                  userUUID,
-                  collectionId,
-                  recipeId
-                );
-                setRecipes(recipes.filter((r) => r.recipeId !== recipeId));
+              await collectionService.removeRecipeFromCollection(
+                userUUID,
+                collectionId,
+                recipeId
+              );
+              
+              // Clear cache và reload
+              await unifiedCacheService.removeFromCache(
+                CACHE_CATEGORIES.COLLECTION_RECIPES,
+                collectionId
+              );
+              await loadCollectionDetail(userUUID);
                 Alert.alert("Thành công", "Công thức đã được xóa");
               }
             } catch (error) {
@@ -256,6 +272,13 @@ export default function CollectionDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {isOffline && (
+        <View style={styles.offlineBar}>
+          <Text style={styles.offlineText}>
+            📵 Chế độ offline - Hiển thị dữ liệu đã lưu
+          </Text>
+        </View>
+      )}
       <FlatList
         ListHeaderComponent={renderHeader}
         data={recipes}
@@ -482,5 +505,17 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: "#444",
     fontWeight: "600",
+  },
+  offlineBar: {
+    backgroundColor: '#FFA500',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  offlineText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

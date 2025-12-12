@@ -44,6 +44,22 @@ const CACHE_CONFIGS: Record<string, CacheConfig> = {
   
   // User info - 30 ngày, cho phép offline login
   LAST_USER_INFO: { expiryTime: 30 * 24 * 60 * 60 * 1000 },
+  USER_COLLECTIONS: { expiryTime: 60 * 60 * 1000 },
+  COLLECTION_DETAIL: { 
+    expiryTime: 7 * 24 * 60 * 60 * 1000, 
+    maxItems: 20, 
+    useLRU: true 
+  },
+  COLLECTION_RECIPES: { 
+    expiryTime: 7 * 24 * 60 * 60 * 1000, 
+    maxItems: 20, 
+    useLRU: true 
+  },
+  USER_RECIPES: { 
+    expiryTime: 7 * 24 * 60 * 60 * 1000, 
+    maxItems: 10, 
+    useLRU: true 
+  },
 };
 
 // Prefix cho các cache key
@@ -479,3 +495,21 @@ class UnifiedCacheService {
 
 export const unifiedCacheService = new UnifiedCacheService();
 
+<<<<<<< HEAD
+=======
+// Export constants để dùng chung
+export const CACHE_CATEGORIES = {
+  HOME_SUGGESTIONS: 'HOME_SUGGESTIONS',
+  NEWEST_RECIPES: 'NEWEST_RECIPES',
+  TRENDING_RECIPES: 'TRENDING_RECIPES',
+  POPULAR_RECIPES: 'POPULAR_RECIPES',
+  TOP_RATED_RECIPES: 'TOP_RATED_RECIPES',
+  LIKED_RECIPES: 'LIKED_RECIPES',
+  FOLLOWING_RECIPES: 'FOLLOWING_RECIPES',
+  RECIPE_DETAIL: 'RECIPE_DETAIL',
+  USER_COLLECTIONS: 'USER_COLLECTIONS',
+  COLLECTION_DETAIL: 'COLLECTION_DETAIL',
+  COLLECTION_RECIPES: 'COLLECTION_RECIPES',
+  USER_RECIPES: 'USER_RECIPES',
+} as const;
+>>>>>>> report-recipe

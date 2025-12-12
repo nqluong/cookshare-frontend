@@ -4,8 +4,8 @@ import { Image } from "expo-image";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Colors } from "../../../styles/colors";
 import {
-    GroupedReport,
-    REPORT_PRIORITY_CONFIG
+  GroupedReport,
+  REPORT_PRIORITY_CONFIG
 } from "../../../types/admin/groupedReport.types";
 import ReportPriorityBadge from "./ReportPriorityBadge";
 import ReportTypeBreakdown from "./ReportTypeBreakdown";
@@ -99,7 +99,7 @@ export default function GroupedReportCard({
                 <Ionicons name="person" size={12} color={Colors.text.light} />
               )}
             </View>
-            <Text style={styles.authorName}>@{report.authorUsername}</Text>
+            <Text style={styles.authorName}>{report.authorFullName}</Text>
           </View>
 
           {/* Report Stats */}

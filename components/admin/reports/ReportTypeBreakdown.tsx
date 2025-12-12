@@ -16,6 +16,11 @@ export default function ReportTypeBreakdown({
   mostSevereType,
   compact = false 
 }: ReportTypeBreakdownProps) {
+  // Handle undefined or empty breakdown
+  if (!breakdown || Object.keys(breakdown).length === 0) {
+    return null;
+  }
+
   const sortedTypes = Object.entries(breakdown)
     .sort(([, a], [, b]) => (b || 0) - (a || 0));
   

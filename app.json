@@ -2,7 +2,6 @@
   "expo": {
     "name": "cookshare-app",
     "slug": "cookshare-app",
-    "owner": "nhatplbn2k4",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
@@ -19,7 +18,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.nqluong14.cookshareapp"
+      "package": "com.nqluong14.cookshareapp",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",
@@ -48,7 +48,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c0a334dc-f6ee-4388-9468-8c8c7c277dba"
+        "projectId": "f8030073-bf66-40bc-90a4-1b314aec2639"
       }
     }
   }

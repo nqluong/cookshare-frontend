@@ -252,6 +252,82 @@ const SwipeableNotificationItem = ({
           </View>
         );
 
+        case NotificationType.RECIPE_STATUS:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <View style={[styles.avatar, styles.systemAvatar]}>
+                <Ionicons name="notifications" size={24} color={Colors.primary} />
+              </View>
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                {item.message}
+                {' '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+          </View>
+        );
+
+        case NotificationType.REPORT_REVIEW:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <View style={[styles.avatar, styles.systemAvatar]}>
+                <Ionicons name="notifications" size={24} color={Colors.primary} />
+              </View>
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                {item.message}
+                {' '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+          </View>
+        );
+
+        case NotificationType.WARNING:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <View style={[styles.avatar, styles.systemAvatar]}>
+                <Ionicons name="notifications" size={24} color={Colors.primary} />
+              </View>
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                {item.message}
+                {' '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+          </View>
+        );
+
+        case NotificationType.ACCOUNT_STATUS:
+        return (
+          <View style={styles.notificationContent}>
+            <View style={styles.avatarContainer}>
+              <View style={[styles.avatar, styles.systemAvatar]}>
+                <Ionicons name="notifications" size={24} color={Colors.primary} />
+              </View>
+              {!item.isRead && <View style={styles.unreadDot} />}
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.message}>
+                {item.message}
+                {' '}
+                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
+              </Text>
+            </View>
+          </View>
+        );
+
       default:
         return (
           <View style={styles.notificationContent}>
