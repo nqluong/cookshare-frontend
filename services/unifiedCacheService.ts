@@ -12,17 +12,6 @@ interface CacheConfig {
 }
 
 // Export cache categories để sử dụng ở nơi khác
-export const CACHE_CATEGORIES = {
-  HOME_SUGGESTIONS: 'HOME_SUGGESTIONS',
-  NEWEST_RECIPES: 'NEWEST_RECIPES',
-  TRENDING_RECIPES: 'TRENDING_RECIPES',
-  POPULAR_RECIPES: 'POPULAR_RECIPES',
-  TOP_RATED_RECIPES: 'TOP_RATED_RECIPES',
-  LIKED_RECIPES: 'LIKED_RECIPES',
-  FOLLOWING_RECIPES: 'FOLLOWING_RECIPES',
-  RECIPE_DETAIL: 'RECIPE_DETAIL',
-  LAST_USER_INFO: 'LAST_USER_INFO',
-} as const;
 
 // Các khóa cache và config tương ứng
 const CACHE_CONFIGS: Record<string, CacheConfig> = {
@@ -495,8 +484,6 @@ class UnifiedCacheService {
 
 export const unifiedCacheService = new UnifiedCacheService();
 
-<<<<<<< HEAD
-=======
 // Export constants để dùng chung
 export const CACHE_CATEGORIES = {
   HOME_SUGGESTIONS: 'HOME_SUGGESTIONS',
@@ -511,5 +498,5 @@ export const CACHE_CATEGORIES = {
   COLLECTION_DETAIL: 'COLLECTION_DETAIL',
   COLLECTION_RECIPES: 'COLLECTION_RECIPES',
   USER_RECIPES: 'USER_RECIPES',
+  LAST_USER_INFO: 'LAST_USER_INFO',
 } as const;
->>>>>>> report-recipe
