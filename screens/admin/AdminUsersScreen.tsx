@@ -34,7 +34,6 @@ export default function AdminUsersScreen() {
         setLoading(true);
         setError(null);
       } else {
-        // Khi load thêm, set loading để hiện loading indicator
         setLoading(true);
       }
 

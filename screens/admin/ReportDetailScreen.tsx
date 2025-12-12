@@ -46,7 +46,6 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
       setLoading(true);
       setError(null);
       const data = await adminGroupedReportService.getReportDetails(recipeId);
-      console.log(data);
       setReport(data);
     } catch (err: any) {
       setError(err.message || "Không thể tải chi tiết báo cáo");
