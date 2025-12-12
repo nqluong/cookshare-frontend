@@ -10,15 +10,16 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import CustomAlert from "../../components/ui/CustomAlert";
-import { useCustomAlert } from "../../hooks/useCustomAlert";
 import AuthorsTab from "../../components/admin/dashboard/AuthorsTab";
 import ContentTab from "../../components/admin/dashboard/ContentTab";
 import DashboardHeader from "../../components/admin/dashboard/DashboardHeader";
 import OverviewTab from "../../components/admin/dashboard/OverviewTab";
 import PerformanceTab from "../../components/admin/dashboard/PerformanceTab";
 import TabNavigation from "../../components/admin/dashboard/TabNavigation";
+import CustomAlert from "../../components/ui/CustomAlert";
+import { Layout } from "../../constants/layout";
 import { useAuth } from "../../context/AuthContext";
+import { useCustomAlert } from "../../hooks/useCustomAlert";
 import adminApi from "../../services/adminReportService";
 
 import {
@@ -163,7 +164,7 @@ export default function AdminDashboardScreen() {
           </>
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: Layout.spacing.xxl * 2 }} />
       </ScrollView>
 
       {/* Custom Alert */}
@@ -191,11 +192,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
+    paddingVertical: Layout.spacing.xxl * 3,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: Layout.spacing.md,
+    fontSize: Layout.fontSize.md,
     color: "#6b7280",
   },
 });

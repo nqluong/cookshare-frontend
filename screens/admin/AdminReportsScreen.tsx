@@ -6,24 +6,26 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import AdminHeader from "../../components/admin/management/AdminHeader";
 import {
-    GroupedReportList,
-    ReportActionModal,
-    ReportFilterModal,
-    ReportStatsBar,
+  GroupedReportList,
+  ReportActionModal,
+  ReportFilterModal,
+  ReportStatsBar,
 } from "../../components/admin/reports";
 import CustomAlert from "../../components/ui/CustomAlert";
 import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { adminGroupedReportService } from "../../services/adminGroupedReportService";
 import {
-    GroupedReport,
-    ReportPriority,
-    ReportType,
-    ReviewReportRequest,
+  GroupedReport,
+  ReportActionType,
+  ReportStatus,
+  ReportType,
+  ReviewReportRequest,
 } from "../../types/admin/groupedReport.types";
 
 interface Filters {
-  priority?: ReportPriority;
   reportType?: ReportType;
+  status?: ReportStatus;
+  actionType?: ReportActionType;
 }
 
 export default function AdminReportsScreen() {
@@ -61,8 +63,9 @@ export default function AdminReportsScreen() {
         const response = await adminGroupedReportService.getGroupedReports(
           page,
           20,
-          filters.priority,
-          filters.reportType
+          filters.reportType,
+          filters.status,
+          filters.actionType
         );
 
         if (reset) {

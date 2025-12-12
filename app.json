@@ -18,8 +18,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.nqluong14.cookshareapp",
-      "usesCleartextTraffic": true
+      "package": "com.nqluong14.cookshareapp"
     },
     "web": {
       "output": "static",

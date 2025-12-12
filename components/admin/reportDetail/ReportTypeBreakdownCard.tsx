@@ -4,7 +4,7 @@ import { ReportType } from "../../../types/admin/groupedReport.types";
 import { ReportTypeBreakdown } from "../../admin/reports";
 
 interface ReportTypeBreakdownCardProps {
-  breakdown: Record<string, number>;
+  breakdown?: Record<string, number>;
   mostSevereType: ReportType;
 }
 
@@ -12,6 +12,11 @@ export default function ReportTypeBreakdownCard({
   breakdown,
   mostSevereType,
 }: ReportTypeBreakdownCardProps) {
+  // Don't render if no breakdown data
+  if (!breakdown) {
+    return null;
+  }
+
   return (
     <View style={styles.card}>
       <Text style={styles.sectionTitle}>Phân loại báo cáo</Text>
