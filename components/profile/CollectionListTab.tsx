@@ -1,6 +1,5 @@
-// CollectionListTab.tsx - Direct Upload to Collection API
-
 import { useAuth } from "@/context/AuthContext";
+import { useCachedCollections } from "@/hooks/useCachedCollections";
 import { collectionService } from "@/services/collectionService";
 import { CollectionUserDto } from "@/types/collection.types";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -29,9 +28,7 @@ interface CollectionListTabProps {
 
 export default function CollectionListTab({ userId }: CollectionListTabProps) {
   const { user } = useAuth();
-  const [collections, setCollections] = useState<CollectionUserDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // States
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -41,40 +38,35 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
     x: 0,
     y: 0,
   });
-
-  // Form states
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formIsPublic, setFormIsPublic] = useState(false);
   const [formCoverImageUri, setFormCoverImageUri] = useState<string | null>(
     null
-  ); // Local URI
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Use cache hook
+  const {
+    collections,
+    loading,
+    isOffline,
+    loadCollections,
+    refresh: refreshCollections,
+    clearCache,
+  } = useCachedCollections({ userId });
+  
   useEffect(() => {
     if (userId) {
-      loadCollections(userId);
+      console.log("🔄 Initial load collections for userId:", userId);
+      loadCollections(collectionService.getUserCollections);
     }
-  }, [userId]);
-
-  const loadCollections = async (uuid: string) => {
-    if (!uuid) return;
-
-    try {
-      setLoading(true);
-      const data = await collectionService.getUserCollections(uuid, 0, 100);
-      setCollections(data.data.content || []);
-    } catch (error) {
-      console.log("Error loading collections:", error);
-      Alert.alert("Lỗi", "Không thể tải danh sách collections");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [userId, loadCollections]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadCollections(userId);
+    await refreshCollections(collectionService.getUserCollections);
     setRefreshing(false);
   };
 
@@ -114,30 +106,33 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
 
     try {
       setIsSubmitting(true);
+      console.log("🆕 Creating new collection...");
 
-      // Tạo request object
       const request = {
         name: formName,
         description: formDescription || undefined,
         isPublic: formIsPublic,
-        coverImage: undefined, // Sẽ được backend xử lý từ file upload
+        coverImage: undefined,
       };
 
-      // Gọi service với URI ảnh local
-      const response = await collectionService.createCollection(
+      await collectionService.createCollection(
         userId,
         request,
         formCoverImageUri || undefined
       );
 
-      const newCollection = (response as any).data ?? response;
+      console.log("✅ Collection created, refreshing...");
 
-      setCollections([newCollection, ...collections]);
+      // Clear cache và reload
+      await clearCache();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await refreshCollections(collectionService.getUserCollections);
+
       resetForm();
       setShowCreateModal(false);
       Alert.alert("Thành công", "Collection đã được tạo");
     } catch (error: any) {
-      console.log("Error creating collection:", error);
+      console.error("❌ Error creating collection:", error);
       Alert.alert("Lỗi", error.message || "Không thể tạo collection");
     } finally {
       setIsSubmitting(false);
@@ -152,8 +147,8 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
 
     try {
       setIsSubmitting(true);
+      console.log("✏️ Updating collection...");
 
-      // Tạo request object
       const request = {
         name: formName,
         description: formDescription || undefined,
@@ -161,24 +156,18 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
         coverImage: selectedCollection.coverImage ?? undefined,
       };
 
-      // Gọi service với URI ảnh mới (nếu có)
-      const updatedResponse = await collectionService.updateCollection(
+      await collectionService.updateCollection(
         userId,
         selectedCollection.collectionId,
         request,
         formCoverImageUri || undefined
       );
 
-      const updatedCollection = ((updatedResponse as any).data ??
-        updatedResponse) as CollectionUserDto;
+      console.log("✅ Collection updated, refreshing...");
 
-      setCollections(
-        collections.map((c) =>
-          c.collectionId === selectedCollection.collectionId
-            ? updatedCollection
-            : c
-        )
-      );
+      await clearCache();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await refreshCollections(collectionService.getUserCollections);
 
       resetForm();
       setShowEditModal(false);
@@ -186,7 +175,7 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
       setSelectedCollection(null);
       Alert.alert("Thành công", "Collection đã được cập nhật");
     } catch (error: any) {
-      console.log("Error updating collection:", error);
+      console.error("❌ Error updating collection:", error);
       Alert.alert("Lỗi", error.message || "Không thể cập nhật collection");
     } finally {
       setIsSubmitting(false);
@@ -206,20 +195,24 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
           style: "destructive",
           onPress: async () => {
             try {
+              console.log("🗑️ Deleting collection...");
+
               await collectionService.deleteCollection(
                 userId,
                 selectedCollection.collectionId
               );
-              setCollections(
-                collections.filter(
-                  (c) => c.collectionId !== selectedCollection.collectionId
-                )
-              );
+
+              console.log("✅ Collection deleted, refreshing...");
+
+              await clearCache();
+              await new Promise((resolve) => setTimeout(resolve, 300));
+              await refreshCollections(collectionService.getUserCollections);
+
               setShowMenu(false);
               setSelectedCollection(null);
               Alert.alert("Thành công", "Collection đã được xóa");
             } catch (error) {
-              console.log("Error deleting collection:", error);
+              console.error("❌ Error deleting collection:", error);
               Alert.alert("Lỗi", "Không thể xóa collection");
             }
           },
@@ -341,6 +334,13 @@ export default function CollectionListTab({ userId }: CollectionListTabProps) {
 
   return (
     <View style={styles.container}>
+      {isOffline && (
+        <View style={styles.offlineBar}>
+          <Text style={styles.offlineText}>
+            📵 Chế độ offline - Hiển thị dữ liệu đã lưu
+          </Text>
+        </View>
+      )}
       <FlatList
         ListHeaderComponent={renderHeader}
         data={collections}
@@ -840,6 +840,17 @@ const styles = StyleSheet.create({
   removeImageText: {
     fontSize: 14,
     color: "#FF385C",
+    fontWeight: "600",
+  },
+  offlineBar: {
+    backgroundColor: "#FFA500",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  offlineText: {
+    color: "#FFF",
+    fontSize: 14,
     fontWeight: "600",
   },
 });

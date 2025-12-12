@@ -9,6 +9,10 @@ export enum NotificationType {
   MENTION = 'MENTION',
   SHARE = 'SHARE',
   RATING = 'RATING',
+  RECIPE_STATUS = 'RECIPE_STATUS',
+  REPORT_REVIEW = 'REPORT_REVIEW',
+  WARNING = 'WARNING',
+  ACCOUNT_STATUS = 'ACCOUNT_STATUS',
 }
 
 export enum RelatedType {
