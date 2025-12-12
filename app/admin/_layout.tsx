@@ -44,7 +44,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="recipes"
+        name="recipes/index"
         options={{
           title: "",
           tabBarIcon: ({ color, size, focused }) => (
@@ -70,7 +70,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="reports"
+        name="reports/index"
         options={{
           title: "",
           tabBarIcon: ({ color, size, focused }) => (
@@ -110,20 +110,6 @@ export default function AdminLayout() {
 
       <Tabs.Screen
         name="recipes/[id]"
-        options={{
-          href: null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="recipes/index"
-        options={{
-          href: null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="reports/index"
         options={{
           href: null,
         }}
