@@ -2,76 +2,28 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { Colors } from "../../../styles/colors";
-import { GroupedReport } from "../../../types/admin/groupedReport.types";
-
-type ActionType = 'DISMISS' | 'WARN_USER' | 'HIDE_RECIPE' | 'DELETE_RECIPE' | 'BAN_USER';
-
-interface ActionOption {
-  type: ActionType;
-  label: string;
-  description: string;
-  icon: string;
-  color: string;
-  requiresReason: boolean;
-}
-
-const ACTION_OPTIONS: ActionOption[] = [
-  {
-    type: 'DISMISS',
-    label: 'Bỏ qua',
-    description: 'Đánh dấu báo cáo không vi phạm',
-    icon: 'checkmark-circle-outline',
-    color: '#10B981',
-    requiresReason: false,
-  },
-  {
-    type: 'WARN_USER',
-    label: 'Cảnh cáo',
-    description: 'Gửi cảnh cáo đến tác giả',
-    icon: 'warning-outline',
-    color: '#F59E0B',
-    requiresReason: true,
-  },
-  {
-    type: 'HIDE_RECIPE',
-    label: 'Ẩn công thức',
-    description: 'Ẩn công thức khỏi tìm kiếm',
-    icon: 'eye-off-outline',
-    color: '#3B82F6',
-    requiresReason: true,
-  },
-  {
-    type: 'DELETE_RECIPE',
-    label: 'Xóa công thức',
-    description: 'Xóa vĩnh viễn công thức này',
-    icon: 'trash-outline',
-    color: '#EF4444',
-    requiresReason: true,
-  },
-  {
-    type: 'BAN_USER',
-    label: 'Cấm tài khoản',
-    description: 'Cấm tài khoản tác giả',
-    icon: 'ban-outline',
-    color: '#DC2626',
-    requiresReason: true,
-  },
-];
+import {
+  ACTION_OPTIONS,
+  ActionOption,
+  GroupedReport,
+  ReviewReportRequest
+} from "../../../types/admin/groupedReport.types";
 
 interface ReportActionModalProps {
   visible: boolean;
   report: GroupedReport | null;
   onClose: () => void;
-  onAction: (recipeId: string, action: ActionType, reason?: string) => Promise<void>;
+  onAction: (recipeId: string, request: ReviewReportRequest) => Promise<void>;
 }
 
 export default function ReportActionModal({ 
@@ -80,21 +32,28 @@ export default function ReportActionModal({
   onClose, 
   onAction 
 }: ReportActionModalProps) {
-  const [selectedAction, setSelectedAction] = useState<ActionType | null>(null);
-  const [reason, setReason] = useState('');
+  const [selectedAction, setSelectedAction] = useState<ActionOption | null>(null);
+  const [actionDescription, setActionDescription] = useState('');
+  const [adminNote, setAdminNote] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
     if (!report || !selectedAction) return;
     
-    const actionConfig = ACTION_OPTIONS.find(a => a.type === selectedAction);
-    if (actionConfig?.requiresReason && !reason.trim()) {
+    if (selectedAction.requiresDescription && !actionDescription.trim()) {
       return;
     }
 
     setLoading(true);
     try {
-      await onAction(report.recipeId, selectedAction, reason.trim() || undefined);
+      const request: ReviewReportRequest = {
+        status: selectedAction.status,
+        actionType: selectedAction.actionType,
+        actionDescription: actionDescription.trim() || undefined,
+        adminNote: adminNote.trim() || undefined,
+      };
+      
+      await onAction(report.recipeId, request);
       handleClose();
     } catch (error) {
       console.error('Action error:', error);
@@ -105,15 +64,12 @@ export default function ReportActionModal({
 
   const handleClose = () => {
     setSelectedAction(null);
-    setReason('');
+    setActionDescription('');
+    setAdminNote('');
     onClose();
   };
 
   if (!report) return null;
-
-  const selectedActionConfig = selectedAction 
-    ? ACTION_OPTIONS.find(a => a.type === selectedAction) 
-    : null;
 
   return (
     <Modal
@@ -145,60 +101,82 @@ export default function ReportActionModal({
             </Text>
           </View>
 
-          {/* Action Options */}
-          <View style={styles.actionsContainer}>
-            {ACTION_OPTIONS.map((action) => (
-              <TouchableOpacity
-                key={action.type}
-                style={[
-                  styles.actionOption,
-                  selectedAction === action.type && {
-                    borderColor: action.color,
-                    backgroundColor: action.color + '10',
-                  }
-                ]}
-                onPress={() => setSelectedAction(action.type)}
-              >
-                <View 
+          <ScrollView 
+            style={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Action Options */}
+            <View style={styles.actionsContainer}>
+              <Text style={styles.sectionLabel}>Chọn hành động</Text>
+              {ACTION_OPTIONS.map((action) => (
+                <TouchableOpacity
+                  key={action.actionType}
                   style={[
-                    styles.actionIcon,
-                    { backgroundColor: action.color + '20' }
+                    styles.actionOption,
+                    selectedAction?.actionType === action.actionType && {
+                      borderColor: action.color,
+                      backgroundColor: action.color + '10',
+                    }
                   ]}
+                  onPress={() => setSelectedAction(action)}
                 >
-                  <Ionicons 
-                    name={action.icon as any} 
-                    size={20} 
-                    color={action.color} 
-                  />
-                </View>
-                <View style={styles.actionContent}>
-                  <Text style={styles.actionLabel}>{action.label}</Text>
-                  <Text style={styles.actionDescription}>{action.description}</Text>
-                </View>
-                {selectedAction === action.type && (
-                  <Ionicons name="checkmark-circle" size={22} color={action.color} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Reason Input */}
-          {selectedActionConfig?.requiresReason && (
-            <View style={styles.reasonContainer}>
-              <Text style={styles.reasonLabel}>
-                Lý do <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.reasonInput}
-                placeholder="Nhập lý do xử lý..."
-                value={reason}
-                onChangeText={setReason}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
+                  <View 
+                    style={[
+                      styles.actionIcon,
+                      { backgroundColor: action.color + '20' }
+                    ]}
+                  >
+                    <Ionicons 
+                      name={action.icon as any} 
+                      size={20} 
+                      color={action.color} 
+                    />
+                  </View>
+                  <View style={styles.actionContent}>
+                    <Text style={styles.actionLabel}>{action.label}</Text>
+                    <Text style={styles.actionDescription}>{action.description}</Text>
+                  </View>
+                  {selectedAction?.actionType === action.actionType && (
+                    <Ionicons name="checkmark-circle" size={22} color={action.color} />
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
+
+            {/* Action Description Input */}
+            {selectedAction?.requiresDescription && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>
+                  Lý do xử lý <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Nhập lý do xử lý (sẽ hiển thị cho người dùng)..."
+                  value={actionDescription}
+                  onChangeText={setActionDescription}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </View>
+            )}
+
+            {/* Admin Note Input (Optional) */}
+            {selectedAction && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Ghi chú nội bộ (tùy chọn)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Ghi chú dành cho admin..."
+                  value={adminNote}
+                  onChangeText={setAdminNote}
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
+                />
+              </View>
+            )}
+          </ScrollView>
 
           {/* Footer */}
           <View style={styles.footer}>
@@ -212,18 +190,18 @@ export default function ReportActionModal({
             <TouchableOpacity 
               style={[
                 styles.confirmButton,
-                (!selectedAction || (selectedActionConfig?.requiresReason && !reason.trim())) && 
+                (!selectedAction || (selectedAction.requiresDescription && !actionDescription.trim())) && 
                   styles.confirmButtonDisabled,
-                selectedActionConfig && { backgroundColor: selectedActionConfig.color }
+                selectedAction && { backgroundColor: selectedAction.color }
               ]}
               onPress={handleConfirm}
-              disabled={loading || !selectedAction || (selectedActionConfig?.requiresReason && !reason.trim())}
+              disabled={loading || !selectedAction || (selectedAction.requiresDescription && !actionDescription.trim())}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.confirmButtonText}>
-                  {selectedActionConfig?.label || 'Xác nhận'}
+                  {selectedAction?.label || 'Xác nhận'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -285,10 +263,21 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: 2,
   },
+  scrollContent: {
+    maxHeight: 450,
+  },
   actionsContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     gap: 10,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   actionOption: {
     flexDirection: 'row',
@@ -319,11 +308,11 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: 2,
   },
-  reasonContainer: {
+  inputContainer: {
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
-  reasonLabel: {
+  inputLabel: {
     fontSize: 14,
     fontWeight: '500',
     color: Colors.text.primary,
@@ -332,7 +321,7 @@ const styles = StyleSheet.create({
   required: {
     color: '#EF4444',
   },
-  reasonInput: {
+  textInput: {
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,

@@ -26,7 +26,7 @@ import CustomAlert from "../../components/ui/CustomAlert";
 import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { adminGroupedReportService } from "../../services/adminGroupedReportService";
 import { Colors } from "../../styles/colors";
-import { GroupedReportDetail } from "../../types/admin/groupedReport.types";
+import { GroupedReportDetail, ReviewReportRequest } from "../../types/admin/groupedReport.types";
 
 interface ReportDetailScreenProps {
   recipeId: string;
@@ -67,14 +67,24 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
     loadReportDetails();
   };
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/admin/reports" as any);
+    }
+  };
+
   const handleAction = async (
     recipeId: string,
-    action: "DISMISS" | "WARN_USER" | "HIDE_RECIPE" | "DELETE_RECIPE" | "BAN_USER",
-    reason?: string
+    request: ReviewReportRequest
   ) => {
     try {
-      await adminGroupedReportService.handleReport(recipeId, action, reason);
-      showSuccess("Thành công", "Đã xử lý báo cáo thành công");
+      const result = await adminGroupedReportService.reviewReport(recipeId, request);
+      showSuccess(
+        "Thành công", 
+        `Đã xử lý ${result.processedCount} báo cáo thành công`
+      );
       router.back();
     } catch (err: any) {
       showError("Lỗi", err.message || "Không thể xử lý báo cáo");
@@ -85,7 +95,7 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
   if (loading && !report) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <AdminHeader title="Chi tiết báo cáo" onBack={() => router.back()} />
+        <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#10B981" />
           <Text style={styles.loadingText}>Đang tải...</Text>
@@ -97,7 +107,7 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
   if (error) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <AdminHeader title="Chi tiết báo cáo" onBack={() => router.back()} />
+        <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} />
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
           <Text style={styles.errorText}>{error}</Text>
@@ -113,7 +123,7 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <AdminHeader title="Chi tiết báo cáo" onBack={() => router.back()} />
+      <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} />
 
       <ScrollView
         style={styles.scrollView}

@@ -129,3 +129,110 @@ export interface GroupedReportDetail {
   
   reports: IndividualReport[];
 }
+
+// ====== Report Review Types ======
+
+export type ReviewStatus = 'APPROVED' | 'REJECTED' | 'RESOLVED';
+
+export type ActionType = 
+  | 'NO_ACTION'
+  | 'USER_WARNED'
+  | 'USER_SUSPENDED'
+  | 'USER_BANNED'
+  | 'RECIPE_UNPUBLISHED'
+  | 'RECIPE_EDITED'
+  | 'CONTENT_REMOVED'
+  | 'OTHER';
+
+export interface ReviewReportRequest {
+  status: ReviewStatus;
+  actionType: ActionType;
+  actionDescription?: string;
+  adminNote?: string;
+  notifyAllReporters?: boolean;
+}
+
+export interface ReviewReportResponse {
+  recipeId: string;
+  processedCount: number;
+  status: ReviewStatus;
+  actionType: ActionType;
+  reviewedBy: string;
+  reviewedAt: string;
+}
+
+export interface ActionOption {
+  actionType: ActionType;
+  status: ReviewStatus;
+  label: string;
+  description: string;
+  icon: string;
+  color: string;
+  requiresDescription: boolean;
+}
+
+export const ACTION_OPTIONS: ActionOption[] = [
+  {
+    actionType: 'NO_ACTION',
+    status: 'REJECTED',
+    label: 'Bỏ qua',
+    description: 'Báo cáo không hợp lệ, không cần xử lý',
+    icon: 'checkmark-circle-outline',
+    color: '#10B981',
+    requiresDescription: false,
+  },
+  {
+    actionType: 'USER_WARNED',
+    status: 'APPROVED',
+    label: 'Cảnh cáo tác giả',
+    description: 'Gửi cảnh cáo đến tác giả công thức',
+    icon: 'warning-outline',
+    color: '#F59E0B',
+    requiresDescription: true,
+  },
+  {
+    actionType: 'RECIPE_UNPUBLISHED',
+    status: 'APPROVED',
+    label: 'Gỡ công thức',
+    description: 'Ẩn công thức khỏi hệ thống',
+    icon: 'eye-off-outline',
+    color: '#3B82F6',
+    requiresDescription: true,
+  },
+  {
+    actionType: 'RECIPE_EDITED',
+    status: 'APPROVED',
+    label: 'Yêu cầu chỉnh sửa',
+    description: 'Yêu cầu tác giả chỉnh sửa nội dung',
+    icon: 'create-outline',
+    color: '#8B5CF6',
+    requiresDescription: true,
+  },
+  {
+    actionType: 'CONTENT_REMOVED',
+    status: 'APPROVED',
+    label: 'Xóa nội dung',
+    description: 'Xóa nội dung vi phạm',
+    icon: 'trash-outline',
+    color: '#EF4444',
+    requiresDescription: true,
+  },
+  {
+    actionType: 'USER_SUSPENDED',
+    status: 'APPROVED',
+    label: 'Tạm khóa tài khoản',
+    description: 'Tạm khóa tài khoản tác giả',
+    icon: 'time-outline',
+    color: '#EA580C',
+    requiresDescription: true,
+  },
+  {
+    actionType: 'USER_BANNED',
+    status: 'APPROVED',
+    label: 'Cấm vĩnh viễn',
+    description: 'Cấm vĩnh viễn tài khoản tác giả',
+    icon: 'ban-outline',
+    color: '#DC2626',
+    requiresDescription: true,
+  },
+];

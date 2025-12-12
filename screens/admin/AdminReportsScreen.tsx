@@ -18,6 +18,7 @@ import {
     GroupedReport,
     ReportPriority,
     ReportType,
+    ReviewReportRequest,
 } from "../../types/admin/groupedReport.types";
 
 interface Filters {
@@ -118,12 +119,11 @@ export default function AdminReportsScreen() {
 
   const handleAction = async (
     recipeId: string,
-    action: "DISMISS" | "WARN_USER" | "HIDE_RECIPE" | "DELETE_RECIPE" | "BAN_USER",
-    reason?: string
+    request: ReviewReportRequest
   ) => {
     try {
-      await adminGroupedReportService.handleReport(recipeId, action, reason);
-      showSuccess("Thành công", "Đã xử lý báo cáo thành công");
+      const result = await adminGroupedReportService.reviewReport(recipeId, request);
+      showSuccess("Thành công", `Đã xử lý ${result.processedCount} báo cáo thành công`);
       loadReports(0, true);
     } catch (err: any) {
       showError("Lỗi", err.message || "Không thể xử lý báo cáo");

@@ -1,6 +1,11 @@
 // services/adminGroupedReportService.ts
 import { API_CONFIG } from '@/config/api.config';
-import { GroupedReportDetail, GroupedReportResponse } from '@/types/admin/groupedReport.types';
+import {
+  GroupedReportDetail,
+  GroupedReportResponse,
+  ReviewReportRequest,
+  ReviewReportResponse
+} from '@/types/admin/groupedReport.types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const BASE_URL = API_CONFIG.BASE_URL;
@@ -106,33 +111,18 @@ class AdminGroupedReportService {
   }
 
   /**
-   * Xử lý báo cáo (ẩn/xóa công thức, cảnh báo user, v.v.)
+   * Xem xét và xử lý báo cáo
    * @param recipeId ID của công thức
-   * @param action Hành động xử lý
-   * @param reason Lý do xử lý
+   * @param request Thông tin xem xét báo cáo
    */
-  async handleReport(
+  async reviewReport(
     recipeId: string,
-    action: 'DISMISS' | 'WARN_USER' | 'HIDE_RECIPE' | 'DELETE_RECIPE' | 'BAN_USER',
-    reason?: string
-  ): Promise<any> {
-    return this.handleFetchRequest<any>(
-      `${BASE_URL}/api/admin/reports/recipe/${recipeId}/action`,
+    request: ReviewReportRequest
+  ): Promise<ReviewReportResponse> {
+    return this.handleFetchRequest<ReviewReportResponse>(
+      `${BASE_URL}/api/admin/reports/grouped/recipe/${recipeId}/review`,
       'POST',
-      { action, reason }
-    );
-  }
-
-  /**
-   * Dismiss (bỏ qua) tất cả báo cáo của một công thức
-   * @param recipeId ID của công thức
-   * @param reason Lý do bỏ qua
-   */
-  async dismissReports(recipeId: string, reason?: string): Promise<any> {
-    return this.handleFetchRequest<any>(
-      `${BASE_URL}/api/admin/reports/recipe/${recipeId}/dismiss`,
-      'POST',
-      { reason }
+      request
     );
   }
 }
