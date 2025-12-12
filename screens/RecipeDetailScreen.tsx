@@ -2,7 +2,6 @@ import { useAuth } from '@/context/AuthContext';
 import { userService } from '@/services/userService';
 import { UserProfile } from '@/types/user.types';
 import { Ionicons } from '@expo/vector-icons';
-import NetInfo from '@react-native-community/netinfo';
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -79,9 +78,8 @@ export default function RecipeDetailScreen() {
             setLoading(true);
             setIsFromCache(false);
             
-            // Kiểm tra kết nối mạng
-            const netInfo = await NetInfo.fetch();
-            const online = netInfo.isConnected ?? false;
+            // Kiểm tra kết nối mạng (dùng unifiedCacheService để support force offline mode)
+            const online = await unifiedCacheService.isConnected();
             setIsOffline(!online);
           
             if (!online) {

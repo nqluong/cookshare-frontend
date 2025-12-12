@@ -67,6 +67,7 @@ export default function HomeScreen() {
   const [searchPage, setSearchPage] = useState(0);
   const [hasMoreSearch, setHasMoreSearch] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
+  const [loadingMoreSearch, setLoadingMoreSearch] = useState(false);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
 
   // Tab Load Flags
@@ -88,39 +89,39 @@ export default function HomeScreen() {
   // Cached Data with hooks
   // Note: dailyRecommendations và featuredRecipes sẽ được load từ state, không cache
   const likeHook = useRecipeLike();
-  const newest = useCachedPagination({ 
+  const newest = useCachedPagination({
     cacheKey: CACHE_KEYS.NEWEST_RECIPES,
-    fetchFunction: getNewestRecipes, 
+    fetchFunction: getNewestRecipes,
     pageSize: 10,
     autoFetch: false // Không tự động fetch
   });
-  const trending = useCachedPagination({ 
+  const trending = useCachedPagination({
     cacheKey: CACHE_KEYS.TRENDING_RECIPES,
-    fetchFunction: getTrendingRecipes, 
+    fetchFunction: getTrendingRecipes,
     pageSize: 10,
     autoFetch: false
   });
-  const popular = useCachedPagination({ 
+  const popular = useCachedPagination({
     cacheKey: CACHE_KEYS.POPULAR_RECIPES,
-    fetchFunction: getPopularRecipes, 
+    fetchFunction: getPopularRecipes,
     pageSize: 20,
     autoFetch: false
   });
-  const topRated = useCachedPagination({ 
+  const topRated = useCachedPagination({
     cacheKey: CACHE_KEYS.TOP_RATED_RECIPES,
-    fetchFunction: getTopRatedRecipes, 
+    fetchFunction: getTopRatedRecipes,
     pageSize: 10,
     autoFetch: false
   });
-  const liked = useCachedPagination({ 
+  const liked = useCachedPagination({
     cacheKey: CACHE_KEYS.LIKED_RECIPES,
-    fetchFunction: getLikedRecipes, 
+    fetchFunction: getLikedRecipes,
     pageSize: 10,
     autoFetch: false
   });
-  const following = useCachedPagination({ 
+  const following = useCachedPagination({
     cacheKey: CACHE_KEYS.FOLLOWING_RECIPES,
-    fetchFunction: getRecipebyFollowing, 
+    fetchFunction: getRecipebyFollowing,
     pageSize: 10,
     autoFetch: false
   });
@@ -142,6 +143,7 @@ export default function HomeScreen() {
       setIsFollowingTabLoaded,
       setSearchQuery,
       setIsOffline,
+      setLoadingMoreSearch,
     },
     {
       likeHook,
@@ -158,24 +160,24 @@ export default function HomeScreen() {
       activeTab,
     }
   );
- const globalParams = useGlobalSearchParams(); // ← Dùng global để chắc chắn bắt được param từ màn khác
+  const globalParams = useGlobalSearchParams(); // ← Dùng global để chắc chắn bắt được param từ màn khác
 
-const lastRefetchTrigger = useRef<string>("0");
+  const lastRefetchTrigger = useRef<string>("0");
 
-useFocusEffect(
-  useCallback(() => {
-    const trigger = globalParams.refetchTrigger as string;
-    if (trigger && trigger !== lastRefetchTrigger.current) {
-      lastRefetchTrigger.current = trigger;
+  useFocusEffect(
+    useCallback(() => {
+      const trigger = globalParams.refetchTrigger as string;
+      if (trigger && trigger !== lastRefetchTrigger.current) {
+        lastRefetchTrigger.current = trigger;
 
-      console.log("Rating completed → Refreshing entire Home feed...");
-      viewModel.fetchHomeSuggestions();
+        console.log("Rating completed → Refreshing entire Home feed...");
+        viewModel.fetchHomeSuggestions();
 
-     
-      router.setParams({ refetchTrigger: undefined });
-    }
-  }, [globalParams.refetchTrigger, viewModel])
-);
+
+        router.setParams({ refetchTrigger: undefined });
+      }
+    }, [globalParams.refetchTrigger, viewModel])
+  );
   // Effects
   useEffect(() => {
     setLoading(newest.loading);
@@ -219,6 +221,12 @@ useFocusEffect(
     queryOverride?: string
   ) => {
     await viewModel.handleSearch(reset, requestedPage, queryOverride);
+  };
+
+  const handleLoadMoreSearch = () => {
+    if (!loading && !loadingMoreSearch && hasMoreSearch && recipes.length > 0) {
+      handleSearch(false, searchPage + 1);
+    }
   };
 
   const handleToggleLike = async (recipeId: string) => {
@@ -266,7 +274,7 @@ useFocusEffect(
   return (
     <SafeAreaView style={styles.container}>
 
-       {isOffline && (
+      {isOffline && (
         <View style={styles.offlineBar}>
           <Text style={styles.offlineText}>
             📵 Chế độ offline - Hiển thị dữ liệu đã lưu
@@ -283,27 +291,19 @@ useFocusEffect(
         showSuggestions={!hasSearched}
       />
       {!hasSearched && (
-  <TabBar 
-    activeTab={activeTab} 
-    onTabChange={setActiveTab} 
-    onPress={() => setHasSearched(false)} 
-  />
-)}
+        <TabBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onPress={() => setHasSearched(false)}
+        />
+      )}
 
       {hasSearched ? (
         <SearchResults
           recipes={recipes}
-          searchPage={searchPage}
           hasMoreSearch={hasMoreSearch}
-          loading={loading}
-          onPageChange={(page) => {
-            setSearchPage(page);
-            handleSearch(false, page);
-          }}
-          onReset={() => {
-            setSearchPage(0);
-            handleSearch(true);
-          }}
+          loadingMore={loadingMoreSearch}
+          onLoadMore={handleLoadMoreSearch}
         />
       ) : (
         <MainContent

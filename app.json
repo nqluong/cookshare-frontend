@@ -2,6 +2,7 @@
   "expo": {
     "name": "cookshare-app",
     "slug": "cookshare-app",
+    "owner": "nhatplbn2k4",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
@@ -47,7 +48,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f8030073-bf66-40bc-90a4-1b314aec2639"
+        "projectId": "c0a334dc-f6ee-4388-9468-8c8c7c277dba"
       }
     }
   }

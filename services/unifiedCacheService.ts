@@ -1,12 +1,28 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 
+// Dev-only: Key cho force offline mode
+const DEV_OFFLINE_KEY = '__DEV_FORCE_OFFLINE__';
+
 // Cấu hình cache cho từng loại dữ liệu
 interface CacheConfig {
   expiryTime: number; // Thời gian hết hạn (ms)
   maxItems?: number; // Giới hạn số lượng item (cho LRU)
   useLRU?: boolean; // Có sử dụng LRU không
 }
+
+// Export cache categories để sử dụng ở nơi khác
+export const CACHE_CATEGORIES = {
+  HOME_SUGGESTIONS: 'HOME_SUGGESTIONS',
+  NEWEST_RECIPES: 'NEWEST_RECIPES',
+  TRENDING_RECIPES: 'TRENDING_RECIPES',
+  POPULAR_RECIPES: 'POPULAR_RECIPES',
+  TOP_RATED_RECIPES: 'TOP_RATED_RECIPES',
+  LIKED_RECIPES: 'LIKED_RECIPES',
+  FOLLOWING_RECIPES: 'FOLLOWING_RECIPES',
+  RECIPE_DETAIL: 'RECIPE_DETAIL',
+  LAST_USER_INFO: 'LAST_USER_INFO',
+} as const;
 
 // Các khóa cache và config tương ứng
 const CACHE_CONFIGS: Record<string, CacheConfig> = {
@@ -25,6 +41,9 @@ const CACHE_CONFIGS: Record<string, CacheConfig> = {
     maxItems: 20, 
     useLRU: true 
   },
+  
+  // User info - 30 ngày, cho phép offline login
+  LAST_USER_INFO: { expiryTime: 30 * 24 * 60 * 60 * 1000 },
 };
 
 // Prefix cho các cache key
@@ -42,10 +61,40 @@ interface CacheIndex {
 }
 
 class UnifiedCacheService {
+  private devForceOffline: boolean = false;
+
+  /**
+   * Dev-only: Set force offline mode
+   */
+  setDevForceOffline(value: boolean) {
+    if (__DEV__) {
+      this.devForceOffline = value;
+      console.log('🧪 UnifiedCacheService Force Offline:', value ? 'ENABLED' : 'DISABLED');
+    }
+  }
+
+  /**
+   * Dev-only: Load force offline mode from AsyncStorage
+   */
+  async loadDevForceOffline() {
+    if (__DEV__) {
+      const value = await AsyncStorage.getItem(DEV_OFFLINE_KEY);
+      this.devForceOffline = value === 'true';
+      if (this.devForceOffline) {
+        console.log('🧪 UnifiedCacheService loaded Force Offline: ENABLED');
+      }
+    }
+  }
+
   /**
    * Kiểm tra thiết bị có kết nối internet không
    */
   async isConnected(): Promise<boolean> {
+    // Dev-only: Nếu force offline, return false ngay
+    if (__DEV__ && this.devForceOffline) {
+      return false;
+    }
+    
     const netInfo = await NetInfo.fetch();
     return netInfo.isConnected ?? false;
   }
@@ -430,14 +479,3 @@ class UnifiedCacheService {
 
 export const unifiedCacheService = new UnifiedCacheService();
 
-// Export constants để dùng chung
-export const CACHE_CATEGORIES = {
-  HOME_SUGGESTIONS: 'HOME_SUGGESTIONS',
-  NEWEST_RECIPES: 'NEWEST_RECIPES',
-  TRENDING_RECIPES: 'TRENDING_RECIPES',
-  POPULAR_RECIPES: 'POPULAR_RECIPES',
-  TOP_RATED_RECIPES: 'TOP_RATED_RECIPES',
-  LIKED_RECIPES: 'LIKED_RECIPES',
-  FOLLOWING_RECIPES: 'FOLLOWING_RECIPES',
-  RECIPE_DETAIL: 'RECIPE_DETAIL',
-} as const;

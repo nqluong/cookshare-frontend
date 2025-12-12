@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import CustomIngredientModal from '../../components/Search/CustomIngredientModal';
@@ -24,6 +24,7 @@ export default function SearchScreen() {
   const [ingredientsLoading, setIngredientsLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   useEffect(() => {
@@ -115,7 +116,11 @@ export default function SearchScreen() {
       return;
     }
 
-    setLoading(true);
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
     setHasSearched(true);
 
@@ -124,14 +129,14 @@ export default function SearchScreen() {
       const data = await searchRecipes(queryToSearch, selectedIngredients, currentPage, 10);
       if ('success' in data && data.success === false) {
         setError(data.message || 'Lỗi từ server');
-        setRecipes([]);
+        if (reset) setRecipes([]);
         setHasMore(false);
         return;
       }
 
       if ('code' in data && data.code !== 1000) {
         setError(data.message || 'Lỗi từ server');
-        setRecipes([]);
+        if (reset) setRecipes([]);
         setHasMore(false);
         return;
       }
@@ -142,12 +147,14 @@ export default function SearchScreen() {
           setRecipes(newRecipes);
           setPage(0);
         } else {
-          setRecipes(newRecipes);
+          // Append new recipes to existing list
+          setRecipes(prev => [...prev, ...newRecipes]);
+          setPage(currentPage);
         }
 
         setHasMore(!data.result.last);
 
-        if (newRecipes.length === 0) {
+        if (newRecipes.length === 0 && reset) {
           setError('Không tìm thấy món ăn nào');
         } else {
           setError(null);
@@ -155,11 +162,11 @@ export default function SearchScreen() {
         if (reset && searchQuery.trim()) {
           setHistory(prev => {
             const newItem: SearchHistoryItem = {
-              searchId: Math.random().toString(36).substring(2, 9), // hoặc uuid
-              userId: 'local', // giả định là người dùng local
+              searchId: Math.random().toString(36).substring(2, 9),
+              userId: 'local',
               searchQuery,
               searchType: 'recipe',
-              resultCount: recipes.length,
+              resultCount: newRecipes.length,
               createdAt: new Date().toISOString(),
             };
 
@@ -190,6 +197,13 @@ export default function SearchScreen() {
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loading && !loadingMore && hasMore && recipes.length > 0) {
+      handleSearch(false, page + 1);
     }
   };
   return (
@@ -248,78 +262,15 @@ export default function SearchScreen() {
           keyExtractor={(item) => item.recipeId}
           contentContainerStyle={searchStyles.listContainer}
           showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
           ListFooterComponent={
-            <View style={{ alignItems: 'center', marginVertical: 20 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                {page > 0 && (
-                  <TouchableOpacity
-                    style={[
-                      {
-                        backgroundColor: '#fbbc05',
-                        paddingHorizontal: 15,
-                        paddingVertical: 8,
-                        borderRadius: 8,
-                        marginHorizontal: 5,
-                      },
-                      loading && { opacity: 0.6 }
-                    ]}
-                    onPress={() => {
-                      const prevPage = page - 1;
-                      setPage(prevPage);
-                      handleSearch(false, prevPage);
-                    }}
-                    disabled={loading}
-                  >
-                    <Text style={{ color: '#fff' }}>Trang trước</Text>
-                  </TouchableOpacity>
-                )}
-
-                <Text style={{ marginHorizontal: 10, fontWeight: 'bold', color: '#333' }}>
-                  Trang {page + 1}
-                </Text>
-
-                {hasMore && (
-                  <TouchableOpacity
-                    style={[
-                      {
-                        backgroundColor: '#fbbc05',
-                        paddingHorizontal: 15,
-                        paddingVertical: 8,
-                        borderRadius: 8,
-                        marginHorizontal: 5,
-                      },
-                      loading && { opacity: 0.6 }
-                    ]}
-                    onPress={() => {
-                      const nextPage = page + 1;
-                      setPage(nextPage);
-                      handleSearch(false, nextPage);
-                    }}
-                    disabled={loading}
-                  >
-                    <Text style={{ color: '#fff' }}>Trang sau</Text>
-                  </TouchableOpacity>
-                )}
+            loadingMore ? (
+              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="#fbbc05" />
+                <Text style={{ marginTop: 8, color: '#999', fontSize: 14 }}>Đang tải thêm...</Text>
               </View>
-
-              {recipes.length > 0 && (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: '#666',
-                    paddingHorizontal: 15,
-                    paddingVertical: 8,
-                    borderRadius: 8,
-                    marginTop: 10,
-                  }}
-                  onPress={() => {
-                    setPage(0);
-                    handleSearch(true);
-                  }}
-                >
-                  <Text style={{ color: '#fff' }}>Về trang đầu</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            ) : null
           }
         />
       )}
