@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Alert, AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../context/AuthContext';
@@ -29,7 +29,33 @@ export const useSocialLogin = () => {
     const [googleLoading, setGoogleLoading] = useState(false);
     const [facebookLoading, setFacebookLoading] = useState(false);
 
+    // ✅ Ref để track OAuth flow đang diễn ra
+    const oauthControllerRef = useRef<AbortController | null>(null);
+    const isOAuthInProgressRef = useRef(false);
+
     const { loginWithSocialTokens } = useAuth() as any;
+
+    // ✅ Lắng nghe AppState để detect khi user quay lại app từ browser
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+            // Khi app active lại và đang trong OAuth flow
+            if (nextAppState === 'active' && isOAuthInProgressRef.current) {
+                console.log('📱 App became active during OAuth - user likely dismissed browser');
+                // Chờ một chút để xem có kết quả không
+                setTimeout(() => {
+                    if (isOAuthInProgressRef.current && oauthControllerRef.current) {
+                        console.log('🚫 No result after app active - aborting OAuth polling');
+                        oauthControllerRef.current.abort();
+                        isOAuthInProgressRef.current = false;
+                    }
+                }, 2000); // Chờ 2s để backend có thể trả về kết quả nếu có
+            }
+        });
+
+        return () => {
+            subscription?.remove();
+        };
+    }, []);
 
     /**
      * Generate random state để tracking
@@ -91,16 +117,23 @@ export const useSocialLogin = () => {
 
                 // Wait 1 second before next attempt
                 if (attempt < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(resolve, 1000);
+                        // ✅ Lắng nghe abort signal để dừng setTimeout ngay
+                        signal?.addEventListener('abort', () => {
+                            clearTimeout(timeout);
+                            reject(new Error('AbortError'));
+                        });
+                    });
                 }
             } catch (error: any) {
-                if (error.name === 'AbortError') {
+                if (error.name === 'AbortError' || error.message === 'AbortError') {
                     console.log(`⚠️ ${provider} polling aborted (fetch error)`);
                     return null;
                 }
 
                 // Nếu là lỗi xác thực, throw ra ngoài để dừng hoàn toàn
-                if (error.message) {
+                if (error.message && error.message !== 'AbortError') {
                     console.log(`🚨 ${provider} auth error detected, stop polling:`, error.message);
                     throw error;
                 }
@@ -108,7 +141,14 @@ export const useSocialLogin = () => {
                 console.log(`❌ ${provider} polling attempt ${attempt} failed:`, error);
 
                 if (attempt < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(resolve, 1000);
+                        // ✅ Lắng nghe abort signal để dừng setTimeout ngay
+                        signal?.addEventListener('abort', () => {
+                            clearTimeout(timeout);
+                            reject(new Error('AbortError'));
+                        });
+                    });
                 }
             }
         }
@@ -137,6 +177,8 @@ export const useSocialLogin = () => {
 
             // Create AbortController để có thể hủy polling
             const controller = new AbortController();
+            oauthControllerRef.current = controller;
+            isOAuthInProgressRef.current = true;
 
             // Mở browser (non-blocking)
             const browserPromise = WebBrowser.openBrowserAsync(authUrl).catch(e => {
@@ -144,13 +186,16 @@ export const useSocialLogin = () => {
                 return null as any;
             });
 
-            // Xử lý khi user đóng browser
+            // Xử lý khi browser resolve (trên Android chỉ resolve khi mở, không phải khi đóng)
             browserPromise.then((result: any) => {
+                console.log(`🔍 Browser result received:`, result);
                 const type = result?.type ? String(result.type).toLowerCase() : '';
-                if (!result || type === 'dismiss' || type === 'cancel' || type === 'closed') {
-                    console.log(`✖️ ${provider} browser dismissed/closed`);
-                    try { controller.abort(); } catch (e) { /* ignore */ }
-                    setLoading(false);
+                // Chỉ handle khi browser dismissed/cancel/closed (iOS behavior)
+                if (type === 'dismiss' || type === 'cancel' || type === 'closed') {
+                    console.log(`✖️ ${provider} browser dismissed/closed by user`);
+                    console.log(`🔧 Calling controller.abort()...`);
+                    controller.abort();
+                    isOAuthInProgressRef.current = false;
                 }
             }).catch(e => console.log('Browser promise handler error:', e.message || e));
 
@@ -158,6 +203,19 @@ export const useSocialLogin = () => {
 
             // Poll kết quả
             const authResult = await pollAuthResult(state, provider, 60, controller.signal);
+
+            // ✅ Clear OAuth state
+            isOAuthInProgressRef.current = false;
+            oauthControllerRef.current = null;
+
+            console.log(`🔍 Polling finished. authResult:`, authResult ? 'SUCCESS' : 'NULL');
+            console.log(`🔍 controller.signal.aborted:`, controller.signal.aborted);
+
+            // ✅ Nếu polling bị abort (user đóng browser) → return ngay
+            if (controller.signal.aborted && !authResult) {
+                console.log(`🚫 User dismissed browser, cancelling login...`);
+                return;
+            }
 
             if (authResult) {
                 console.log(`🎉 ${provider} auth result received!`);
