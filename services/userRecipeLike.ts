@@ -139,11 +139,54 @@ export const useRecipeLike = () => {
     likeTimersRef.current.set(recipeId, timer);
   };
 
+  // Flush tất cả pending like requests ngay lập tức
+  const flushPendingLikes = async () => {
+    const pendingRecipes = Array.from(likeTimersRef.current.keys());
+
+    if (pendingRecipes.length === 0) return;
+
+    console.log(`🚀 Flushing ${pendingRecipes.length} pending like requests...`);
+
+    // Clear tất cả timers
+    likeTimersRef.current.forEach(timer => clearTimeout(timer));
+    likeTimersRef.current.clear();
+
+    // Execute tất cả pending requests ngay lập tức
+    const promises = pendingRecipes.map(async (recipeId) => {
+      const state = likeStatesRef.current.get(recipeId);
+      if (!state) return;
+
+      const shouldToggle = state.clickCount % 2 === 1;
+      if (!shouldToggle) {
+        likeStatesRef.current.delete(recipeId);
+        return;
+      }
+
+      const finalState = !state.initialState;
+
+      try {
+        if (finalState) {
+          await likeRecipe(recipeId);
+        } else {
+          await unlikeRecipe(recipeId);
+        }
+      } catch (error) {
+        console.log(`Lỗi khi flush like cho ${recipeId}:`, error);
+      } finally {
+        likeStatesRef.current.delete(recipeId);
+      }
+    });
+
+    await Promise.all(promises);
+    console.log('✅ All pending likes flushed');
+  };
+
   return {
     likedRecipes,
     likingRecipeId,
     checkLikedStatus,
     toggleLike,
-    setLikedRecipes
+    setLikedRecipes,
+    flushPendingLikes
   };
 };

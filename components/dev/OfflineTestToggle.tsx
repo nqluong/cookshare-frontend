@@ -23,7 +23,7 @@ export function OfflineTestToggle() {
   const handleToggle = async (value: boolean) => {
     await AsyncStorage.setItem(DEV_OFFLINE_KEY, String(value));
     setForceOffline(value);
-    
+
     Alert.alert(
       '🔄 Reload Required',
       'Vui lòng reload app (r trong Metro) để áp dụng thay đổi',

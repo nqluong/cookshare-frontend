@@ -105,7 +105,7 @@ export default function TrendingRecipes({
     router.push("/create-collection" as any);
   };
 
-  useEffect(() => {}, [savedVersion]);
+  useEffect(() => { }, [savedVersion]);
   if (!recipes || recipes.length === 0) return null;
 
   return (
@@ -169,12 +169,14 @@ export default function TrendingRecipes({
                       </View>
                     }
                   />
-                  {index < 3 && (
-                    <View style={styles.rankBadge}>
-                      <Text style={styles.rankText}>#{index + 1}</Text>
-                    </View>
-                  )}
                 </View>
+
+                {/* RANK BADGE - moved outside imageContainer */}
+                {index < 3 && (
+                  <View style={styles.rankBadge}>
+                    <Text style={styles.rankText}>{index + 1}</Text>
+                  </View>
+                )}
 
                 {/* LIKE BUTTON */}
                 <TouchableOpacity

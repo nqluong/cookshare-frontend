@@ -278,7 +278,7 @@ export default function OwnProfileScreen() {
     if (!userProfile?.userId) return null;
 
     if (activeTab === "recipes") {
-      return <RecipeGrid userId={userProfile.userId} refreshKey={refreshKey} isOwnProfile={true} />;
+      return <RecipeGrid userId={userProfile.userId} refreshKey={refreshKey} isOwnProfile={true} currentProfileId={userProfile.userId} />;
     } else {
       return <CollectionListTab userId={userProfile.userId} />;
     }
@@ -302,10 +302,10 @@ export default function OwnProfileScreen() {
           onPress={__DEV_toggleOfflineMode}
           style={styles.devButton}
         >
-          <MaterialCommunityIcons 
-            name={__DEV_isForceOffline ? "wifi-off" : "wifi"} 
-            size={16} 
-            color="#fff" 
+          <MaterialCommunityIcons
+            name={__DEV_isForceOffline ? "wifi-off" : "wifi"}
+            size={16}
+            color="#fff"
           />
           <Text style={styles.devButtonText}>
             {__DEV_isForceOffline ? '📴 Offline' : '🌐 Online'}
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontWeight: "500",
   },
-  
+
   // Dev Button Styles
   devButton: {
     position: 'absolute',

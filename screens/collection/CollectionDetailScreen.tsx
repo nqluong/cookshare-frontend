@@ -115,7 +115,7 @@ export default function CollectionDetailScreen() {
 
   // Event Handlers
   const handleOpenDetail = (recipe: Recipe) => {
-    router.push(`/_recipe-detail/${recipe.recipeId}` as any);
+    router.push(`/_recipe-detail/${recipe.recipeId}?from=/collection` as any);
   };
 
   const renderRecipeItem = ({ item }: { item: Recipe }) => (

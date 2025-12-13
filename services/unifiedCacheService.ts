@@ -34,14 +34,14 @@ const CACHE_CONFIGS: Record<string, CacheConfig> = {
   TOP_RATED_RECIPES: { expiryTime: 60 * 60 * 1000 },
   LIKED_RECIPES: { expiryTime: 60 * 60 * 1000 },
   FOLLOWING_RECIPES: { expiryTime: 60 * 60 * 1000 },
-  
+
   // Recipe details - 7 ngày, giới hạn 20 items, dùng LRU
-  RECIPE_DETAIL: { 
-    expiryTime: 7 * 24 * 60 * 60 * 1000, 
-    maxItems: 20, 
-    useLRU: true 
+  RECIPE_DETAIL: {
+    expiryTime: 7 * 24 * 60 * 60 * 1000,
+    maxItems: 20,
+    useLRU: true
   },
-  
+
   // User info - 30 ngày, cho phép offline login
   LAST_USER_INFO: { expiryTime: 30 * 24 * 60 * 60 * 1000 },
 };
@@ -94,7 +94,7 @@ class UnifiedCacheService {
     if (__DEV__ && this.devForceOffline) {
       return false;
     }
-    
+
     const netInfo = await NetInfo.fetch();
     return netInfo.isConnected ?? false;
   }
@@ -103,7 +103,7 @@ class UnifiedCacheService {
    * Tạo cache key đầy đủ
    */
   private getCacheKey(category: string, id?: string): string {
-    return id 
+    return id
       ? `${CACHE_KEY_PREFIX}${category}_${id}`
       : `${CACHE_KEY_PREFIX}${category}`;
   }
@@ -119,8 +119,8 @@ class UnifiedCacheService {
    * Lưu dữ liệu vào cache
    */
   async saveToCache<T>(
-    category: string, 
-    data: T, 
+    category: string,
+    data: T,
     id?: string
   ): Promise<void> {
     try {
@@ -148,7 +148,7 @@ class UnifiedCacheService {
    * Lấy dữ liệu từ cache
    */
   async getFromCache<T>(
-    category: string, 
+    category: string,
     id?: string
   ): Promise<T | null> {
     try {
@@ -354,7 +354,7 @@ class UnifiedCacheService {
     try {
       const indexKey = `${CACHE_KEY_PREFIX}${category}_lru_index`;
       const indexString = await AsyncStorage.getItem(indexKey);
-      
+
       if (indexString) {
         let index: CacheIndex[] = JSON.parse(indexString);
         index = index.filter(item => item.key !== cacheKey);
@@ -376,7 +376,7 @@ class UnifiedCacheService {
         // Xóa theo LRU index
         const indexKey = `${CACHE_KEY_PREFIX}${category}_lru_index`;
         const indexString = await AsyncStorage.getItem(indexKey);
-        
+
         if (indexString) {
           const index: CacheIndex[] = JSON.parse(indexString);
           for (const item of index) {
@@ -403,7 +403,7 @@ class UnifiedCacheService {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const cacheKeys = keys.filter(key => key.startsWith(CACHE_KEY_PREFIX));
-      
+
       if (cacheKeys.length > 0) {
         await AsyncStorage.multiRemove(cacheKeys);
         console.log(`Đã xóa ${cacheKeys.length} cache entries`);
@@ -438,7 +438,7 @@ class UnifiedCacheService {
         const value = await AsyncStorage.getItem(key);
         if (value) {
           totalSize += value.length;
-          
+
           // Đếm theo category
           const match = key.match(/unified_cache_([A-Z_]+)/);
           if (match) {

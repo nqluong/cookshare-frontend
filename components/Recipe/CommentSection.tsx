@@ -83,7 +83,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
   const sortedComments = useMemo(() => {
     const sortRecursive = (commentsList: CommentWithExpandedReplies[]): CommentWithExpandedReplies[] => {
       const sorted = [...commentsList];
-      
+
       if (sortOption === "newest") {
         sorted.sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -93,7 +93,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
       }
-      
+
       // Đệ quy sort replies
       return sorted.map(comment => ({
         ...comment,
@@ -136,19 +136,19 @@ const CommentModal: React.FC<CommentModalProps> = ({
   }, [visible]);
 
   useEffect(() => {
-  if (replyingTo) {
-    const newMention = `@${replyingTo.fullName} `;
-    setCommentText(newMention);
-    Keyboard.dismiss();
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 200);
-  } else {
-    if (commentText.startsWith('@') && !editingComment) {
-      setCommentText('');
+    if (replyingTo) {
+      const newMention = `@${replyingTo.fullName} `;
+      setCommentText(newMention);
+      Keyboard.dismiss();
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 200);
+    } else {
+      if (commentText.startsWith('@') && !editingComment) {
+        setCommentText('');
+      }
     }
-  }
-}, [replyingTo]);
+  }, [replyingTo]);
 
   useEffect(() => {
     onCommentCountChange?.(totalComments);
@@ -157,7 +157,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
   useEffect(() => {
     if (scrollToCommentId && flatListRef.current) {
       const findCommentIndex = (
-        commentId: string, 
+        commentId: string,
         comments: CommentWithExpandedReplies[]
       ): { parentIndex: number; isReply: boolean } | null => {
         const directIndex = comments.findIndex(c => c.commentId === commentId);
@@ -210,14 +210,14 @@ const CommentModal: React.FC<CommentModalProps> = ({
 
   useEffect(() => {
     if (
-      visible && 
-      focusCommentId && 
-      !loading && 
-      comments.length > 0 && 
+      visible &&
+      focusCommentId &&
+      !loading &&
+      comments.length > 0 &&
       !hasProcessedFocusRef.current
     ) {
       hasProcessedFocusRef.current = true;
-      
+
       const timer = setTimeout(() => {
         handleFocusComment(focusCommentId);
       }, 300);
@@ -228,7 +228,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
 
   const handleFocusComment = useCallback((targetCommentId: string) => {
     const parentsToExpand: string[] = [];
-    
+
     const findParentPath = (
       commentsList: CommentWithExpandedReplies[],
       path: string[] = []
@@ -238,7 +238,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
           parentsToExpand.push(...path);
           return true;
         }
-        
+
         if (comment.replies && comment.replies.length > 0) {
           if (findParentPath(comment.replies, [...path, comment.commentId])) {
             return true;
@@ -250,24 +250,24 @@ const CommentModal: React.FC<CommentModalProps> = ({
 
     setComments(currentComments => {
       findParentPath(currentComments);
-      
+
       if (parentsToExpand.length > 0) {
         let updated = [...currentComments];
-        
+
         parentsToExpand.forEach(parentId => {
           updated = expandCommentById(updated, parentId, Infinity);
         });
-        
+
         return updated;
       }
-      
+
       return currentComments;
     });
-    
+
     setTimeout(() => {
       setScrollToCommentId(targetCommentId);
       setHighlightedCommentId(targetCommentId);
-      
+
       setTimeout(() => {
         setHighlightedCommentId(null);
       }, 3000);
@@ -370,8 +370,8 @@ const CommentModal: React.FC<CommentModalProps> = ({
           c.commentId === updated.commentId
             ? { ...c, content: updated.content, updatedAt: updated.updatedAt }
             : c.replies
-            ? { ...c, replies: updateRecursively(c.replies) }
-            : c
+              ? { ...c, replies: updateRecursively(c.replies) }
+              : c
         );
       };
       setComments(updateRecursively);
@@ -648,8 +648,8 @@ const CommentModal: React.FC<CommentModalProps> = ({
                   {opt === "relevant"
                     ? "Phù hợp nhất"
                     : opt === "newest"
-                    ? "Mới nhất"
-                    : "Tất cả bình luận"}
+                      ? "Mới nhất"
+                      : "Tất cả bình luận"}
                 </Text>
                 {sortOption === opt && (
                   <Ionicons name="checkmark-done" size={20} color="#1877F2" />
@@ -673,7 +673,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
       {renderSortModal()}
 
       <View style={{ flex: 1, backgroundColor: "#FFF" }}>
-        <View style={styles.modalHeader}>
+        <View style={[styles.modalHeader, { paddingTop: Math.max(insets.top, 12) }]}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Bình luận ({totalComments})</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -775,7 +775,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
               style={[
                 styles.sendButton,
                 (!commentText.trim() || submitting) &&
-                  styles.sendButtonDisabled,
+                styles.sendButtonDisabled,
               ]}
               onPress={handleSubmit}
               disabled={!commentText.trim() || submitting}
@@ -868,12 +868,12 @@ const styles = StyleSheet.create({
   emptySubtext: { fontSize: 16, color: "#666", fontWeight: "500" },
   emptyHint: { fontSize: 14, color: "#999", marginTop: 4 },
   listContent: { padding: 16, paddingBottom: 5 },
-  commentContainer: { 
-    flexDirection: "row", 
+  commentContainer: {
+    flexDirection: "row",
     marginBottom: 5,
   },
-  replyContainer: { 
-    marginLeft: 5, 
+  replyContainer: {
+    marginLeft: 5,
     marginTop: 8,
   },
   avatarTouchable: {
@@ -891,8 +891,8 @@ const styles = StyleSheet.create({
     borderRadius: 12.5,
     backgroundColor: "#E0E0E0",
   },
-  commentContent: { 
-    flex: 1, 
+  commentContent: {
+    flex: 1,
     marginLeft: 12,
   },
   commentBubble: {
@@ -906,16 +906,16 @@ const styles = StyleSheet.create({
   highlightedComment: {
     backgroundColor: '#FFF9C4',
   },
-  userName: { 
-    fontWeight: "600", 
-    fontSize: 13, 
-    color: "#333", 
-    marginBottom: 2 
+  userName: {
+    fontWeight: "600",
+    fontSize: 13,
+    color: "#333",
+    marginBottom: 2
   },
-  commentText: { 
-    fontSize: 14, 
-    color: "#000", 
-    lineHeight: 18 
+  commentText: {
+    fontSize: 14,
+    color: "#000",
+    lineHeight: 18
   },
   commentMeta: {
     flexDirection: "row",

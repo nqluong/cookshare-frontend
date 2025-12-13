@@ -24,13 +24,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // SwipeableNotificationItem Component
-const SwipeableNotificationItem = ({ 
-  item, 
-  onPress, 
-  onDelete 
-}: { 
-  item: Notification; 
-  onPress: () => void; 
+const SwipeableNotificationItem = ({
+  item,
+  onPress,
+  onDelete
+}: {
+  item: Notification;
+  onPress: () => void;
   onDelete: () => void;
 }) => {
   const translateX = useRef(new Animated.Value(0)).current;
@@ -83,7 +83,7 @@ const SwipeableNotificationItem = ({
     if (seconds < 3600) return `${Math.floor(seconds / 60)} phút`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)} ngày`;
-    
+
     const month = date.toLocaleString('vi-VN', { month: 'short', day: 'numeric' });
     return month;
   };
@@ -277,14 +277,14 @@ const SwipeableNotificationItem = ({
   return (
     <View style={styles.swipeContainer}>
       <View style={styles.deleteContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDelete}
         >
           <Text style={styles.deleteText}>Xóa</Text>
         </TouchableOpacity>
       </View>
-      
+
       <Animated.View
         style={[
           styles.notificationItem,
@@ -519,29 +519,30 @@ export default function NotificationsScreen() {
           router.push(`/profile/${notification.actorId}`);
         }
         break;
-      
+
       case NotificationType.COMMENT:
       case NotificationType.MENTION:
         if (notification.recipeId && notification.relatedId) {
           // Navigate to recipe and open comment modal, focus on specific comment
           router.push({
             pathname: `/_recipe-detail/${notification.recipeId}`,
-            params: { 
+            params: {
               openComments: 'true',
-              focusCommentId: notification.relatedId 
+              focusCommentId: notification.relatedId,
+              from: '/(tabs)/notifications'
             }
           } as any);
         }
         break;
-      
+
       case NotificationType.LIKE:
       case NotificationType.RECIPE_PUBLISHED:
       case NotificationType.SYSTEM:
         if (notification.relatedId) {
-          router.push(`/_recipe-detail/${notification.relatedId}`);
+          router.push(`/_recipe-detail/${notification.relatedId}?from=/(tabs)/notifications`);
         }
         break;
-      
+
       default:
         break;
     }

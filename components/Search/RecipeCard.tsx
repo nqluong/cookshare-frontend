@@ -13,7 +13,7 @@ interface RecipeCardProps {
 
 export default function RecipeCard({ item, isUserResult = false }: RecipeCardProps) {
   const router = useRouter();
-  
+
   const handlePress = () => {
     if (isUserResult) {
       // Navigate đến UserProfile nếu là kết quả user
@@ -22,7 +22,7 @@ export default function RecipeCard({ item, isUserResult = false }: RecipeCardPro
       }
     } else {
       // Navigate đến recipe detail nếu là kết quả recipe
-      router.push(`/_recipe-detail/${item.recipeId}` as any);
+      router.push(`/_recipe-detail/${item.recipeId}?from=/(tabs)/search` as any);
     }
   };
 
@@ -55,7 +55,7 @@ export default function RecipeCard({ item, isUserResult = false }: RecipeCardPro
 
   // Render recipe card (như cũ)
   return (
-    <TouchableOpacity style={searchStyles.recipeCard} onPress={handlePress} activeOpacity={0.7}>   
+    <TouchableOpacity style={searchStyles.recipeCard} onPress={handlePress} activeOpacity={0.7}>
       <CachedImage
         source={{ uri: getImageUrl(item.featuredImage) }}
         style={searchStyles.recipeImage}

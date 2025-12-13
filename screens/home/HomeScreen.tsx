@@ -34,7 +34,7 @@ import {
   getTrendingRecipes
 } from '../../services/homeService';
 import { CACHE_CATEGORIES as CACHE_KEYS } from '../../services/unifiedCacheService';
-import { useRecipeLike } from '../../services/userRecipeLike';
+import { useRecipeLikeContext } from '@/context/RecipeLikeContext';
 
 // Types & Styles
 import { SearchHistoryItem } from '@/types/search';
@@ -88,7 +88,7 @@ export default function HomeScreen() {
   // Hooks
   // Cached Data with hooks
   // Note: dailyRecommendations và featuredRecipes sẽ được load từ state, không cache
-  const likeHook = useRecipeLike();
+  const likeHook = useRecipeLikeContext();
   const newest = useCachedPagination({
     cacheKey: CACHE_KEYS.NEWEST_RECIPES,
     fetchFunction: getNewestRecipes,
@@ -164,6 +164,47 @@ export default function HomeScreen() {
 
   const lastRefetchTrigger = useRef<string>("0");
 
+  // Register callback to update like counts when liked from detail screen
+  useEffect(() => {
+    const handleLikeUpdate = (recipeId: string, delta: number) => {
+      console.log(`📢 Like count updated for ${recipeId}: ${delta > 0 ? '+' : ''}${delta}`);
+
+      // Update in all paginations
+      newest.updateRecipe(recipeId, {
+        likeCount: (newest.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
+      });
+      trending.updateRecipe(recipeId, {
+        likeCount: (trending.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
+      });
+      popular.updateRecipe(recipeId, {
+        likeCount: (popular.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
+      });
+      topRated.updateRecipe(recipeId, {
+        likeCount: (topRated.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
+      });
+      liked.updateRecipe(recipeId, {
+        likeCount: (liked.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
+      });
+      following.updateRecipe(recipeId, {
+        likeCount: (following.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
+      });
+
+      // Update in dailyRecommendations and featuredRecipes
+      setDailyRecommendations(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: (r.likeCount || 0) + delta } : r
+      ));
+      setFeaturedRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: (r.likeCount || 0) + delta } : r
+      ));
+    };
+
+    likeHook.registerLikeUpdateCallback(handleLikeUpdate);
+
+    return () => {
+      likeHook.unregisterLikeUpdateCallback(handleLikeUpdate);
+    };
+  }, [likeHook, newest, trending, popular, topRated, liked, following]);
+
   useFocusEffect(
     useCallback(() => {
       const trigger = globalParams.refetchTrigger as string;
@@ -208,11 +249,16 @@ export default function HomeScreen() {
       following.refresh();
       setIsFollowingTabLoaded(true);
     }
+
+    // Flush pending likes when tab changes
+    likeHook.flushPendingLikes();
   }, [activeTab]);
 
   // Event Handlers
-  const handleOpenDetail = (recipe: DishRecipe) => {
-    router.push(`/_recipe-detail/${recipe.recipeId}` as any);
+  const handleOpenDetail = async (recipe: DishRecipe) => {
+    // Flush pending likes before navigating to detail
+    await likeHook.flushPendingLikes();
+    router.push(`/_recipe-detail/${recipe.recipeId}?from=/(tabs)/home` as any);
   };
 
   const handleSearch = async (
