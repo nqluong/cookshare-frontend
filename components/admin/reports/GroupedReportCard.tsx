@@ -4,8 +4,8 @@ import { Image } from "expo-image";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Colors } from "../../../styles/colors";
 import {
-  GroupedReport,
-  REPORT_PRIORITY_CONFIG
+    GroupedReport,
+    REPORT_PRIORITY_CONFIG
 } from "../../../types/admin/groupedReport.types";
 import ReportPriorityBadge from "./ReportPriorityBadge";
 import ReportTypeBreakdown from "./ReportTypeBreakdown";
@@ -150,27 +150,34 @@ export default function GroupedReportCard({
           <Text style={styles.detailButtonText}>Chi tiết</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity 
-          style={[
-            styles.actionButton,
-            report.priority === 'CRITICAL' && styles.actionButtonUrgent
-          ]}
-          onPress={() => onTakeAction(report)}
-        >
-          <Ionicons 
-            name="hammer-outline" 
-            size={16} 
-            color={report.priority === 'CRITICAL' ? '#FFFFFF' : '#10B981'} 
-          />
-          <Text 
+        {report.allResolved ? (
+          <View style={styles.resolvedBadge}>
+            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+            <Text style={styles.resolvedText}>Đã xử lý</Text>
+          </View>
+        ) : (
+          <TouchableOpacity 
             style={[
-              styles.actionButtonText,
-              report.priority === 'CRITICAL' && styles.actionButtonTextUrgent
+              styles.actionButton,
+              report.priority === 'CRITICAL' && styles.actionButtonUrgent
             ]}
+            onPress={() => onTakeAction(report)}
           >
-            Xử lý
-          </Text>
-        </TouchableOpacity>
+            <Ionicons 
+              name="hammer-outline" 
+              size={16} 
+              color={report.priority === 'CRITICAL' ? '#FFFFFF' : '#10B981'} 
+            />
+            <Text 
+              style={[
+                styles.actionButtonText,
+                report.priority === 'CRITICAL' && styles.actionButtonTextUrgent
+              ]}
+            >
+              Xử lý
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -363,5 +370,20 @@ const styles = StyleSheet.create({
   },
   actionButtonTextUrgent: {
     color: '#FFFFFF',
+  },
+  resolvedBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#D1FAE5',
+    gap: 6,
+  },
+  resolvedText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
   },
 });

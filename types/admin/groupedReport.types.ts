@@ -4,7 +4,7 @@ export type ReportType =
   | 'HARASSMENT' 
   | 'COPYRIGHT' 
   | 'SPAM' 
-  | 'INAPPROPRIATE_CONTENT' 
+  | 'INAPPROPRIATE' 
   | 'MISLEADING' 
   | 'OTHER';
 
@@ -12,12 +12,8 @@ export type ReportPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 export type ReportStatus = 
   | 'PENDING' 
-  | 'APPROVED' 
-  | 'UNDER_REVIEW' 
-  | 'REVIEWING' 
   | 'RESOLVED' 
-  | 'REJECTED' 
-  | 'CLOSED';
+  | 'REJECTED';
 
 export type ReportActionType = 
   | 'NO_ACTION'
@@ -51,6 +47,7 @@ export interface GroupedReport {
   autoActioned: boolean;
   exceedsThreshold: boolean;
   priority: ReportPriority;
+  allResolved: boolean;
   
   topReporters: string[];
 }
@@ -101,7 +98,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   HARASSMENT: 'Quấy rối',
   COPYRIGHT: 'Bản quyền',
   SPAM: 'Spam',
-  INAPPROPRIATE_CONTENT: 'Nội dung không phù hợp',
+  INAPPROPRIATE: 'Nội dung không phù hợp',
   MISLEADING: 'Gây hiểu lầm',
   OTHER: 'Khác',
 };
@@ -110,29 +107,21 @@ export const REPORT_TYPE_COLORS: Record<ReportType, string> = {
   HARASSMENT: '#DC2626',
   COPYRIGHT: '#7C3AED',
   SPAM: '#F59E0B',
-  INAPPROPRIATE_CONTENT: '#EC4899',
+  INAPPROPRIATE: '#EC4899',
   MISLEADING: '#3B82F6',
   OTHER: '#6B7280',
 };
 
 export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
   PENDING: 'Chờ xử lý',
-  APPROVED: 'Đã phê duyệt',
-  UNDER_REVIEW: 'Đang xem xét',
-  REVIEWING: 'Đang xem xét',
-  RESOLVED: 'Đã giải quyết',
-  REJECTED: 'Đã từ chối',
-  CLOSED: 'Đã đóng',
+  RESOLVED: 'Đã được xử lý',
+  REJECTED: 'Đã từ chối'
 };
 
 export const REPORT_STATUS_COLORS: Record<ReportStatus, string> = {
   PENDING: '#F59E0B',
-  APPROVED: '#10B981',
-  UNDER_REVIEW: '#3B82F6',
-  REVIEWING: '#3B82F6',
   RESOLVED: '#10B981',
-  REJECTED: '#EF4444',
-  CLOSED: '#6B7280',
+  REJECTED: '#EF4444'
 };
 
 export const REPORT_ACTION_TYPE_LABELS: Record<ReportActionType, string> = {
@@ -297,3 +286,40 @@ export const ACTION_OPTIONS: ActionOption[] = [
     requiresDescription: true,
   },
 ];
+
+// Report Statistics Types
+export interface RecentReport {
+  reportId: string;
+  recipeTitle: string;
+  reportType: ReportType;
+  createdAt: string;
+}
+
+export interface TopReportedRecipe {
+  itemId: string;
+  itemName: string;
+  reportCount: number;
+}
+
+export interface ReportStatistics {
+  totalReports: number;
+  pendingReports: number;
+  resolvedReports: number;
+  rejectedReports: number;
+  reportsByType?: {
+    SPAM?: number;
+    INAPPROPRIATE_CONTENT?: number;
+    COPYRIGHT?: number;
+    HARASSMENT?: number;
+    MISLEADING?: number;
+    OTHER?: number;
+  };
+  recentReports?: RecentReport[];
+  topReportedRecipes?: TopReportedRecipe[];
+}
+
+export interface ReportStatisticsResponse {
+  success: boolean;
+  message: string;
+  data: ReportStatistics;
+}

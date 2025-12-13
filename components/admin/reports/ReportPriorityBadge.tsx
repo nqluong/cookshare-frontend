@@ -1,8 +1,7 @@
-// components/admin/reports/ReportPriorityBadge.tsx
 import { StyleSheet, Text, View } from "react-native";
 import {
-    REPORT_PRIORITY_CONFIG,
-    ReportPriority
+  REPORT_PRIORITY_CONFIG,
+  ReportPriority
 } from "../../../types/admin/groupedReport.types";
 
 interface ReportPriorityBadgeProps {

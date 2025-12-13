@@ -1,10 +1,11 @@
 // services/adminGroupedReportService.ts
 import { API_CONFIG } from '@/config/api.config';
 import {
-  GroupedReportDetail,
-  GroupedReportResponse,
-  ReviewReportRequest,
-  ReviewReportResponse
+    GroupedReportDetail,
+    GroupedReportResponse,
+    ReportStatistics,
+    ReviewReportRequest,
+    ReviewReportResponse
 } from '@/types/admin/groupedReport.types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -128,6 +129,16 @@ class AdminGroupedReportService {
       `${BASE_URL}/api/admin/reports/grouped/recipe/${recipeId}/review`,
       'POST',
       request
+    );
+  }
+
+  /**
+   * Lấy thống kê báo cáo
+   * @returns Thống kê tổng quan về báo cáo
+   */
+  async getReportStatistics(): Promise<ReportStatistics> {
+    return this.handleFetchRequest<ReportStatistics>(
+      `${BASE_URL}/api/admin/reports/statistics`
     );
   }
 }

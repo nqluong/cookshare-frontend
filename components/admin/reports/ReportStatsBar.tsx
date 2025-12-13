@@ -1,72 +1,125 @@
-// components/admin/reports/ReportStatsBar.tsx
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Layout, moderateScale, scale } from "../../../constants/layout";
 import { Colors } from "../../../styles/colors";
+import { ReportStatus } from "../../../types/admin/groupedReport.types";
 
-interface ReportStatsBarProps {
-  totalPending: number;
-  totalElements: number;
+interface StatCount {
+  total: number;
+  pending: number;
+  resolved: number;
+  rejected: number;
 }
 
+interface ReportStatsBarProps {
+  stats: StatCount | null;
+  loading?: boolean;
+  activeFilter: ReportStatus | 'ALL';
+  onFilterChange: (filter: ReportStatus | 'ALL') => void;
+}
+
+const STAT_CONFIGS = [
+  { key: 'ALL' as const, label: 'Tất cả', icon: 'document-text-outline', color: '#3B82F6', bgColor: '#EFF6FF' },
+  { key: 'PENDING' as const, label: 'Đang chờ', icon: 'time-outline', color: '#F59E0B', bgColor: '#FEF3C7' },
+  { key: 'RESOLVED' as const, label: 'Đã xử lý', icon: 'checkmark-circle-outline', color: '#10B981', bgColor: '#D1FAE5' },
+  { key: 'REJECTED' as const, label: 'Từ chối', icon: 'close-circle-outline', color: '#EF4444', bgColor: '#FEE2E2' },
+];
+
 export default function ReportStatsBar({ 
-  totalPending, 
-  totalElements 
+  stats, 
+  loading,
+  activeFilter,
+  onFilterChange
 }: ReportStatsBarProps) {
+  const getCount = (key: ReportStatus | 'ALL'): number => {
+    if (!stats) return 0;
+    switch (key) {
+      case 'ALL': return stats.total;
+      case 'PENDING': return stats.pending;
+      case 'RESOLVED': return stats.resolved;
+      case 'REJECTED': return stats.rejected;
+      default: return 0;
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.statItem}>
-        <Ionicons name="notifications" size={18} color="#DC2626" />
-        <Text style={styles.statValue}>{totalPending}</Text>
-        <Text style={styles.statLabel}>đang chờ</Text>
-      </View>
-      
-      <View style={styles.divider} />
-      
-      <View style={styles.statItem}>
-        <Ionicons name="stats-chart" size={18} color="#3B82F6" />
-        <Text style={styles.statValue}>{totalElements}</Text>
-        <Text style={styles.statLabel}>tổng cộng</Text>
-      </View>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={Colors.primary} />
+        </View>
+      ) : (
+        <View style={styles.statsRow}>
+          {STAT_CONFIGS.map((config) => {
+            const isActive = activeFilter === config.key;
+            return (
+              <TouchableOpacity
+                key={config.key}
+                style={[
+                  styles.statCard,
+                  { backgroundColor: isActive ? config.color : config.bgColor },
+                ]}
+                onPress={() => onFilterChange(config.key)}
+                activeOpacity={0.7}
+              >
+                <Ionicons 
+                  name={config.icon as any} 
+                  size={scale(16)} 
+                  color={isActive ? '#FFFFFF' : config.color} 
+                />
+                <Text style={[
+                  styles.statValue,
+                  { color: isActive ? '#FFFFFF' : config.color }
+                ]}>
+                  {getCount(config.key)}
+                </Text>
+                <Text style={[
+                  styles.statLabel,
+                  { color: isActive ? '#FFFFFF' : Colors.text.secondary }
+                ]} numberOfLines={1}>
+                  {config.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingHorizontal: Layout.spacing.md,
+    paddingVertical: Layout.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-  statItem: {
-    flexDirection: 'row',
+  loadingContainer: {
+    paddingVertical: Layout.spacing.md,
     alignItems: 'center',
-    gap: 6,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: scale(8),
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Layout.spacing.sm,
+    paddingHorizontal: Layout.spacing.xs,
+    borderRadius: Layout.borderRadius.md,
+    gap: scale(2),
   },
   statValue: {
-    fontSize: 18,
+    fontSize: moderateScale(16),
     fontWeight: '700',
-    color: Colors.text.primary,
   },
   statLabel: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-  },
-  divider: {
-    width: 1,
-    height: 24,
-    backgroundColor: Colors.border,
-    marginHorizontal: 20,
+    fontSize: moderateScale(9),
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
+

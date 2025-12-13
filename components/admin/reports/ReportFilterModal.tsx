@@ -41,19 +41,15 @@ const REPORT_TYPES: ReportType[] = [
   'HARASSMENT', 
   'COPYRIGHT', 
   'SPAM', 
-  'INAPPROPRIATE_CONTENT', 
+  'INAPPROPRIATE', 
   'MISLEADING', 
   'OTHER'
 ];
 
 const STATUSES: ReportStatus[] = [
   'PENDING',
-  'APPROVED',
-  'UNDER_REVIEW',
-  'REVIEWING',
   'RESOLVED',
-  'REJECTED',
-  'CLOSED'
+  'REJECTED'
 ];
 
 const ACTION_TYPES: ReportActionType[] = [
