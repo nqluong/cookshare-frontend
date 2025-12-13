@@ -24,7 +24,6 @@ import { RecipeService } from "../../services/recipeService";
 import { TagService } from "../../services/tagService";
 
 // Utils
-import { useAutosave } from "../../hooks/useAutosave";
 import { RecipeDraft } from "../../types/recipe";
 import { deleteDraft, getDraft, saveDraft } from "../../utils/draftManager";
 
@@ -75,7 +74,6 @@ export default function AddRecipeScreen({ navigation }: any) {
   const [draftListVisible, setDraftListVisible] = useState(false);
   const [draftListReloadKey, setDraftListReloadKey] = useState(0);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
-  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
 
   // Combined data
   const allCategories = [...localCategories, ...categories];
@@ -90,8 +88,6 @@ export default function AddRecipeScreen({ navigation }: any) {
     localCategories, localTags, localIngredients,
     lastModified: new Date().toISOString(), version: 1
   });
-
-  const { lastSaved, isSaving } = useAutosave(createDraftObject(), 3000, autosaveEnabled);
 
   // Load initial data
   useEffect(() => {
@@ -525,18 +521,6 @@ export default function AddRecipeScreen({ navigation }: any) {
       <DraftListModal visible={draftListVisible} userId={user?.userId || ''} reloadKey={draftListReloadKey} onClose={() => setDraftListVisible(false)} onLoadDraft={loadDraftData} />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#f0f0f0', borderRadius: 8, marginBottom: 16 }}>
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {isSaving && <><MaterialIcons name="save" size={18} color="#666" /><Text style={{ fontSize: 14, color: '#666' }}>Đang lưu...</Text></>}
-            {lastSaved && !isSaving && <><MaterialIcons name="check-circle" size={18} color="#28a745" /><Text style={{ fontSize: 14, color: '#28a745' }}>Lưu lúc {lastSaved.toLocaleTimeString('vi-VN')}</Text></>}
-            {!lastSaved && !isSaving && <><MaterialIcons name="info" size={18} color="#999" /><Text style={{ fontSize: 14, color: '#999' }}>Chưa lưu</Text></>}
-          </View>
-          <TouchableOpacity onPress={() => setAutosaveEnabled(!autosaveEnabled)} style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'white', borderRadius: 6, borderWidth: 1, borderColor: '#ddd', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <MaterialIcons name={autosaveEnabled ? 'check-circle' : 'cancel'} size={16} color={autosaveEnabled ? '#28a745' : '#dc3545'} />
-            <Text style={{ fontSize: 12, fontWeight: '600' }}>Tự động lưu</Text>
-          </TouchableOpacity>
-        </View>
-
         <RecipeForm
           title={title} description={description} prepTime={prepTime} cookTime={cookTime}
           difficulty={difficulty} servings={servings} image={image}

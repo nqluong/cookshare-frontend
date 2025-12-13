@@ -11,6 +11,8 @@ export interface Recipe {
   viewCount: number;
   likeCount: number;
   saveCount: number;
+  status?: string;
+  isPublished?: boolean;
 }
 
 export interface ApiResponse {
@@ -47,16 +49,16 @@ export interface Ingredient {
 }
 export interface IngredientsResponse {
   code: number;
-  result: Ingredient[]; 
+  result: Ingredient[];
   message?: string;
 }
 export interface SearchHistoryItem {
   searchId: string;
   userId: string;
   searchQuery: string;
-  searchType: 'recipe' | 'ingredient'; 
+  searchType: 'recipe' | 'ingredient';
   resultCount: number;
-  createdAt: string; 
+  createdAt: string;
 }
 
 export interface SearchHistoryResponse {

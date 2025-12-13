@@ -1,5 +1,6 @@
 import { commentService } from "@/services/commentService";
 import { ratingService } from "@/services/ratingService";
+import { useRecipeLikeContext } from "@/context/RecipeLikeContext";
 import { CommentResponse } from "@/types/comment";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -32,6 +33,7 @@ type Step = {
   stepId: string;
   stepNumber: number;
   instruction: string;
+  imageUrl?: string;
 };
 
 type Tag = {
@@ -79,6 +81,7 @@ type Props = {
   router?: any;
   onBack: () => void;
   onSearch: () => void;
+  sourceRoute?: string;
 };
 
 type RecipeDetailParams = {
@@ -92,12 +95,18 @@ export default function RecipeDetailView({
   currentUserId,
   currentUserAvatar,
   router,
+  sourceRoute,
 }: Props) {
   const params = useLocalSearchParams<RecipeDetailParams>();
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [comments, setComments] = useState<CommentWithExpandedReplies[]>([]);
   const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
+
+  // LIKE STATE
+  const { likedRecipes, checkLikedStatus, toggleLike: toggleLikeService } = useRecipeLikeContext();
+  const [localLikeCount, setLocalLikeCount] = useState(recipe.likes ?? 0);
+  const isLiked = likedRecipes.has(recipe.id);
 
   // RATING STATE
   const [userRating, setUserRating] = useState(0);
@@ -112,6 +121,11 @@ export default function RecipeDetailView({
     console.log("RecipeDetailView - authorInfo:", authorInfo);
     console.log("RecipeDetailView - recipe.image:", recipe.image);
   }, [authorInfo, recipe.image]);
+
+  // Update local like count when recipe.likes changes
+  useEffect(() => {
+    setLocalLikeCount(recipe.likes ?? 0);
+  }, [recipe.likes]);
 
   const totalComments = useMemo(
     () => countAllCommentsRecursive(comments),
@@ -185,6 +199,25 @@ export default function RecipeDetailView({
       return { uri: getImageUrl(avatarUrl) };
     }
     return require("../../assets/images/default-avatar.png");
+  };
+
+  // XỬ LÝ LIKE
+  const handleToggleLike = async () => {
+    if (!currentUserId) {
+      Toast.show({
+        type: "error",
+        text1: "Vui lòng đăng nhập để thích công thức",
+        position: "bottom",
+      });
+      return;
+    }
+
+    await toggleLikeService(
+      recipe.id,
+      (delta) => {
+        setLocalLikeCount(prev => Math.max(0, prev + delta));
+      }
+    );
   };
 
   // XỬ LÝ GỬI ĐÁNH GIÁ
@@ -323,10 +356,17 @@ export default function RecipeDetailView({
 
         {/* Info row */}
         <View style={styles.infoRow}>
-          <TouchableOpacity style={styles.infoButton}>
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={handleToggleLike}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <MaterialIcons name="favorite" size={20} color="#FF6B6B" />
-              <Text style={styles.infoText}>{recipe.likes ?? 0}</Text>
+              <MaterialIcons
+                name={isLiked ? "favorite" : "favorite-border"}
+                size={20}
+                color="#FF6B6B"
+              />
+              <Text style={styles.infoText}>{localLikeCount}</Text>
             </View>
           </TouchableOpacity>
 
@@ -528,24 +568,24 @@ export default function RecipeDetailView({
                       {s.instruction}
                     </Text>
                   </View>
+                  {s.imageUrl && (
+                    <Image
+                      source={{ uri: getImageUrl(s.imageUrl) }}
+                      style={{
+                        width: "100%",
+                        height: 200,
+                        borderRadius: 8,
+                        marginTop: 12,
+                      }}
+                      resizeMode="cover"
+                    />
+                  )}
                 </View>
               ))
           ) : (
             <Text style={{ color: "#999", fontStyle: "italic" }}>Không có hướng dẫn nấu ăn</Text>
           )}
         </View>
-
-        {/* Video */}
-        {recipe.video && (
-          <TouchableOpacity style={styles.videoCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <MaterialIcons name="video-library" size={24} color="#FF8C00" />
-              <Text style={{ fontSize: 16, fontWeight: "600", color: "#FF8C00" }}>
-                Video hướng dẫn
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
 
         {/* Nút bình luận */}
         <TouchableOpacity

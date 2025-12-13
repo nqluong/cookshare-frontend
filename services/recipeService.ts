@@ -63,16 +63,16 @@ export const getRecipeById = async (id: string, token?: string | null) => {
   try {
     const headers: any = { ...API_CONFIG.DEFAULT_HEADERS };
     if (token) headers.Authorization = `Bearer ${token}`;
-    
+
     console.log(`📥 Fetching recipe ${id}...`);
     const res = await api.get(`/${id}`, { headers });
-    
+
     console.log(`✅ Recipe ${id} loaded:`, {
       title: res.data?.title,
       stepsCount: res.data?.steps?.length,
       stepsWithImages: res.data?.steps?.filter((s: any) => s.imageUrl).length
     });
-    
+
     return res.data;
   } catch (error) {
     handleError(error);
@@ -101,7 +101,7 @@ export const createRecipe = async (formData: FormData) => {
     if (jsonData.newIngredients && jsonData.newIngredients.length > 0) {
       console.log("🔍 newIngredients structure:", JSON.stringify(jsonData.newIngredients, null, 2));
     }
-    
+
     if (jsonData.ingredientDetails && jsonData.ingredientDetails.length > 0) {
       console.log("🔍 ingredientDetails structure:", JSON.stringify(jsonData.ingredientDetails, null, 2));
     }
@@ -109,9 +109,9 @@ export const createRecipe = async (formData: FormData) => {
     // ✅ Tạo FormData mới - GỬI NGUYÊN DATA
     const uploadForm = new FormData();
     uploadForm.append("data", JSON.stringify(jsonData));
-    
+
     if (image) uploadForm.append("image", image as any);
-    
+
     if (stepImages?.length) {
       stepImages.forEach((si: any) => uploadForm.append("stepImages", si));
     }
@@ -137,7 +137,7 @@ export const createRecipe = async (formData: FormData) => {
       id: res.data.recipeId,
       title: res.data.title,
     });
-    
+
     return res.data;
   } catch (error) {
     console.error("❌ Recipe creation failed:", error);
@@ -151,7 +151,7 @@ export const updateRecipe = async (id: string, data: any) => {
     if (data instanceof FormData) {
       const jsonData = JSON.parse((data.get("data") as string) || "{}");
       const stepImages = data.getAll("stepImages");
-      
+
       console.log("📤 Updating recipe:", {
         id,
         title: jsonData.title,
@@ -165,10 +165,10 @@ export const updateRecipe = async (id: string, data: any) => {
 
       // ✅ VALIDATION: Đảm bảo ingredientDetails có đủ thông tin
       if (jsonData.ingredientDetails && jsonData.ingredientDetails.length > 0) {
-        console.log("🔍 Before validation - ingredientDetails:", 
+        console.log("🔍 Before validation - ingredientDetails:",
           JSON.stringify(jsonData.ingredientDetails, null, 2)
         );
-        
+
         jsonData.ingredientDetails = jsonData.ingredientDetails.map((detail: any, idx: number) => {
           if (!detail.ingredientId) {
             console.warn(`⚠️ ingredientDetails[${idx}] missing ingredientId`);
@@ -182,14 +182,14 @@ export const updateRecipe = async (id: string, data: any) => {
           };
         });
 
-        console.log("✅ After validation - ingredientDetails:", 
+        console.log("✅ After validation - ingredientDetails:",
           JSON.stringify(jsonData.ingredientDetails, null, 2)
         );
       }
 
       // ✅ LOG CHI TIẾT về newIngredients
       if (jsonData.newIngredients && jsonData.newIngredients.length > 0) {
-        console.log("🆕 New ingredients to be created:", 
+        console.log("🆕 New ingredients to be created:",
           jsonData.newIngredients.map((i: any) => ({
             name: i.name,
             category: i.category
@@ -201,10 +201,10 @@ export const updateRecipe = async (id: string, data: any) => {
       if (jsonData.steps && jsonData.steps.length > 0) {
         console.log("📋 Steps image summary:");
         jsonData.steps.forEach((step: any, idx: number) => {
-          const imageStatus = step.imageUrl 
-            ? (step.imageUrl.startsWith('http') ? '🔗 OLD URL' : '🆕 NEW') 
+          const imageStatus = step.imageUrl
+            ? (step.imageUrl.startsWith('http') ? '🔗 OLD URL' : '🆕 NEW')
             : '❌ NO IMAGE';
-          console.log(`  Step ${step.stepNumber || idx + 1}: ${imageStatus}`, 
+          console.log(`  Step ${step.stepNumber || idx + 1}: ${imageStatus}`,
             step.imageUrl ? `(${step.imageUrl.substring(0, 50)}...)` : ''
           );
         });
@@ -222,12 +222,12 @@ export const updateRecipe = async (id: string, data: any) => {
       // ✅ GỬI NGUYÊN DATA - KHÔNG XÓA GÌ CẢ
       const uploadForm = new FormData();
       uploadForm.append("data", JSON.stringify(jsonData));
-      
+
       if (data.get("image")) {
         uploadForm.append("image", data.get("image") as any);
         console.log("📷 Featured image will be updated");
       }
-      
+
       if (stepImages && stepImages.length > 0) {
         stepImages.forEach((si: any) => uploadForm.append("stepImages", si));
       }
@@ -248,7 +248,7 @@ export const updateRecipe = async (id: string, data: any) => {
         maxBodyLength: Infinity,
         maxContentLength: Infinity,
       });
-      
+
       console.log("✅ Recipe updated successfully:", {
         id: res.data?.recipeId,
         title: res.data?.title,
@@ -258,7 +258,7 @@ export const updateRecipe = async (id: string, data: any) => {
         tags: res.data?.tags?.length || 0,
         ingredients: res.data?.ingredients?.length || 0,
       });
-      
+
       return res.data;
     }
 
@@ -284,14 +284,15 @@ export const deleteRecipe = async (id: string) => {
 };
 
 // ✅ Lấy danh sách công thức của người dùng
-export const getAllRecipesByUserId = async (userId: string) => {
+export const getAllRecipesByUserId = async (userId: string, currentUserId?: string) => {
   try {
     const token = await AsyncStorage.getItem("access_token");
     const headers = {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     };
-    const res = await api.get(`/user/${userId}`, { headers });
+    const url = currentUserId ? `/user/${userId}?currentUserId=${currentUserId}` : `/user/${userId}`;
+    const res = await api.get(url, { headers });
     return res.data;
   } catch (error) {
     handleError(error);
@@ -308,6 +309,18 @@ export const getFeaturedRecipes = async (page = 0, size = 10) => {
   }
 };
 
+// ✅ Toggle privacy (công khai/riêng tư)
+export const togglePrivacy = async (recipeId: string) => {
+  try {
+    console.log(`🔄 Toggling privacy for recipe ${recipeId}...`);
+    const res = await api.put(`/${recipeId}/toggle-privacy`);
+    console.log(`✅ Privacy toggled successfully`);
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 // ✅ Gom export lại
 export const RecipeService = {
   getAllRecipes,
@@ -317,4 +330,5 @@ export const RecipeService = {
   deleteRecipe,
   getAllRecipesByUserId,
   getFeaturedRecipes,
+  togglePrivacy,
 };

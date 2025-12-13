@@ -82,44 +82,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const restoreSession = async () => {
       try {
         console.log('🔄 App starting - attempting to restore session...');
-        
+
         // ĐỢI load force offline mode từ storage (dev only)
         let devForceOffline = false;
         if (__DEV__) {
           const value = await AsyncStorage.getItem(DEV_OFFLINE_KEY);
           devForceOffline = value === 'true';
           setForceOfflineMode(devForceOffline);
-          
+
           // ✅ Đồng bộ force offline mode vào unifiedCacheService
           unifiedCacheService.setDevForceOffline(devForceOffline);
-          
+
           if (devForceOffline) {
             console.log('🧪 Loaded Force Offline Mode: ENABLED');
           }
         } else {
           setForceOfflineMode(false);
         }
-        
+
         // Kiểm tra kết nối mạng (bây giờ isConnected sẽ check devForceOffline internally)
         const isOnline = await unifiedCacheService.isConnected();
         console.log('🌐 Network status:', isOnline ? 'Online' : 'Offline', devForceOffline ? '(Forced Offline)' : '');
-        
+
         // Nếu offline, tự động đăng nhập với thông tin cached
         if (!isOnline) {
           console.log('📴 Offline mode - attempting auto login with cached user...');
           const cachedUser = await unifiedCacheService.getFromCache<User>(CACHE_CATEGORIES.LAST_USER_INFO);
-          
+
           if (cachedUser) {
             console.log('✅ Found cached user:', cachedUser.username);
             console.log('🔓 Auto login in offline mode with cached credentials');
-            
+
             // Thông báo cho người dùng
             Alert.alert(
               '📴 Chế độ Offline',
               `Đã tự động đăng nhập với tài khoản: ${cachedUser.username}\n\nLưu ý: Một số tính năng có thể bị giới hạn khi offline.`,
               [{ text: 'OK' }]
             );
-            
+
             dispatch({
               type: 'RESTORE_TOKEN',
               payload: { user: cachedUser, token: 'offline-mode' }
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
           }
         }
-        
+
         const hasValidSession = await authService.hasValidSession();
         console.log('✅ Has valid session:', hasValidSession);
 
@@ -171,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
               // Cập nhật vào AsyncStorage
               await authService.saveUserInfo(userProfile);
-              
+
               // Lưu vào unified cache cho offline mode
               await unifiedCacheService.saveToCache(CACHE_CATEGORIES.LAST_USER_INFO, userProfile);
               console.log('💾 Saved user info to unified cache for offline mode');
@@ -358,7 +358,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Lưu access token và user info
       await authService.saveAccessToken(token);
       await authService.saveUserInfo(user);
-      
+
       // Lưu vào unified cache cho offline mode
       await unifiedCacheService.saveToCache(CACHE_CATEGORIES.LAST_USER_INFO, user);
       console.log('💾 Saved user info to unified cache for offline mode');
@@ -402,7 +402,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const userProfile = await response.json();
       await authService.saveUserInfo(userProfile);
-      
+
       // Lưu vào unified cache cho offline mode
       await unifiedCacheService.saveToCache(CACHE_CATEGORIES.LAST_USER_INFO, userProfile);
       console.log('💾 Saved social login user info to unified cache for offline mode');
@@ -479,13 +479,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const toggleOfflineMode = async () => {
     const newValue = !forceOfflineMode;
     setForceOfflineMode(newValue);
-    
+
     // Lưu vào AsyncStorage
     await AsyncStorage.setItem(DEV_OFFLINE_KEY, String(newValue));
-    
+
     // ✅ Đồng bộ vào unifiedCacheService
     unifiedCacheService.setDevForceOffline(newValue);
-    
+
     Alert.alert(
       '🧪 Debug Mode',
       `Force Offline: ${newValue ? 'BẬT' : 'TẮT'}\n\nVui lòng reload app (shake → reload) để áp dụng.`,

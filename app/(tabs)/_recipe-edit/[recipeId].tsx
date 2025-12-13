@@ -557,9 +557,30 @@ export default function EditRecipeScreen() {
   };
 
   const handleSave = async () => {
-    if (!title.trim()) return Alert.alert("Lỗi", "Vui lòng nhập tiêu đề");
-    if (!description || !description.trim()) return Alert.alert("Lỗi", "Vui lòng nhập mô tả");
+    if (!title.trim() || !description.trim() || !prepTime.trim() || !cookTime.trim() || !servings.trim()) {
+      Alert.alert("Thiếu thông tin", "Vui lòng điền đầy đủ!");
+      return;
+    }
+
     if (!user?.userId) return Alert.alert("Lỗi", "Bạn cần đăng nhập để cập nhật công thức");
+
+    const validSteps = steps.filter(s => s.instruction.trim());
+    if (validSteps.length === 0) {
+      Alert.alert("Thiếu thông tin", "Vui lòng nhập ít nhất một bước!");
+      return;
+    }
+
+    for (let i = 0; i < steps.length; i++) {
+      if (steps[i].image && !steps[i].instruction.trim()) {
+        Alert.alert("Thiếu thông tin", `Bước ${i + 1} có ảnh nhưng chưa có mô tả!`);
+        return;
+      }
+    }
+
+    if (!featuredImage) {
+      Alert.alert("Thiếu thông tin", "Vui lòng chọn ảnh đại diện!");
+      return;
+    }
 
     const validIngredients = selectedIngredients.filter(ingredient => {
       const ingredientExists = allIngredients.find((i: ListItem) => i.id === ingredient.id);

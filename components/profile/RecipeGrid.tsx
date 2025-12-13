@@ -52,6 +52,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
     loadRecipes(RecipeService.getAllRecipesByUserId);
   }, [userId, loadRecipes]);
 
+<<<<<<< HEAD
   // Reload when refreshKey changes
   useEffect(() => {
     if ((refreshKey ?? 0) > 0) {
@@ -60,10 +61,57 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
   }, [refreshKey, refreshRecipes]);
 
   // Re-sort when option changes
+=======
+  // Re-sort current list when sort option changes
+  const handleTogglePrivacy = async (recipeId: string, currentIsPublic: boolean) => {
+    try {
+      Alert.alert(
+        currentIsPublic ? "Chuyển sang riêng tư" : "Chuyển sang công khai",
+        currentIsPublic
+          ? "Công thức sẽ chỉ hiển thị cho bạn"
+          : "Công thức sẽ hiển thị cho mọi người",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Xác nhận",
+            onPress: async () => {
+              await RecipeService.togglePrivacy(recipeId);
+              Alert.alert("Thành công", currentIsPublic ? "Đã chuyển sang riêng tư" : "Đã chuyển sang công khai");
+              fetchRecipes();
+            },
+          },
+        ]
+      );
+    } catch (err: any) {
+      Alert.alert("Lỗi", err.message || "Không thể thay đổi chế độ");
+    }
+  };
+
+>>>>>>> origin/nhat-fix
   useEffect(() => {
     setRecipes((prev) => sortRecipes(prev, sortOption));
   }, [sortOption]);
 
+<<<<<<< HEAD
+=======
+  const fetchRecipes = async () => {
+    try {
+      const data = await RecipeService.getAllRecipesByUserId(userId, currentProfileId);
+      const list: Recipe[] = data || [];
+      console.log("🔍 RecipeGrid sample:", list.length > 0 ? {
+        title: list[0].title,
+        status: list[0].status,
+        isPublished: list[0].isPublished
+      } : "empty");
+      setRecipes(sortRecipes(list, sortOption));
+    } catch (error) {
+      console.error("Failed to fetch recipes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+>>>>>>> origin/nhat-fix
   const sortRecipes = (items: Recipe[], option: string) => {
     if (!items || items.length === 0) return items;
     const arr = [...items];
@@ -142,7 +190,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
 
   // Event Handlers
   const handleOpenDetail = (recipe: Recipe) => {
-    router.push(`/_recipe-detail/${recipe.recipeId}` as any);
+    router.push(`/_recipe-detail/${recipe.recipeId}?from=/profile` as any);
   };
 
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
@@ -256,19 +304,20 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
           onPressOut={() => setMenuVisible(false)}
         >
           <View style={styles.menu}>
-            <TouchableOpacity
-              onPress={() => {
-                setMenuVisible(false);
-                if (selectedRecipe?.recipeId) {
-                  router.push({
-                    pathname: "/(tabs)/_recipe-edit/[recipeId]",
-                    params: { recipeId: selectedRecipe.recipeId },
-                  });
-                }
-              }}
-            >
-              <Text style={styles.menuItem}>✏️ Sửa công thức</Text>
-            </TouchableOpacity>
+            {selectedRecipe?.status === 'APPROVED' && (
+              <TouchableOpacity
+                onPress={() => {
+                  setMenuVisible(false);
+                  if (selectedRecipe?.recipeId) {
+                    handleTogglePrivacy(selectedRecipe.recipeId, selectedRecipe.isPublished ?? false);
+                  }
+                }}
+              >
+                <Text style={styles.menuItem}>
+                  {selectedRecipe?.isPublished ? '🔒 Chuyển sang riêng tư' : '🌐 Chuyển sang công khai'}
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() => {
                 setMenuVisible(false);

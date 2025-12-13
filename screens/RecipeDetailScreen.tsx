@@ -30,6 +30,7 @@ type Step = {
   stepId: string;
   stepNumber: number;
   instruction: string;
+  imageUrl?: string;
 };
 
 type Comment = {
@@ -57,7 +58,7 @@ const fetchWithTimeout = async (promise: Promise<any>, timeoutMs = 7000) => {
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
-  const { id, reload } = useLocalSearchParams<{ id?: string; reload?: string }>();
+  const { id, reload, from } = useLocalSearchParams<{ id?: string; reload?: string; from?: string }>();
   const [recipe, setRecipe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,15 +78,15 @@ export default function RecipeDetailScreen() {
           try {
             setLoading(true);
             setIsFromCache(false);
-            
+
             // Kiểm tra kết nối mạng (dùng unifiedCacheService để support force offline mode)
             const online = await unifiedCacheService.isConnected();
             setIsOffline(!online);
-          
+
             if (!online) {
               // Nếu offline, thử load từ cache
               const cachedData = await unifiedCacheService.getFromCache(CACHE_CATEGORIES.RECIPE_DETAIL, recipeId) as any;
-              
+
               if (cachedData) {
                 setRecipe(cachedData.recipe);
                 if (cachedData.authorInfo) {
@@ -93,10 +94,11 @@ export default function RecipeDetailScreen() {
                 }
                 setIsFromCache(true);
                 setError(null);
-                return;
               } else {
-                return;
+                // Không có cache cho recipe này khi offline
+                setError("Không có kết nối internet và chưa có dữ liệu ngoại tuyến");
               }
+              return;
             }
 
             // Nếu online, fetch từ API
@@ -130,25 +132,14 @@ export default function RecipeDetailScreen() {
               recipe: data,
               authorInfo: loadedAuthorInfo,
             }, recipeId);
-            
+
             // Xác minh cache
             const isCached = await unifiedCacheService.isCached(CACHE_CATEGORIES.RECIPE_DETAIL, recipeId);
 
             setError(null);
           } catch (err: any) {
-            
-            const cachedData = await unifiedCacheService.getFromCache(CACHE_CATEGORIES.RECIPE_DETAIL, recipeId) as any;
-            
-            if (cachedData) {
-              setRecipe(cachedData.recipe);
-              if (cachedData.authorInfo) {
-                setAuthorInfo(cachedData.authorInfo);
-              }
-              setIsFromCache(true);
-              setError(null);
-            } else {
-              setError(err.message);
-            }
+            // Khi có lỗi, chỉ hiển thị thông báo lỗi, không fallback sang cache
+            setError(err.message || "Không thể tải công thức");
           } finally {
             setLoading(false);
           }
@@ -179,7 +170,7 @@ export default function RecipeDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header router={router} />
+        <Header router={router} sourceRoute={from} />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Đang tải...</Text>
@@ -191,7 +182,7 @@ export default function RecipeDetailScreen() {
   if (error || !recipe) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header router={router} />
+        <Header router={router} sourceRoute={from} />
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error || "Không tìm thấy công thức"}</Text>
           <TouchableOpacity onPress={() => router.back()}>
@@ -206,16 +197,17 @@ export default function RecipeDetailScreen() {
   const ingredients: Ingredient[] = recipe.ingredients || [];
   const steps: Step[] = recipe.steps
     ? recipe.steps.map((s: any) => ({
-        stepId: `step-${s.stepNumber}`,
-        stepNumber: s.stepNumber,
-        instruction: s.instruction,
-      }))
+      stepId: `step-${s.stepNumber}`,
+      stepNumber: s.stepNumber,
+      instruction: s.instruction,
+      imageUrl: s.imageUrl,
+    }))
     : [];
 
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <Header router={router} />
+        <Header router={router} sourceRoute={from} />
         {(isOffline || isFromCache) && (
           <View style={styles.offlineBanner}>
             <Ionicons name="cloud-offline-outline" size={16} color="#FFF" />
@@ -242,22 +234,22 @@ export default function RecipeDetailScreen() {
           // Xử lý category - lấy name từ array of objects
           category: (() => {
             const catField = recipe.categories || recipe.categoryName || recipe.category;
-            
+
             if (!catField) return [];
-            
+
             // Nếu là array of objects → lấy name
             if (Array.isArray(catField)) {
-              return catField.map(cat => 
+              return catField.map(cat =>
                 typeof cat === 'string' ? cat : cat.name
               );
             }
-            
+
             // Nếu là string
             if (typeof catField === 'string') return [catField];
-            
+
             // Nếu là object với name property
             if (catField?.name) return [catField.name];
-            
+
             return [];
           })(),
           // Giữ nguyên object tag từ API để có màu
@@ -279,32 +271,45 @@ export default function RecipeDetailScreen() {
         router={router}
         onBack={() => router.back()}
         onSearch={() => router.push('/(tabs)/search')}
+        sourceRoute={from}
       />
     </View>
   );
 }
 
-const Header = ({ router }: { router: any }) => (
-  <View style={styles.header}>
-    <TouchableOpacity
-      onPress={() =>
-        router.canGoBack()
-          ? router.back()
-          : router.replace('/(tabs)/home')
-      }
-      style={styles.backButton}
-    >
-      <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
-    </TouchableOpacity>
-    <Text style={styles.headerTitle}>Chi tiết công thức</Text>
-    <TouchableOpacity
-      onPress={() => router.push('/(tabs)/search')}
-      style={styles.backButton}
-    >
-      <Ionicons name="search" size={24} color={Colors.text.primary} />
-    </TouchableOpacity>
-  </View>
-);
+const Header = ({ router, sourceRoute }: { router: any; sourceRoute?: string }) => {
+  const handleBack = () => {
+    console.log('🔙 Recipe Detail Back - sourceRoute:', sourceRoute);
+
+    // Nếu có source route được truyền, navigate về đó
+    if (sourceRoute) {
+      router.push(sourceRoute);
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      console.log('⚠️ No back history, navigating to home');
+      router.push('/(tabs)/home');
+    }
+  };
+
+  return (
+    <View style={styles.header}>
+      <TouchableOpacity
+        onPress={handleBack}
+        style={styles.backButton}
+      >
+        <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Chi tiết công thức</Text>
+      <TouchableOpacity
+        onPress={() => router.push('/(tabs)/search')}
+        style={styles.backButton}
+      >
+        <Ionicons name="search" size={24} color={Colors.text.primary} />
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },

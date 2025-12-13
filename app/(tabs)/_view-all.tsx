@@ -156,7 +156,7 @@ export default function ViewAllScreen() {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => router.push(`/_recipe-detail/${recipe.recipeId}` as any)}
+        onPress={() => router.push(`/_recipe-detail/${recipe.recipeId}?from=/(tabs)/_view-all` as any)}
         activeOpacity={0.7}
       >
         <View style={styles.imageWrapper}>
