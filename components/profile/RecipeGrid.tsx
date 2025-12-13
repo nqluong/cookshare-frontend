@@ -35,10 +35,10 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortOption, setSortOption] = useState<string>("newest");
   const router = useRouter();
+  const [loading, setLoading] = useState<boolean>(true);
 
- const {
+  const {
     recipes,
-    loading,
     isOffline,
     loadRecipes,
     refresh: refreshRecipes,
@@ -52,16 +52,6 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
     loadRecipes(RecipeService.getAllRecipesByUserId);
   }, [userId, loadRecipes]);
 
-<<<<<<< HEAD
-  // Reload when refreshKey changes
-  useEffect(() => {
-    if ((refreshKey ?? 0) > 0) {
-      refreshRecipes(RecipeService.getAllRecipesByUserId);
-    }
-  }, [refreshKey, refreshRecipes]);
-
-  // Re-sort when option changes
-=======
   // Re-sort current list when sort option changes
   const handleTogglePrivacy = async (recipeId: string, currentIsPublic: boolean) => {
     try {
@@ -87,13 +77,10 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
     }
   };
 
->>>>>>> origin/nhat-fix
   useEffect(() => {
     setRecipes((prev) => sortRecipes(prev, sortOption));
   }, [sortOption]);
 
-<<<<<<< HEAD
-=======
   const fetchRecipes = async () => {
     try {
       const data = await RecipeService.getAllRecipesByUserId(userId, currentProfileId);
@@ -111,7 +98,6 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
     }
   };
 
->>>>>>> origin/nhat-fix
   const sortRecipes = (items: Recipe[], option: string) => {
     if (!items || items.length === 0) return items;
     const arr = [...items];
@@ -174,7 +160,7 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
             Alert.alert("✅ Đã xóa công thức");
             await clearCache();
             await refreshRecipes(RecipeService.getAllRecipesByUserId);
-            
+
             Alert.alert("✅ Đã xóa công thức");
             router.push({
               pathname: "/(tabs)/home",
