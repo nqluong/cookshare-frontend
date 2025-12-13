@@ -9,6 +9,10 @@ import SearchHistory from '../../components/Search/SearchHistory';
 import { fetchPopularIngredients, fetchSearchHistory, getRecipeSuggestions, searchRecipes } from '../../services/searchService';
 import { searchStyles } from '../../styles/SearchStyles';
 import { Ingredient, Recipe, SearchHistoryItem } from '../../types/search';
+import { useRecipeLikeContext } from '../../context/RecipeLikeContext';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -27,6 +31,34 @@ export default function SearchScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+
+  const likeHook = useRecipeLikeContext();
+
+  // Register callback to update like counts when liked from detail screen
+  useEffect(() => {
+    const handleLikeUpdate = (recipeId: string, delta: number) => {
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
+          recipe.recipeId === recipeId
+            ? { ...recipe, likeCount: Math.max(0, (recipe.likeCount || 0) + delta) }
+            : recipe
+        )
+      );
+    };
+
+    likeHook.registerLikeUpdateCallback(handleLikeUpdate);
+    return () => likeHook.unregisterLikeUpdateCallback(handleLikeUpdate);
+  }, []);
+
+  // Flush pending likes when navigating away
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        likeHook.flushPendingLikes();
+      };
+    }, [])
+  );
+
   useEffect(() => {
     const loadHistory = async () => {
       try {

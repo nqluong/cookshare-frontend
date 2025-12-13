@@ -35,10 +35,10 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortOption, setSortOption] = useState<string>("newest");
   const router = useRouter();
-  const [loading, setLoading] = useState<boolean>(true);
 
   const {
     recipes,
+    loading,
     isOffline,
     loadRecipes,
     refresh: refreshRecipes,
@@ -49,8 +49,8 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
   const isOwn = isOwnProfile || (currentProfileId && userId && currentProfileId === userId);
 
   useEffect(() => {
-    loadRecipes(RecipeService.getAllRecipesByUserId);
-  }, [userId, loadRecipes]);
+    loadRecipes((uid: string) => RecipeService.getAllRecipesByUserId(uid, currentProfileId));
+  }, [userId, loadRecipes, currentProfileId, refreshKey]);
 
   // Re-sort current list when sort option changes
   const handleTogglePrivacy = async (recipeId: string, currentIsPublic: boolean) => {
@@ -93,8 +93,6 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
       setRecipes(sortRecipes(list, sortOption));
     } catch (error) {
       console.error("Failed to fetch recipes:", error);
-    } finally {
-      setLoading(false);
     }
   };
 

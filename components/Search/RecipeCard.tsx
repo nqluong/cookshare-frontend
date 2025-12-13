@@ -9,9 +9,10 @@ import { CachedImage } from '../ui/CachedImage';
 interface RecipeCardProps {
   item: Recipe;
   isUserResult?: boolean;
+  fromRoute?: string;
 }
 
-export default function RecipeCard({ item, isUserResult = false }: RecipeCardProps) {
+export default function RecipeCard({ item, isUserResult = false, fromRoute }: RecipeCardProps) {
   const router = useRouter();
 
   const handlePress = () => {
@@ -22,7 +23,8 @@ export default function RecipeCard({ item, isUserResult = false }: RecipeCardPro
       }
     } else {
       // Navigate đến recipe detail nếu là kết quả recipe
-      router.push(`/_recipe-detail/${item.recipeId}?from=/(tabs)/search` as any);
+      const from = fromRoute || '/(tabs)/search';
+      router.push(`/_recipe-detail/${item.recipeId}?from=${from}` as any);
     }
   };
 

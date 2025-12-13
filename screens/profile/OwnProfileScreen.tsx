@@ -121,6 +121,7 @@ export default function OwnProfileScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadProfile();
+    setRefreshKey(k => k + 1); // Trigger recipe reload
     setRefreshing(false);
   };
 

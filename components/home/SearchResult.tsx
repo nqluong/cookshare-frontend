@@ -31,6 +31,7 @@ export default function SearchResults({
         <RecipeCard
           item={item}
           isUserResult={!!item.userId && !item.recipeId}
+          fromRoute="/(tabs)/home"
         />
       )}
       keyExtractor={(item) => item.recipeId || item.userId}

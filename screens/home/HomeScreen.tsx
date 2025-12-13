@@ -196,6 +196,11 @@ export default function HomeScreen() {
       setFeaturedRecipes(prev => prev.map(r =>
         r.recipeId === recipeId ? { ...r, likeCount: (r.likeCount || 0) + delta } : r
       ));
+
+      // Update search results
+      setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: (r.likeCount || 0) + delta } : r
+      ));
     };
 
     likeHook.registerLikeUpdateCallback(handleLikeUpdate);
