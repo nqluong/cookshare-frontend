@@ -184,11 +184,25 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
       activeOpacity={0.8}
     >
       {/* Ảnh - chiếm 45% */}
-      <Image
-        source={{ uri: getImageUrl(item.featuredImage) }}
-        style={styles.image}
-        resizeMode="cover"
-      />
+      <View style={styles.imageWrapper}>
+        <Image
+          source={{ uri: getImageUrl(item.featuredImage) }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+        {item.status === 'PENDING' && (
+          <View style={styles.pendingBadge}>
+            <Ionicons name="time-outline" size={12} color="#fff" />
+            <Text style={styles.pendingBadgeText}>Chờ duyệt</Text>
+          </View>
+        )}
+        {item.status === 'REJECTED' && (
+          <View style={[styles.pendingBadge, styles.rejectedBadge]}>
+            <Ionicons name="close-circle" size={12} color="#fff" />
+            <Text style={styles.pendingBadgeText}>Từ chối</Text>
+          </View>
+        )}
+      </View>
 
       {/* Nội dung - chiếm 55%, nền trắng, bo góc phải */}
       <View style={styles.content}>
@@ -411,9 +425,48 @@ const styles = StyleSheet.create({
   },
 
   image: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 16,
+  },
+  imageContainer: {
     width: "45%",
     height: 115,
+    position: 'relative',
     borderRadius: 16,
+    overflow: 'hidden',
+  },
+  imageWrapper: {
+    width: "45%",
+    height: 115,
+    position: 'relative',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  pendingBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 152, 0, 0.95)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  rejectedBadge: {
+    backgroundColor: 'rgba(244, 67, 54, 0.95)',
+  },
+  pendingBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   content: {
     flex: 1,

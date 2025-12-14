@@ -36,7 +36,7 @@ export const useRecipeLike = () => {
   };
 
   // Optimistic update
-  const optimisticToggleLike = (recipeId: string, onUpdateCount: (delta: number) => void) => {
+  const optimisticToggleLike = (recipeId: string, onUpdateCount?: (delta: number) => void) => {
     const isCurrentlyLiked = likedRecipes.has(recipeId);
 
     setLikedRecipes(prev => {
@@ -49,13 +49,15 @@ export const useRecipeLike = () => {
       return newSet;
     });
 
-    onUpdateCount(isCurrentlyLiked ? -1 : +1);
+    if (onUpdateCount) {
+      onUpdateCount(isCurrentlyLiked ? -1 : +1);
+    }
   };
 
   // Toggle like với debounce
   const toggleLike = async (
     recipeId: string,
-    onUpdateCount: (delta: number) => void,
+    onUpdateCount?: (delta: number) => void,
     onSuccess?: (recipeId: string, isLiked: boolean) => void
   ) => {
     let likeState = likeStatesRef.current.get(recipeId);
@@ -97,7 +99,9 @@ export const useRecipeLike = () => {
               newSet.delete(recipeId);
               return newSet;
             });
-            onUpdateCount(-1);
+            if (onUpdateCount) {
+              onUpdateCount(-1);
+            }
             console.warn('Không thể like công thức, đã rollback');
           } else {
             onSuccess?.(recipeId, true);
@@ -112,7 +116,9 @@ export const useRecipeLike = () => {
                 newSet.add(recipeId);
                 return newSet;
               });
-              onUpdateCount(+1);
+              if (onUpdateCount) {
+                onUpdateCount(+1);
+              }
               console.warn('Không thể bỏ like công thức, đã rollback');
             } else {
               onSuccess?.(recipeId, false);
@@ -124,7 +130,9 @@ export const useRecipeLike = () => {
                 newSet.add(recipeId);
                 return newSet;
               });
-              onUpdateCount(+1);
+              if (onUpdateCount) {
+                onUpdateCount(+1);
+              }
             }
           }
         }

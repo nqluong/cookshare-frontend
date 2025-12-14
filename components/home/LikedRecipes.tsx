@@ -62,7 +62,7 @@ export default function LikedRecipes({
     new Map()
   );
 
-  useEffect(() => {}, [savedVersion]);
+  useEffect(() => { }, [savedVersion]);
 
   const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
@@ -111,11 +111,16 @@ export default function LikedRecipes({
     return null;
   }
 
+  // Filter out duplicate recipes by recipeId
+  const uniqueRecipes = recipes.filter((recipe, index, self) =>
+    index === self.findIndex((r) => r.recipeId === recipe.recipeId)
+  );
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Công thức yêu thích</Text>
 
-      {recipes.map((recipe) => {
+      {uniqueRecipes.map((recipe) => {
         const isLiked = true;
         const isLoading = likingRecipeId === recipe.recipeId;
         const currentLikes = recipe.likeCount;

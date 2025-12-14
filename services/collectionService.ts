@@ -19,31 +19,24 @@ class CollectionService {
     console.log(`📡 API Base URL: ${API_BASE_URL}`);
   }
 
-  private async getAuthToken(): Promise<string | null> {
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  private getAuthToken = async (): Promise<string | null> => {
     return await AsyncStorage.getItem("access_token");
   }
 
-  /**
-   * Tạo bộ sưu tập mới với ảnh cover
-   * @param userId - ID của user
-   * @param request - Thông tin collection
-   * @param coverImageUri - URI ảnh local (optional)
-   */
-  async createCollection(
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  createCollection = async (
     userId: string,
     request: CreateCollectionRequest,
     coverImageUri?: string
-  ): Promise<ApiResponse<CollectionResponse>> {
+  ): Promise<ApiResponse<CollectionResponse>> => {
     try {
       console.log("Creating collection for user:", userId);
       const token = await this.getAuthToken();
 
       const formData = new FormData();
-
-      // Thêm data JSON
       formData.append("data", JSON.stringify(request));
 
-      // Thêm ảnh nếu có
       if (coverImageUri) {
         const filename = coverImageUri.split("/").pop() || "cover.jpg";
         const match = /\.(\w+)$/.exec(filename);
@@ -59,7 +52,7 @@ class CollectionService {
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s cho upload
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const response = await fetch(
         `${API_BASE_URL}/users/${userId}/collections`,
@@ -67,7 +60,6 @@ class CollectionService {
           method: "POST",
           headers: {
             ...(token && { Authorization: `Bearer ${token}` }),
-            // Không set Content-Type, để browser tự set với boundary
           },
           body: formData,
           signal: controller.signal,
@@ -94,29 +86,20 @@ class CollectionService {
     }
   }
 
-  /**
-   * Cập nhật bộ sưu tập với ảnh cover
-   * @param userId - ID của user
-   * @param collectionId - ID của collection
-   * @param request - Thông tin cập nhật
-   * @param coverImageUri - URI ảnh local mới (optional)
-   */
-  async updateCollection(
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  updateCollection = async (
     userId: string,
     collectionId: string,
     request: UpdateCollectionRequest,
     coverImageUri?: string
-  ): Promise<ApiResponse<CollectionResponse>> {
+  ): Promise<ApiResponse<CollectionResponse>> => {
     try {
       console.log("Updating collection:", collectionId);
       const token = await this.getAuthToken();
 
       const formData = new FormData();
-
-      // Thêm data JSON
       formData.append("data", JSON.stringify(request));
 
-      // Thêm ảnh mới nếu có
       if (coverImageUri) {
         const filename = coverImageUri.split("/").pop() || "cover.jpg";
         const match = /\.(\w+)$/.exec(filename);
@@ -132,7 +115,7 @@ class CollectionService {
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const response = await fetch(
         `${API_BASE_URL}/users/${userId}/collections/${collectionId}`,
@@ -140,7 +123,6 @@ class CollectionService {
           method: "PUT",
           headers: {
             ...(token && { Authorization: `Bearer ${token}` }),
-            // Không set Content-Type
           },
           body: formData,
           signal: controller.signal,
@@ -167,12 +149,12 @@ class CollectionService {
     }
   }
 
-  // Lấy danh sách bộ sưu tập của user
-  async getUserCollections(
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  getUserCollections = async (
     userId: string,
     page: number = 0,
     size: number = 20
-  ): Promise<ApiResponse<PageResponse<CollectionUserDto>>> {
+  ): Promise<ApiResponse<PageResponse<CollectionUserDto>>> => {
     try {
       console.log("Getting collections for user:", userId);
       const token = await this.getAuthToken();
@@ -201,10 +183,7 @@ class CollectionService {
       }
 
       const result = await response.json();
-      console.log(
-        "Get collections successful, count:",
-        result.data.totalElements
-      );
+      console.log("Get collections successful, count:", result.data?.totalElements);
       return result;
     } catch (error: any) {
       console.log("Get collections error:", error);
@@ -215,12 +194,12 @@ class CollectionService {
     }
   }
 
-  // Lấy danh sách public bộ sưu tập của user
-  async getPublicCollections(
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  getPublicCollections = async (
     userId: string,
     page: number = 0,
     size: number = 20
-  ): Promise<ApiResponse<PageResponse<CollectionUserDto>>> {
+  ): Promise<ApiResponse<PageResponse<CollectionUserDto>>> => {
     try {
       console.log("Getting public collections for user:", userId);
       const token = await this.getAuthToken();
@@ -262,11 +241,11 @@ class CollectionService {
     }
   }
 
-  // Lấy chi tiết bộ sưu tập
-  async getCollectionDetail(
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  getCollectionDetail = async (
     userId: string,
     collectionId: string
-  ): Promise<ApiResponse<CollectionUserDto>> {
+  ): Promise<ApiResponse<CollectionUserDto>> => {
     try {
       console.log("Getting collection detail:", collectionId);
       const token = await this.getAuthToken();
@@ -306,8 +285,8 @@ class CollectionService {
     }
   }
 
-  // Xóa bộ sưu tập
-  async deleteCollection(userId: string, collectionId: string): Promise<void> {
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  deleteCollection = async (userId: string, collectionId: string): Promise<void> => {
     try {
       console.log("Deleting collection:", collectionId);
       const token = await this.getAuthToken();
@@ -345,13 +324,13 @@ class CollectionService {
     }
   }
 
-  // Lấy danh sách công thức trong collection
-  async getCollectionRecipes(
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  getCollectionRecipes = async (
     userId: string,
     collectionId: string,
     page: number = 0,
     size: number = 20
-  ) {
+  ) => {
     try {
       const token = await this.getAuthToken();
       const response = await fetch(
@@ -372,12 +351,12 @@ class CollectionService {
     }
   }
 
-  // Thêm recipe vào bộ sưu tập
-  async addRecipeToCollection(
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  addRecipeToCollection = async (
     userId: string,
     collectionId: string,
     request: AddRecipeToCollectionRequest
-  ): Promise<void> {
+  ): Promise<void> => {
     try {
       console.log("Adding recipe to collection:", collectionId);
       const token = await this.getAuthToken();
@@ -416,12 +395,12 @@ class CollectionService {
     }
   }
 
-  // Xóa recipe khỏi bộ sưu tập
-  async removeRecipeFromCollection(
+  // ✅ PHẢI LÀ ARROW FUNCTION
+  removeRecipeFromCollection = async (
     userId: string,
     collectionId: string,
     recipeId: string
-  ): Promise<void> {
+  ): Promise<void> => {
     try {
       console.log("Removing recipe from collection:", collectionId);
       const token = await this.getAuthToken();

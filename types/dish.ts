@@ -27,6 +27,7 @@ export interface Recipe {
   ratingCount: number;
   isFeatured: boolean;
   isPublished: boolean;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   updatedAt: string;
 }

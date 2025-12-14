@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,10 +17,10 @@ import {
   getPopularRecipes,
   getTopRatedRecipes,
   getTrendingRecipes,
-  isRecipeLiked,
 } from '../../services/homeService';
 import { Colors } from '../../styles/colors';
 import { Recipe } from '../../types/dish';
+import { useRecipeLikeContext } from '../../context/RecipeLikeContext';
 
 type RecipeType = 'trending' | 'popular' | 'topRated' | 'newest';
 
@@ -44,9 +43,7 @@ export default function ViewAllScreen() {
   const params = useLocalSearchParams();
   const type = (params.type as RecipeType) || 'newest';
 
-  // ✅ Nhận danh sách công thức đã like từ params
-  const [likedRecipes, setLikedRecipes] = useState<Set<string>>(new Set());
-
+  const likeHook = useRecipeLikeContext();
   const canGoBack = router.canGoBack();
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -56,11 +53,40 @@ export default function ViewAllScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Register callback to update like counts
+  useEffect(() => {
+    const handleLikeUpdate = (recipeId: string, delta: number) => {
+      console.log(`🔄 ViewAll: Like update for ${recipeId}, delta: ${delta}`);
+      setRecipes(prev => {
+        const updated = prev.map(r =>
+          r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
+        );
+        console.log(`✅ ViewAll: Updated recipes, found: ${updated.some(r => r.recipeId === recipeId)}`);
+        return updated;
+      });
+    };
+
+    likeHook.registerLikeUpdateCallback(handleLikeUpdate);
+    return () => likeHook.unregisterLikeUpdateCallback(handleLikeUpdate);
+  }, [likeHook]);
+
+  // Flush pending likes when entering/leaving screen
   useFocusEffect(
     useCallback(() => {
-      fetchRecipes(0, true);
-    }, [type])
+      // Flush when entering screen to ensure updates are processed immediately
+      likeHook.flushPendingLikes();
+
+      return () => {
+        // Flush when leaving screen
+        likeHook.flushPendingLikes();
+      };
+    }, [])
   );
+
+  // Only fetch on mount or when type changes, not on every focus
+  useEffect(() => {
+    fetchRecipes(0, true);
+  }, [type]);
   const fetchRecipes = async (pageNum: number, isInitial: boolean = false) => {
     if (!hasMore && !isInitial) return;
 
@@ -79,29 +105,6 @@ export default function ViewAllScreen() {
 
       if (response.success && response.data) {
         const newRecipes = response.data.content || [];
-
-        // ✅ Lấy danh sách recipeId để kiểm tra like
-        const recipeIds = newRecipes.map((r: Recipe) => r.recipeId);
-
-        // ✅ Gọi song song API kiểm tra like
-        const likeChecks = await Promise.all(
-          recipeIds.map(async (id: string) => {
-            try {
-              const res = await isRecipeLiked(id);
-              return res?.result ? id : null;
-            } catch {
-              return null;
-            }
-          })
-        );
-        const likedIds = likeChecks.filter(Boolean) as string[];
-
-        // ✅ Cập nhật state likedRecipes
-        setLikedRecipes((prev) => {
-          const updated = new Set(isInitial ? [] : prev);
-          likedIds.forEach((id) => updated.add(id));
-          return updated;
-        });
 
         if (isInitial) {
           setRecipes(newRecipes);
@@ -128,15 +131,6 @@ export default function ViewAllScreen() {
     }
   };
 
-  const toggleLike = (recipeId: string) => {
-    setLikedRecipes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(recipeId)) newSet.delete(recipeId);
-      else newSet.add(recipeId);
-      return newSet;
-    });
-  };
-
   const getDifficultyText = (difficulty: string) => {
     switch (difficulty) {
       case 'EASY':
@@ -151,12 +145,15 @@ export default function ViewAllScreen() {
   };
 
   const renderRecipeCard = ({ item: recipe }: { item: Recipe }) => {
-    const isLiked = likedRecipes.has(recipe.recipeId);
+    const isLiked = likeHook.likedRecipes.has(recipe.recipeId);
 
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => router.push(`/_recipe-detail/${recipe.recipeId}?from=/(tabs)/_view-all` as any)}
+        onPress={async () => {
+          await likeHook.flushPendingLikes();
+          router.push(`/_recipe-detail/${recipe.recipeId}?from=${encodeURIComponent(`/(tabs)/_view-all?type=${type}`)}` as any);
+        }}
         activeOpacity={0.7}
       >
         <View style={styles.imageWrapper}>
@@ -167,7 +164,10 @@ export default function ViewAllScreen() {
           />
           <TouchableOpacity
             style={styles.likeButton}
-            onPress={() => toggleLike(recipe.recipeId)}
+            onPress={async (e) => {
+              e.stopPropagation();
+              await likeHook.toggleLike(recipe.recipeId);
+            }}
             activeOpacity={0.7}
           >
             <Ionicons
