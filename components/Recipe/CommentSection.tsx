@@ -315,6 +315,8 @@ const CommentModal: React.FC<CommentModalProps> = ({
       const data = await commentService.getCommentsByRecipe(recipeId);
       const normalized = normalizeCommentsRecursive(data);
       setComments(normalized);
+      const count = countAllCommentsRecursive(normalized);
+    onCommentCountChange?.(count);
     } catch (error) {
       Alert.alert("Lỗi", "Không thể tải bình luận");
     } finally {

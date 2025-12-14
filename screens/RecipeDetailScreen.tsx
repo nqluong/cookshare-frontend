@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { commentService } from '@/services/commentService';
 import { userService } from '@/services/userService';
 import { UserProfile } from '@/types/user.types';
 import { Ionicons } from '@expo/vector-icons';
@@ -56,6 +57,18 @@ const fetchWithTimeout = async (promise: Promise<any>, timeoutMs = 7000) => {
   ]);
 };
 
+function normalizeCommentsRecursive(comments: any[]): any[] {
+  return comments.map((c) => ({
+    ...c,
+    replies: c.replies?.length ? normalizeCommentsRecursive(c.replies) : [],
+  }));
+}
+
+function countAllCommentsRecursive(comments: any[]): number {
+  if (!comments || comments.length === 0) return 0;
+  return comments.reduce((sum, c) => sum + 1 + countAllCommentsRecursive(c.replies || []), 0);
+}
+
 export default function RecipeDetailScreen() {
   const router = useRouter();
   const { id, reload, from } = useLocalSearchParams<{ id?: string; reload?: string; from?: string }>();
@@ -67,6 +80,7 @@ export default function RecipeDetailScreen() {
   const [authorInfo, setAuthorInfo] = useState<RecipeAuthor | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [isFromCache, setIsFromCache] = useState(false);
+  const [commentCount, setCommentCount] = useState<number>(0);
 
   const recipeId = id || "";
 
@@ -83,6 +97,8 @@ export default function RecipeDetailScreen() {
             const online = await unifiedCacheService.isConnected();
             setIsOffline(!online);
 
+            let finalCommentCount = 0;  
+
             if (!online) {
               // Nếu offline, thử load từ cache
               const cachedData = await unifiedCacheService.getFromCache(CACHE_CATEGORIES.RECIPE_DETAIL, recipeId) as any;
@@ -92,6 +108,7 @@ export default function RecipeDetailScreen() {
                 if (cachedData.authorInfo) {
                   setAuthorInfo(cachedData.authorInfo);
                 }
+                finalCommentCount = cachedData.commentCount || 0;
                 setIsFromCache(true);
                 setError(null);
               } else {
@@ -128,14 +145,25 @@ export default function RecipeDetailScreen() {
               }
             }
 
+            try {
+                const commentsData = await commentService.getCommentsByRecipe(recipeId);
+                const normalized = normalizeCommentsRecursive(commentsData);
+                finalCommentCount = countAllCommentsRecursive(normalized);
+              } catch (commentErr) {
+                console.log("Không thể load số bình luận:", commentErr);
+                finalCommentCount = data.commentCount || 0; // fallback nếu API recipe có field này
+              }
+
             await unifiedCacheService.saveToCache(CACHE_CATEGORIES.RECIPE_DETAIL, {
               recipe: data,
               authorInfo: loadedAuthorInfo,
+              commentCount: finalCommentCount,
             }, recipeId);
 
             // Xác minh cache
             const isCached = await unifiedCacheService.isCached(CACHE_CATEGORIES.RECIPE_DETAIL, recipeId);
 
+            setCommentCount(finalCommentCount);
             setError(null);
           } catch (err: any) {
             // Khi có lỗi, chỉ hiển thị thông báo lỗi, không fallback sang cache
@@ -259,6 +287,7 @@ export default function RecipeDetailScreen() {
           video: recipe.videoUrl || "",
           likes: recipe.likeCount ?? 0,
           views: recipe.viewCount ?? 0,
+          commentCount: commentCount,
         }}
         authorInfo={authorInfo || {
           userId: recipe.userId || recipe.createdBy || "",
