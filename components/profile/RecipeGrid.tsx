@@ -155,17 +155,17 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
         onPress: async () => {
           try {
             await RecipeService.deleteRecipe(id);
-            Alert.alert("✅ Đã xóa công thức");
+            Alert.alert("Đã xóa công thức");
             await clearCache();
             await refreshRecipes(RecipeService.getAllRecipesByUserId);
 
-            Alert.alert("✅ Đã xóa công thức");
+            Alert.alert("Đã xóa công thức");
             router.push({
               pathname: "/(tabs)/home",
               params: { refresh: Date.now() },
             } as any);
           } catch (error: any) {
-            Alert.alert("❌ Lỗi khi xóa", error.message);
+            Alert.alert("Lỗi khi xóa", error.message);
           }
         },
       },

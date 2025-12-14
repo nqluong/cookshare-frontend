@@ -2,20 +2,20 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DraftMetadata } from '../types/recipe';
 import {
-    clearAllDrafts,
-    deleteDraft,
-    getDraftList
+  clearAllDrafts,
+  deleteDraft,
+  getDraftList
 } from '../utils/draftManager';
 
 export default function DraftListScreen() {
@@ -58,9 +58,9 @@ export default function DraftListScreen() {
             try {
               await deleteDraft(draftId);
               await loadDrafts();
-              Alert.alert('✅ Thành công', 'Đã xóa bản nháp');
+              Alert.alert('Thành công', 'Đã xóa bản nháp');
             } catch (error) {
-              Alert.alert('❌ Lỗi', 'Không thể xóa bản nháp');
+              Alert.alert('Lỗi', 'Không thể xóa bản nháp');
             }
           }
         }
@@ -82,9 +82,9 @@ export default function DraftListScreen() {
             try {
               await clearAllDrafts();
               await loadDrafts();
-              Alert.alert('✅ Thành công', 'Đã xóa tất cả bản nháp');
+              Alert.alert('Thành công', 'Đã xóa tất cả bản nháp');
             } catch (error) {
-              Alert.alert('❌ Lỗi', 'Không thể xóa');
+              Alert.alert('Lỗi', 'Không thể xóa');
             }
           }
         }
@@ -110,7 +110,7 @@ export default function DraftListScreen() {
     if (diffMins < 60) return `${diffMins} phút trước`;
     if (diffHours < 24) return `${diffHours} giờ trước`;
     if (diffDays < 7) return `${diffDays} ngày trước`;
-    
+
     return date.toLocaleDateString('vi-VN');
   };
 
@@ -138,7 +138,7 @@ export default function DraftListScreen() {
         <Text style={styles.draftTitle} numberOfLines={2}>
           {item.title}
         </Text>
-        
+
         <View style={styles.draftMeta}>
           <Text style={styles.metaText}>
             🕒 {formatTime(item.lastModified)}

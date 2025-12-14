@@ -474,7 +474,7 @@ export default function EditRecipeScreen() {
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_CATEGORIES, JSON.stringify(updated));
 
         setSelectedCategories(prev => [...prev, newItem.id]);
-        Alert.alert("✅ Thành công", `Đã thêm danh mục "${searchTerm}"`);
+        Alert.alert("Thành công", `Đã thêm danh mục "${searchTerm}"`);
         setSearchTerm("");
         setExtraField("");
       }
@@ -519,7 +519,7 @@ export default function EditRecipeScreen() {
 
         setSelectedIngredients(prev => [...prev, { id: newItem.id, quantity: '', unit: '' }]);
 
-        Alert.alert("✅ Thành công", `Đã thêm nguyên liệu "${searchTerm}" và đã được chọn.`);
+        Alert.alert("Thành công", `Đã thêm nguyên liệu "${searchTerm}" và đã được chọn.`);
         setSearchTerm("");
         setExtraField("");
       }
@@ -548,7 +548,7 @@ export default function EditRecipeScreen() {
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_TAGS, JSON.stringify(updated));
 
         setSelectedTags(prev => [...prev, newItem.id]);
-        Alert.alert("✅ Thành công", `Đã thêm tag "${searchTerm}"`);
+        Alert.alert("Thành công", `Đã thêm tag "${searchTerm}"`);
         setSearchTerm("");
       }
     } catch (err: any) {
