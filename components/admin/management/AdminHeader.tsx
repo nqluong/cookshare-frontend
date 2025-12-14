@@ -7,6 +7,7 @@ interface AdminHeaderProps {
   onBack?: () => void;
   onFilterPress?: () => void;
   onExitAdmin?: () => void;
+  onNotificationPress?: () => void;
   showNotification?: boolean;
 }
 
@@ -15,6 +16,7 @@ export default function AdminHeader({
   onBack, 
   onFilterPress, 
   onExitAdmin,
+  onNotificationPress,
   showNotification = true 
 }: AdminHeaderProps) {
   return (
@@ -38,7 +40,7 @@ export default function AdminHeader({
         )}
         
         {showNotification && (
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress}>
             <Ionicons name="notifications-outline" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
         )}

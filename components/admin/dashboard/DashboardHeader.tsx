@@ -14,12 +14,7 @@ export default function DashboardHeader({ onExitAdmin }: DashboardHeaderProps) {
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Admin Dashboard</Text>
       <View style={styles.headerActions}>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => router.push("/admin/menu" as any)}
-        >
-          <Ionicons name="grid-outline" size={24} color="#fff" />
-        </TouchableOpacity>
+       
         <TouchableOpacity style={styles.exitButton} onPress={onExitAdmin}>
           <Ionicons name="exit-outline" size={24} color="#fff" />
         </TouchableOpacity>

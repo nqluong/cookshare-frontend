@@ -1,54 +1,58 @@
 import { StyleSheet } from 'react-native';
+import { isSmallDevice, isTablet, Layout, moderateScale, scale, verticalScale } from '../constants/layout';
 
 export const authStyles = StyleSheet.create({
   // Container styles
   container: {
     backgroundColor: 'white',
-    padding: 32,
-    marginHorizontal: 16,
-    borderRadius: 24,
+    padding: isSmallDevice ? Layout.spacing.xl : Layout.spacing.xxxl,
+    marginHorizontal: isSmallDevice ? Layout.spacing.xl : scale(40),
+    borderRadius: Layout.borderRadius.xxl,
     shadowColor: '#FF6B35',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: verticalScale(4),
     },
     shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowRadius: scale(12),
     elevation: 8,
+    // Giới hạn maxWidth cho tất cả màn hình
+    maxWidth: isTablet ? scale(400) : scale(360),
+    alignSelf: 'center',
   },
 
   // Header styles
   appTitle: {
-    fontSize: 36,
+    fontSize: isSmallDevice ? moderateScale(28) : moderateScale(36),
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: Layout.spacing.sm,
     color: '#FF6B35',
     letterSpacing: 1,
   },
 
   appSubtitle: {
-    fontSize: 14,
+    fontSize: Layout.fontSize.md,
     textAlign: 'center',
     color: '#FF8C42',
-    marginBottom: 40,
+    marginBottom: verticalScale(40),
     fontStyle: 'italic',
   },
 
   title: {
-    fontSize: 28,
+    fontSize: isSmallDevice ? moderateScale(22) : moderateScale(28),
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: Layout.spacing.sm,
     color: '#2D3436',
   },
 
   subtitle: {
-    fontSize: 16,
+    fontSize: Layout.fontSize.lg,
     textAlign: 'center',
     color: '#636E72',
-    marginBottom: 32,
-    lineHeight: 24,
+    marginBottom: Layout.spacing.xxxl,
+    lineHeight: verticalScale(24),
   },
 
   // Form styles
@@ -57,39 +61,39 @@ export const authStyles = StyleSheet.create({
   },
 
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: Layout.spacing.lg,
   },
 
   // Button styles
   primaryButton: {
     backgroundColor: '#FF6B35',
-    height: 56,
-    borderRadius: 16,
+    height: verticalScale(56),
+    borderRadius: Layout.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 24,
+    marginTop: Layout.spacing.lg,
+    marginBottom: Layout.spacing.xxl,
     shadowColor: '#FF6B35',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: verticalScale(4),
     },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: scale(8),
     elevation: 6,
   },
 
   primaryButtonText: {
     color: '#ffffff',
-    fontSize: 17,
+    fontSize: moderateScale(17),
     fontWeight: '700',
     letterSpacing: 0.5,
   },
 
   secondaryButton: {
     backgroundColor: 'transparent',
-    height: 56,
-    borderRadius: 16,
+    height: verticalScale(56),
+    borderRadius: Layout.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -98,56 +102,56 @@ export const authStyles = StyleSheet.create({
 
   secondaryButtonText: {
     color: '#FF6B35',
-    fontSize: 17,
+    fontSize: moderateScale(17),
     fontWeight: '700',
   },
 
   // Social login buttons
   googleButton: {
     backgroundColor: '#ffffff',
-    height: 56,
-    borderRadius: 16,
+    height: verticalScale(56),
+    borderRadius: Layout.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Layout.spacing.md,
     borderWidth: 2,
     borderColor: '#E8E8E8',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: verticalScale(2),
     },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
     elevation: 3,
   },
 
   googleButtonText: {
     color: '#2D3436',
-    fontSize: 16,
+    fontSize: Layout.fontSize.lg,
     fontWeight: '600',
   },
 
   facebookButton: {
     backgroundColor: '#1877f2',
-    height: 56,
-    borderRadius: 16,
+    height: verticalScale(56),
+    borderRadius: Layout.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: Layout.spacing.xxl,
     shadowColor: '#1877f2',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: verticalScale(4),
     },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: scale(8),
     elevation: 6,
   },
 
   facebookButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: Layout.fontSize.lg,
     fontWeight: '700',
   },
 
@@ -155,19 +159,19 @@ export const authStyles = StyleSheet.create({
   navigationContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: Layout.spacing.xxl,
   },
 
   navigationText: {
     color: '#636E72',
-    fontSize: 15,
+    fontSize: moderateScale(15),
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: verticalScale(22),
   },
 
   navigationLink: {
     color: '#FF6B35',
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontWeight: '700',
     textDecorationLine: 'underline',
   },
@@ -186,7 +190,7 @@ export const authStyles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: Layout.spacing.xxl,
   },
 
   dividerLine: {
@@ -196,20 +200,20 @@ export const authStyles = StyleSheet.create({
   },
 
   dividerText: {
-    marginHorizontal: 16,
+    marginHorizontal: Layout.spacing.lg,
     color: '#B2BEC3',
-    fontSize: 13,
+    fontSize: Layout.fontSize.sm,
     fontWeight: '600',
     letterSpacing: 1,
   },
 
   // Terms and conditions
   termsText: {
-    fontSize: 12,
+    fontSize: Layout.fontSize.xs,
     textAlign: 'center',
     color: '#636E72',
-    lineHeight: 18,
-    marginBottom: 24,
+    lineHeight: verticalScale(18),
+    marginBottom: Layout.spacing.xxl,
   },
 
   linkText: {
@@ -221,16 +225,16 @@ export const authStyles = StyleSheet.create({
   // Error styles
   errorText: {
     color: '#D63031',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: Layout.fontSize.xs,
+    marginTop: Layout.spacing.xs,
     fontWeight: '500',
   },
 
   // Success styles
   successText: {
     color: '#00B894',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: Layout.fontSize.xs,
+    marginTop: Layout.spacing.xs,
     fontWeight: '500',
   },
 
@@ -241,39 +245,41 @@ export const authStyles = StyleSheet.create({
   },
 
   screenContent: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
+    paddingHorizontal: isTablet ? Layout.spacing.xxxl : Layout.spacing.sm,
+    paddingVertical: verticalScale(40),
   },
 
   // Decorative elements
   decorativeCircle: {
     position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(50),
     backgroundColor: '#FF6B35',
     opacity: 0.1,
   },
 
   decorativeCircleTop: {
-    top: -50,
-    right: -30,
+    top: scale(-50),
+    right: scale(-30),
   },
 
   decorativeCircleBottom: {
-    bottom: -50,
-    left: -30,
+    bottom: scale(-50),
+    left: scale(-30),
   },
 });
 
-// Common spacing values
+// Common spacing values - sử dụng Layout.spacing thay thế
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 40,
+  xs: Layout.spacing.xs,
+  sm: Layout.spacing.sm,
+  md: Layout.spacing.lg,
+  lg: Layout.spacing.xxl,
+  xl: Layout.spacing.xxxl,
+  xxl: scale(40),
 } as const;
 
 // Common colors - Orange Theme
@@ -298,31 +304,31 @@ export const colors = {
   shadow: '#FF6B35',
 } as const;
 
-// Typography
+// Typography - sử dụng responsive font size
 export const typography = {
   appTitle: {
-    fontSize: 36,
+    fontSize: isSmallDevice ? moderateScale(28) : moderateScale(36),
     fontWeight: '700' as const,
     letterSpacing: 1,
   },
   title: {
-    fontSize: 28,
+    fontSize: isSmallDevice ? moderateScale(22) : moderateScale(28),
     fontWeight: '700' as const,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: Layout.fontSize.lg,
     fontWeight: '400' as const,
   },
   body: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontWeight: '400' as const,
   },
   caption: {
-    fontSize: 12,
+    fontSize: Layout.fontSize.xs,
     fontWeight: '400' as const,
   },
   button: {
-    fontSize: 17,
+    fontSize: moderateScale(17),
     fontWeight: '700' as const,
   },
 } as const;

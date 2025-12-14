@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { ReportType, reportService } from '../../services/reportService';
@@ -17,6 +17,7 @@ interface ReportModalProps {
   onClose: () => void;
   recipeId: string;
   recipeTitle: string;
+  authorId: string;
 }
 
 export default function ReportModal({
@@ -24,6 +25,7 @@ export default function ReportModal({
   onClose,
   recipeId,
   recipeTitle,
+  authorId,
 }: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState<ReportType | null>(null);
   const [description, setDescription] = useState<string>('');
@@ -42,11 +44,11 @@ export default function ReportModal({
       return;
     }
 
-    if (selectedReason === ReportType.OTHER && !description.trim()) {
+    if (!description.trim()) {
       Toast.show({
         type: 'error',
         text1: 'Vui lòng mô tả lý do',
-        text2: 'Vui lòng cung cấp thêm thông tin chi tiết',
+        text2: 'Vui lòng cung cấp thêm thông tin chi tiết về báo cáo',
         position: 'bottom',
       });
       return;
@@ -57,6 +59,7 @@ export default function ReportModal({
       await reportService.createReport({
         reportType: selectedReason,
         recipeId: recipeId,
+        reportedId: authorId,
         reason: selectedReason,
         description: description.trim() || undefined,
       });
@@ -174,10 +177,10 @@ export default function ReportModal({
             ))}
 
             {/* Description */}
-            <Text style={styles.label}>Mô tả chi tiết (tùy chọn):</Text>
+            <Text style={styles.label}>Mô tả chi tiết <Text style={{ color: '#DC3545' }}>*</Text>:</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="Cung cấp thêm thông tin về báo cáo của bạn..."
+              placeholder="Mô tả cụ thể vấn đề bạn muốn báo cáo..."
               placeholderTextColor="#999"
               multiline
               numberOfLines={4}
@@ -206,10 +209,10 @@ export default function ReportModal({
               style={[
                 styles.button,
                 styles.submitButton,
-                (isSubmitting || !selectedReason) && styles.submitButtonDisabled,
+                (isSubmitting || !selectedReason || !description.trim()) && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
-              disabled={isSubmitting || !selectedReason}
+              disabled={isSubmitting || !selectedReason || !description.trim()}
             >
               {isSubmitting ? (
                 <ActivityIndicator color="#FFF" size="small" />

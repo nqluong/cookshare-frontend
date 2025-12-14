@@ -151,6 +151,10 @@ export default function NotificationsScreen() {
   const { user } = useAuth();
   const userId = user?.userId;
 
+  const handleBack = () => {
+    router.back();
+  };
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -469,7 +473,7 @@ export default function NotificationsScreen() {
   if (loading && page === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header unreadCount={unreadCount} />
+        <Header unreadCount={unreadCount} onBack={handleBack} />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Đang tải thông báo...</Text>
@@ -480,7 +484,7 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header unreadCount={unreadCount} />
+      <Header unreadCount={unreadCount} onBack={handleBack} />
 
       {/* Connection status indicator */}
       {!websocketService.isConnected() && (
@@ -579,11 +583,17 @@ export default function NotificationsScreen() {
 }
 
 // Component Header
-const Header = ({ unreadCount }: { unreadCount?: number }) => (
+const Header = ({ unreadCount, onBack }: { unreadCount?: number; onBack?: () => void }) => (
   <View style={styles.header}>
+    {onBack && (
+      <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+      </TouchableOpacity>
+    )}
     <View style={styles.headerCenter}>
       <Text style={styles.headerTitle}>Thông báo</Text>
     </View>
+    {onBack && <View style={styles.backButton} />}
   </View>
 );
 
@@ -606,16 +616,25 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 16,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   headerCenter: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   headerTitle: {

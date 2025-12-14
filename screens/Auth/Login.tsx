@@ -1,15 +1,17 @@
-// screens/Auth/Login.tsx -> ScreensAuthLogin
-import React from 'react';
-import { View, SafeAreaView } from 'react-native';
+import { SafeAreaView, ScrollView } from 'react-native';
 import AuthLoginForm from '../../components/auth/LoginForm';
 import { authStyles } from '../../styles/AuthStyle';
 
 export default function ScreensAuthLogin() {
   return (
     <SafeAreaView style={authStyles.screenContainer}>
-      <View style={authStyles.screenContent}>
+      <ScrollView 
+        contentContainerStyle={authStyles.screenContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <AuthLoginForm />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

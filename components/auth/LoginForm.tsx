@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
 import { router } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-native';
+import { Layout, moderateScale } from '../../constants/layout';
+import { useAuth } from '../../context/AuthContext';
 import { useSocialLogin } from '../../hooks/useSocialLogin';
+import { authStyles } from '../../styles/AuthStyle';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import { authStyles } from '../../styles/AuthStyle';
 
 export default function AuthLoginForm() {
     const [username, setUsername] = useState('');
@@ -151,13 +152,13 @@ export default function AuthLoginForm() {
                 {googleLoading ? (
                     <>
                         <ActivityIndicator color="#4285F4" size="small" />
-                        <Text style={[authStyles.googleButtonText, { marginLeft: 10 }]}>
+                        <Text style={[authStyles.googleButtonText, { marginLeft: Layout.spacing.sm }]}>
                             Đang xử lý...
                         </Text>
                     </>
                 ) : (
                     <>
-                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#4285F4', marginRight: 12 }}>
+                        <Text style={{ fontSize: moderateScale(20), fontWeight: 'bold', color: '#4285F4', marginRight: Layout.spacing.md }}>
                             G
                         </Text>
                         <Text style={authStyles.googleButtonText}>
@@ -179,13 +180,13 @@ export default function AuthLoginForm() {
                 {facebookLoading ? (
                     <>
                         <ActivityIndicator color="#FFFFFF" size="small" />
-                        <Text style={[authStyles.facebookButtonText, { marginLeft: 10 }]}>
+                        <Text style={[authStyles.facebookButtonText, { marginLeft: Layout.spacing.sm }]}>
                             Đang xử lý...
                         </Text>
                     </>
                 ) : (
                     <>
-                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#FFFFFF', marginRight: 12 }}>
+                        <Text style={{ fontSize: moderateScale(20), fontWeight: 'bold', color: '#FFFFFF', marginRight: Layout.spacing.md }}>
                             f
                         </Text>
                         <Text style={authStyles.facebookButtonText}>

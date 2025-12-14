@@ -11,7 +11,6 @@ interface RecipeItemProps {
   onDelete: (recipeId: string) => void;
   onApprove?: (recipeId: string) => void;
   onReject?: (recipeId: string) => void;
-  onToggleFeatured?: (recipeId: string) => void;
   onTogglePublished?: (recipeId: string) => void;
 }
 
@@ -22,7 +21,6 @@ export default function RecipeItem({
   onDelete,
   onApprove,
   onReject,
-  onToggleFeatured,
   onTogglePublished
 }: RecipeItemProps) {
   return (
@@ -52,15 +50,6 @@ export default function RecipeItem({
                       recipe.status === 'REJECTED' ? 'Đã từ chối' : 'Chờ phê duyệt'}
                   </Text>
                 </View>
-
-
-                {/* Trạng thái nổi bật */}
-                {recipe.isFeatured && (
-                  <View style={[styles.statusBadge, { backgroundColor: '#f59e0b' }]}>
-                    <Ionicons name="star" size={12} color="#fff" />
-                    <Text style={styles.statusText}>Nổi bật</Text>
-                  </View>
-                )}
               </View>
             </View>
 
@@ -92,7 +81,8 @@ export default function RecipeItem({
           <Ionicons name="eye-outline" size={18} color={Colors.text.secondary} />
         </TouchableOpacity>
 
-        {onApprove && recipe.status === 'PENDING' && (
+        {/* Nút phê duyệt - hiện cho PENDING hoặc REJECTED */}
+        {onApprove && (recipe.status === 'PENDING' || recipe.status === 'REJECTED') && (
           <TouchableOpacity
             style={[styles.actionButton, styles.approveButton]}
             onPress={() => {
@@ -103,7 +93,8 @@ export default function RecipeItem({
           </TouchableOpacity>
         )}
 
-        {onReject && recipe.status === 'PENDING' && (
+        {/* Nút từ chối - hiện cho PENDING hoặc APPROVED */}
+        {onReject && (recipe.status === 'PENDING' || recipe.status === 'APPROVED') && (
           <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
             onPress={() => {
@@ -114,44 +105,21 @@ export default function RecipeItem({
           </TouchableOpacity>
         )}
 
-        {onToggleFeatured && (
+        {/* Nút toggle publish - chỉ hiện cho APPROVED */}
+        {onTogglePublished && recipe.status === 'APPROVED' && (
           <TouchableOpacity
-            style={[styles.actionButton, recipe.isFeatured ? styles.featuredButton : styles.actionButton]}
-            onPress={() => {
-              onToggleFeatured(recipe.recipeId);
-            }}
-          >
-            <Ionicons
-              name={recipe.isFeatured ? "star" : "star-outline"}
-              size={18}
-              color={recipe.isFeatured ? "#f59e0b" : Colors.text.secondary}
-            />
-          </TouchableOpacity>
-        )}
-
-        {/* {onTogglePublished && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.publishedButton]}
+            style={[styles.actionButton, recipe.isPublished ? styles.publishedButton : styles.unpublishedButton]}
             onPress={() => {
               onTogglePublished(recipe.recipeId);
             }}
           >
-            <Ionicons
-              name={recipe.isPublished ? "eye-off-outline" : "eye-outline"}
-              size={18}
-              color="#10b981"
+            <Ionicons 
+              name={recipe.isPublished ? "globe-outline" : "eye-off-outline"} 
+              size={18} 
+              color={recipe.isPublished ? "#10b981" : "#6b7280"} 
             />
           </TouchableOpacity>
-        )} */}
-
-        {/* <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            onEdit(recipe.recipeId);
-          }}
-        >
-          <Ionicons name="create-outline" size={18} color={Colors.text.secondary} />
-        </TouchableOpacity> */}
+        )}
 
         <TouchableOpacity
           style={styles.actionButton}
@@ -290,5 +258,9 @@ const styles = StyleSheet.create({
   publishedButton: {
     backgroundColor: "#f0fdf4",
     borderColor: "#10b981",
+  },
+  unpublishedButton: {
+    backgroundColor: "#f3f4f6",
+    borderColor: "#6b7280",
   },
 });

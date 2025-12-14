@@ -17,7 +17,6 @@ export interface AdminRecipe {
   averageRating: number;
   ratingCount: number;
   isPublished: boolean;
-  isFeatured: boolean;
   status: RecipeStatus;
   metaKeywords: string | null;
   seasonalTags: string | null;
@@ -82,7 +81,6 @@ export interface AdminRecipeDetailResponse {
   description: string;
   status: RecipeStatus;
   isPublished: boolean;
-  isFeatured: boolean;
   
   // Thông tin chi tiết
   steps: Step[];

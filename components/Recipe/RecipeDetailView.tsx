@@ -706,6 +706,7 @@ export default function RecipeDetailView({
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         recipeId={recipe.id}
+        authorId={authorInfo?.userId || ""}
         recipeTitle={recipe.title}
       />
     </View>
