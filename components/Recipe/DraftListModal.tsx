@@ -41,7 +41,7 @@ const DraftListModal: React.FC<DraftListModalProps> = ({ visible, userId, reload
     try {
       await deleteDraft(draftId);
       setDrafts((prev) => prev.filter((d) => d.draftId !== draftId));
-    } catch {}
+    } catch { }
   };
 
   const handleLoadDraft = async (draftId: string) => {
@@ -49,7 +49,7 @@ const DraftListModal: React.FC<DraftListModalProps> = ({ visible, userId, reload
     if (loaded) {
       onLoadDraft(loaded);
       onClose();
-      Alert.alert('✅ Đã tải bản nháp', `Tiếp tục chỉnh sửa: ${loaded.title || 'Công thức'}`);
+      Alert.alert('Đã tải bản nháp', `Tiếp tục chỉnh sửa: ${loaded.title || 'Công thức'}`);
     }
   };
 

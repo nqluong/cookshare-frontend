@@ -140,7 +140,7 @@ export default function AddRecipeScreen({ navigation }: any) {
         const draft = await getDraft(draftId);
         if (draft) {
           loadDraftData(draft);
-          Alert.alert('✅ Đã tải bản nháp', `Tiếp tục: ${draft.title || 'Công thức'}`);
+          Alert.alert('Đã tải bản nháp', `Tiếp tục: ${draft.title || 'Công thức'}`);
         }
       }
     } catch (error) {
@@ -170,11 +170,11 @@ export default function AddRecipeScreen({ navigation }: any) {
     try {
       const savedId = await saveDraft(createDraftObject());
       setCurrentDraftId(savedId);
-      Alert.alert('💾 Đã lưu', 'Bản nháp đã lưu!');
+      Alert.alert('Đã lưu', 'Bản nháp đã lưu!');
       setDraftListReloadKey(k => k + 1);
       resetForm();
     } catch {
-      Alert.alert('❌ Lỗi', 'Không thể lưu nháp');
+      Alert.alert('Lỗi', 'Không thể lưu nháp');
     }
   };
 
@@ -234,7 +234,7 @@ export default function AddRecipeScreen({ navigation }: any) {
     setLocalCategories(updated);
     await AsyncStorage.setItem(getStorageKeys(user.userId).NEW_CATEGORIES, JSON.stringify(updated));
     setSelectedCategories(prev => [...prev, newItem.id]);
-    Alert.alert("✅", `Đã thêm "${name}"`);
+    Alert.alert(`Đã thêm "${name}"`);
   };
 
   const handleDeleteCategory = async (item: ListItem) => {
@@ -269,7 +269,7 @@ export default function AddRecipeScreen({ navigation }: any) {
     setLocalTags(updated);
     await AsyncStorage.setItem(getStorageKeys(user.userId).NEW_TAGS, JSON.stringify(updated));
     setSelectedTags(prev => [...prev, newItem.id]);
-    Alert.alert("✅", `Đã thêm "${name}"`);
+    Alert.alert(`Đã thêm "${name}"`);
   };
 
   const handleDeleteTag = async (item: ListItem) => {
@@ -336,7 +336,7 @@ export default function AddRecipeScreen({ navigation }: any) {
     setLocalIngredients(updated);
     await AsyncStorage.setItem(getStorageKeys(user.userId).NEW_INGREDIENTS, JSON.stringify(updated));
     setIngredientInputs(prev => ({ ...prev, [newItem.id]: { quantity: '', unit: '', selected: false } }));
-    Alert.alert("✅", `Đã thêm "${name}"`);
+    Alert.alert(`Đã thêm "${name}"`);
   };
 
   const handleDeleteIngredient = async (item: ListItem) => {
