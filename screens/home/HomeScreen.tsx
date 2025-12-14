@@ -74,6 +74,7 @@ export default function HomeScreen() {
   const [isLikedTabLoaded, setIsLikedTabLoaded] = useState(false);
   const [isFollowingTabLoaded, setIsFollowingTabLoaded] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     isSaved,
@@ -294,6 +295,19 @@ export default function HomeScreen() {
     if (activeTab === 'Theo dõi') following.refresh();
   };
 
+  const handlePullToRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (activeTab === 'Yêu thích') {
+        await liked.refresh();
+      } else if (activeTab === 'Theo dõi') {
+        await following.refresh();
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Loading State
   if (loading && !newest.recipes.length && !dailyRecommendations.length) {
     return (
@@ -378,6 +392,8 @@ export default function HomeScreen() {
           isLoadingSaved={isLoadingSaved}
           handleUnsaveRecipe={handleUnsaveRecipe}
           updateSavedCache={updateSavedCache}
+          refreshing={refreshing}
+          onRefresh={handlePullToRefresh}
         />
       )}
     </SafeAreaView>
@@ -406,6 +422,8 @@ function MainContent({
   isLoadingSaved,
   handleUnsaveRecipe,
   updateSavedCache,
+  refreshing,
+  onRefresh,
 }: any) {
   // Render content based on active tab
   const renderContent = () => {
@@ -563,6 +581,8 @@ function MainContent({
       ListFooterComponent={<View style={styles.bottomPadding} />}
       removeClippedSubviews={false}
       contentContainerStyle={styles.flatListContent}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
     />
   );
 }

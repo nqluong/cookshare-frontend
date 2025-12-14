@@ -291,7 +291,23 @@ export const getAllRecipesByUserId = async (userId: string, currentUserId?: stri
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     };
-    const url = currentUserId ? `/user/${userId}?currentUserId=${currentUserId}` : `/user/${userId}`;
+
+    // Nếu đang xem profile của chính mình, thêm includeAll=true để lấy cả công thức đang chờ duyệt
+    const isOwnProfile = currentUserId && userId === currentUserId;
+    let url = `/user/${userId}`;
+    const params: string[] = [];
+
+    if (currentUserId) {
+      params.push(`currentUserId=${currentUserId}`);
+    }
+    if (isOwnProfile) {
+      params.push('includeAll=true');
+    }
+
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+
     const res = await api.get(url, { headers });
     return res.data;
   } catch (error) {

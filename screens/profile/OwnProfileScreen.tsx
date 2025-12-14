@@ -180,13 +180,6 @@ export default function OwnProfileScreen() {
               contentFit="cover"
             />
           )}
-          <TouchableOpacity style={styles.editAvatarButton}>
-            <MaterialCommunityIcons
-              name="account-edit-outline"
-              size={16}
-              color={Colors.text.primary}
-            />
-          </TouchableOpacity>
         </View>
 
         <Text style={styles.fullNameText}>
