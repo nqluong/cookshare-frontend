@@ -57,6 +57,7 @@ export default function ReportActionModal({
         actionType: selectedAction.actionType,
         actionDescription: actionDescription.trim() || undefined,
         adminNote: adminNote.trim() || undefined,
+        notifyAllReporters: true,
       };
       
       await onAction(report.recipeId, request);

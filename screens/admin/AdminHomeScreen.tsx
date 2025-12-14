@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -31,6 +33,7 @@ export default function AdminHomeScreen() {
   const { alert, showError, hideAlert } = useCustomAlert();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
   const [stats, setStats] = useState({
     totalRecipes: 0,
@@ -41,9 +44,12 @@ export default function AdminHomeScreen() {
     searchSuccessRate: 0,
   });
 
-  useEffect(() => {
-    fetchQuickStats();
-  }, []);
+  // Load lại dữ liệu khi tab được focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchQuickStats();
+    }, [])
+  );
 
   const fetchQuickStats = async () => {
     try {
@@ -82,6 +88,15 @@ export default function AdminHomeScreen() {
   const handleNotificationPress = () => {
     router.push('/admin/notifications' as any);
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchQuickStats();
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   const quickStats: QuickStat[] = [
     {
@@ -172,9 +187,7 @@ export default function AdminHomeScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.notificationButton} onPress={handleNotificationPress}>
             <Ionicons name="notifications-outline" size={24} color="#fff" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>3</Text>
-            </View>
+            
           </TouchableOpacity>
           <TouchableOpacity style={styles.exitButton} onPress={handleExitAdmin}>
             <Ionicons name="exit-outline" size={24} color="#fff" />
@@ -182,7 +195,18 @@ export default function AdminHomeScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#10b981"]}
+            tintColor="#10b981"
+          />
+        }
+      >
         {/* Quick Stats Grid */}
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Tổng Quan Nhanh</Text>

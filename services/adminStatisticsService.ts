@@ -279,8 +279,13 @@ export const formatDateForApi = (date: Date): string => {
 
 export const getDefaultDateRange = (): DateRangeParams => {
   const endDate = new Date();
+  // Set endDate to end of day (23:59:59.999)
+  endDate.setHours(23, 59, 59, 999);
+  
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 30);
+  // Set startDate to start of day (00:00:00.000)
+  startDate.setHours(0, 0, 0, 0);
 
   return {
     startDate: formatDateForApi(startDate),

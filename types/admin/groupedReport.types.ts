@@ -276,7 +276,7 @@ export interface GroupedReportDetail {
 
 // ====== Report Review Types ======
 
-export type ReviewStatus = 'APPROVED' | 'REJECTED' | 'RESOLVED';
+export type ReviewStatus = 'PENDING' | 'REJECTED' | 'RESOLVED';
 
 export type ActionType = 
   | 'NO_ACTION'
@@ -297,12 +297,11 @@ export interface ReviewReportRequest {
 }
 
 export interface ReviewReportResponse {
-  recipeId: string;
-  processedCount: number;
   status: ReviewStatus;
   actionType: ActionType;
-  reviewedBy: string;
-  reviewedAt: string;
+  actionDescription: string;
+  adminNote: string;
+  notifyAllReporters: boolean;
 }
 
 export interface ActionOption {
@@ -327,7 +326,7 @@ export const ACTION_OPTIONS: ActionOption[] = [
   },
   {
     actionType: 'USER_WARNED',
-    status: 'APPROVED',
+    status: 'RESOLVED',
     label: 'Cảnh cáo tác giả',
     description: 'Gửi cảnh cáo đến tác giả công thức',
     icon: 'warning-outline',
@@ -336,7 +335,7 @@ export const ACTION_OPTIONS: ActionOption[] = [
   },
   {
     actionType: 'RECIPE_UNPUBLISHED',
-    status: 'APPROVED',
+    status: 'RESOLVED',
     label: 'Gỡ công thức',
     description: 'Ẩn công thức khỏi hệ thống',
     icon: 'eye-off-outline',
@@ -345,7 +344,7 @@ export const ACTION_OPTIONS: ActionOption[] = [
   },
   {
     actionType: 'RECIPE_EDITED',
-    status: 'APPROVED',
+    status: 'RESOLVED',
     label: 'Yêu cầu chỉnh sửa',
     description: 'Yêu cầu tác giả chỉnh sửa nội dung',
     icon: 'create-outline',
@@ -354,7 +353,7 @@ export const ACTION_OPTIONS: ActionOption[] = [
   },
   {
     actionType: 'CONTENT_REMOVED',
-    status: 'APPROVED',
+    status: 'RESOLVED',
     label: 'Xóa nội dung',
     description: 'Xóa nội dung vi phạm',
     icon: 'trash-outline',
@@ -363,7 +362,7 @@ export const ACTION_OPTIONS: ActionOption[] = [
   },
   {
     actionType: 'USER_SUSPENDED',
-    status: 'APPROVED',
+    status: 'RESOLVED',
     label: 'Tạm khóa tài khoản',
     description: 'Tạm khóa tài khoản tác giả',
     icon: 'time-outline',
@@ -372,7 +371,7 @@ export const ACTION_OPTIONS: ActionOption[] = [
   },
   {
     actionType: 'USER_BANNED',
-    status: 'APPROVED',
+    status: 'RESOLVED',
     label: 'Cấm vĩnh viễn',
     description: 'Cấm vĩnh viễn tài khoản tác giả',
     icon: 'ban-outline',

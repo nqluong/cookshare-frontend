@@ -5,23 +5,23 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AdminHeader from "../../components/admin/management/AdminHeader";
 import {
-    GroupedReportList,
-    IndividualReportList,
-    ReportActionModal,
-    ReportDetailModal,
-    ReportFilterModal,
-    ReportStatsBar
+  GroupedReportList,
+  IndividualReportList,
+  ReportActionModal,
+  ReportDetailModal,
+  ReportFilterModal,
+  ReportStatsBar
 } from "../../components/admin/reports";
 import CustomAlert from "../../components/ui/CustomAlert";
 import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { adminGroupedReportService } from "../../services/adminGroupedReportService";
 import {
-    GroupedReport,
-    ProcessedReport,
-    ReportActionType,
-    ReportStatus,
-    ReportType,
-    ReviewReportRequest
+  GroupedReport,
+  ProcessedReport,
+  ReportActionType,
+  ReportStatus,
+  ReportType,
+  ReviewReportRequest
 } from "../../types/admin/groupedReport.types";
 
 interface Filters {
@@ -219,7 +219,7 @@ export default function AdminReportsScreen() {
       // Force reload reports with current filter
       await loadReports(0, true, activeStatusFilter);
       
-      showSuccess("Thành công", `Đã xử lý ${result.processedCount} báo cáo thành công`);
+      showSuccess("Thành công", `Đã xử lý báo cáo thành công`);
     } catch (err: any) {
       showError("Lỗi", err.message || "Không thể xử lý báo cáo");
       throw err;
@@ -227,13 +227,25 @@ export default function AdminReportsScreen() {
   };
 
   const handleApplyFilters = (newFilters: Filters) => {
-    setFilters(newFilters);
-    setCurrentPage(0);
-    // If status filter from modal is set, update activeStatusFilter
-    if (newFilters.status) {
-      setActiveStatusFilter(newFilters.status);
-    }
-    loadReports(0, true);
+    // Fade out animation first
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      // Clear data during transition
+      setReports([]);
+      setIndividualReports([]);
+      setFilters(newFilters);
+      setCurrentPage(0);
+      // If status filter from modal is set, update activeStatusFilter
+      if (newFilters.status) {
+        setActiveStatusFilter(newFilters.status);
+        loadReports(0, true, newFilters.status);
+      } else {
+        loadReports(0, true, activeStatusFilter);
+      }
+    });
   };
 
   const handleFilterPress = () => {

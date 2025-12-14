@@ -1,6 +1,7 @@
 // app/admin/dashboard.tsx
+import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -104,9 +105,12 @@ export default function AdminDashboardScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchAll(timeRangeDays);
-  }, [fetchAll, timeRangeDays]);
+  // Load lại dữ liệu khi tab được focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchAll(timeRangeDays);
+    }, [fetchAll, timeRangeDays])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

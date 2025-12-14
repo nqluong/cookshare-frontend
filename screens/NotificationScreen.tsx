@@ -1,4 +1,3 @@
-// app/notifications/index.tsx
 import { getImageUrl } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
 import { notificationService } from "@/services/notificationService";

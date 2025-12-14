@@ -51,7 +51,7 @@ const fetchWithTimeout = async (promise: Promise<any>, timeoutMs = 7000) => {
   return Promise.race([
     promise,
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("⏰ Quá thời gian phản hồi, thử lại sau")), timeoutMs)
+      setTimeout(() => reject(new Error("Quá thời gian phản hồi, thử lại sau")), timeoutMs)
     ),
   ]);
 };
@@ -279,7 +279,6 @@ export default function RecipeDetailScreen() {
 
 const Header = ({ router, sourceRoute }: { router: any; sourceRoute?: string }) => {
   const handleBack = () => {
-    console.log('🔙 Recipe Detail Back - sourceRoute:', sourceRoute);
 
     // Nếu có source route được truyền, navigate về đó
     if (sourceRoute) {
@@ -287,7 +286,6 @@ const Header = ({ router, sourceRoute }: { router: any; sourceRoute?: string }) 
     } else if (router.canGoBack()) {
       router.back();
     } else {
-      console.log('⚠️ No back history, navigating to home');
       router.push('/(tabs)/home');
     }
   };
