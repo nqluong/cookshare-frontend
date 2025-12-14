@@ -19,7 +19,9 @@ import {
   FlatList,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -59,13 +61,19 @@ const CommentModal: React.FC<CommentModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<CommentResponse | null>(null);
-  const [editingComment, setEditingComment] = useState<CommentResponse | null>(null);
+  const [editingComment, setEditingComment] = useState<CommentResponse | null>(
+    null
+  );
   const [submitting, setSubmitting] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>("relevant");
   const [showSortModal, setShowSortModal] = useState(false);
-  const [scrollToCommentId, setScrollToCommentId] = useState<string | null>(null);
-  const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
+  const [scrollToCommentId, setScrollToCommentId] = useState<string | null>(
+    null
+  );
+  const [highlightedCommentId, setHighlightedCommentId] = useState<
+    string | null
+  >(null);
   const hasProcessedFocusRef = useRef(false);
 
   const insets = useSafeAreaInsets();
@@ -81,25 +89,30 @@ const CommentModal: React.FC<CommentModalProps> = ({
 
   // ==================== FIX 1: Sort cả parent và replies ====================
   const sortedComments = useMemo(() => {
-    const sortRecursive = (commentsList: CommentWithExpandedReplies[]): CommentWithExpandedReplies[] => {
+    const sortRecursive = (
+      commentsList: CommentWithExpandedReplies[]
+    ): CommentWithExpandedReplies[] => {
       const sorted = [...commentsList];
 
       if (sortOption === "newest") {
-        sorted.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        sorted.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       } else if (sortOption === "oldest") {
-        sorted.sort((a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        sorted.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
       }
 
       // Đệ quy sort replies
-      return sorted.map(comment => ({
+      return sorted.map((comment) => ({
         ...comment,
-        replies: comment.replies && comment.replies.length > 0
-          ? sortRecursive(comment.replies)
-          : comment.replies
+        replies:
+          comment.replies && comment.replies.length > 0
+            ? sortRecursive(comment.replies)
+            : comment.replies,
       }));
     };
 
@@ -160,7 +173,9 @@ const CommentModal: React.FC<CommentModalProps> = ({
         commentId: string,
         comments: CommentWithExpandedReplies[]
       ): { parentIndex: number; isReply: boolean } | null => {
-        const directIndex = comments.findIndex(c => c.commentId === commentId);
+        const directIndex = comments.findIndex(
+          (c) => c.commentId === commentId
+        );
         if (directIndex !== -1) {
           return { parentIndex: directIndex, isReply: false };
         }
@@ -248,13 +263,13 @@ const CommentModal: React.FC<CommentModalProps> = ({
       return false;
     };
 
-    setComments(currentComments => {
+    setComments((currentComments) => {
       findParentPath(currentComments);
 
       if (parentsToExpand.length > 0) {
         let updated = [...currentComments];
 
-        parentsToExpand.forEach(parentId => {
+        parentsToExpand.forEach((parentId) => {
           updated = expandCommentById(updated, parentId, Infinity);
         });
 
@@ -279,7 +294,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
     commentId: string,
     count: number
   ): CommentWithExpandedReplies[] => {
-    return commentsList.map(c => {
+    return commentsList.map((c) => {
       if (c.commentId === commentId) {
         return {
           ...c,
@@ -471,7 +486,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
   };
 
   const handleExpandReplies = useCallback((commentId: string) => {
-    setComments(prev => {
+    setComments((prev) => {
       const expandRecursive = (
         commentsList: CommentWithExpandedReplies[]
       ): CommentWithExpandedReplies[] => {
@@ -522,7 +537,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
           style={[
             styles.commentContainer,
             isReply && styles.replyContainer,
-            depth >= 2 && { marginLeft: 16 }
+            depth >= 2 && { marginLeft: 16 },
           ]}
         >
           <TouchableOpacity
@@ -543,10 +558,12 @@ const CommentModal: React.FC<CommentModalProps> = ({
           </TouchableOpacity>
 
           <View style={styles.commentContent}>
-            <View style={[
-              styles.commentBubble,
-              isHighlighted && styles.highlightedComment
-            ]}>
+            <View
+              style={[
+                styles.commentBubble,
+                isHighlighted && styles.highlightedComment,
+              ]}
+            >
               <Text style={styles.userName}>{comment.fullName}</Text>
               <Text style={styles.commentText}>{comment.content}</Text>
             </View>
@@ -604,7 +621,9 @@ const CommentModal: React.FC<CommentModalProps> = ({
                   </TouchableOpacity>
                 ) : (
                   <>
-                    {visibleReplies.map((reply) => renderComment(reply, true, depth + 1))}
+                    {visibleReplies.map((reply) =>
+                      renderComment(reply, true, depth + 1)
+                    )}
                     {remainingReplies > 0 && (
                       <TouchableOpacity
                         onPress={() => handleExpandReplies(comment.commentId)}
@@ -672,12 +691,21 @@ const CommentModal: React.FC<CommentModalProps> = ({
     >
       {renderSortModal()}
 
-      <View style={{ flex: 1, backgroundColor: "#FFF" }}>
-        <View style={[styles.modalHeader, { paddingTop: Math.max(insets.top, 12) }]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: "#FFF" }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
+        <View style={styles.modalHeader}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Bình luận ({totalComments})</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>×</Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeButton}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close-circle" size={28} color="#666" />
           </TouchableOpacity>
         </View>
 
@@ -711,6 +739,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
               renderItem={({ item }) => renderComment(item)}
               contentContainerStyle={styles.listContent}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
             />
           )}
         </View>
@@ -719,7 +748,8 @@ const CommentModal: React.FC<CommentModalProps> = ({
           style={[
             styles.inputContainer,
             {
-              paddingBottom: Math.max(insets.bottom, 16),
+              paddingBottom:
+                Platform.OS === "android" ? 8 : Math.max(insets.bottom, 16),
             },
           ]}
         >
@@ -758,7 +788,6 @@ const CommentModal: React.FC<CommentModalProps> = ({
             />
 
             <View style={{ flex: 1 }}>
-
               <TextInput
                 ref={inputRef}
                 style={styles.input}
@@ -795,7 +824,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -856,7 +885,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontSize: 16, fontWeight: "600", color: "#333" },
   closeButton: { position: "absolute", right: 16, padding: 4 },
-  closeButtonText: { fontSize: 24, color: "#666", fontWeight: "300" },
+  closeButtonText: { fontSize: 25, color: "#0b0b0bff", fontWeight: "300" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyContainer: {
     flex: 1,
@@ -904,18 +933,18 @@ const styles = StyleSheet.create({
     maxWidth: "85%",
   },
   highlightedComment: {
-    backgroundColor: '#FFF9C4',
+    backgroundColor: "#FFF9C4",
   },
   userName: {
     fontWeight: "600",
     fontSize: 13,
     color: "#333",
-    marginBottom: 2
+    marginBottom: 2,
   },
   commentText: {
     fontSize: 14,
     color: "#000",
-    lineHeight: 18
+    lineHeight: 18,
   },
   commentMeta: {
     flexDirection: "row",
