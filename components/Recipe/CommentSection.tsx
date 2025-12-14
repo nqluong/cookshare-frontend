@@ -19,7 +19,9 @@ import {
   FlatList,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -692,7 +694,11 @@ const CommentModal: React.FC<CommentModalProps> = ({
     >
       {renderSortModal()}
 
-      <View style={{ flex: 1, backgroundColor: "#FFF" }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
         <View style={styles.modalHeader}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Bình luận ({totalComments})</Text>
@@ -742,13 +748,15 @@ const CommentModal: React.FC<CommentModalProps> = ({
         </View>
 
         <View
-          style={[
-            styles.inputContainer,
-            {
-              paddingBottom: insets.bottom + (isKeyboardOpen ? 16 : 8),
-            },
-          ]}
-        >
+            style={[
+              styles.inputContainer,
+              {
+                paddingBottom: Platform.OS === 'ios' 
+                  ? (isKeyboardOpen ? 40 : insets.bottom -18) 
+                  : (isKeyboardOpen ? 40 : insets.bottom + 14),
+              },
+            ]}
+          >
           {(replyingTo || editingComment) && (
             <View style={styles.replyingToBar}>
               <Text style={styles.replyingToText}>
@@ -833,7 +841,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
             onPress={Keyboard.dismiss}
           />
         )}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

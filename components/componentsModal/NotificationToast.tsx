@@ -15,6 +15,7 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 export function NotificationToastProvider({ children }: { children: React.ReactNode }) {
   const [notification, setNotification] = useState<Notification | null>(null);
@@ -124,6 +125,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
             params: {
               openComments: 'true',
               focusCommentId: notification.relatedId,
+              from: Toast
             },
           } as any);
         }
