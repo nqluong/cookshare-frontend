@@ -1,4 +1,3 @@
-// components/admin/management/RecipeDetailModal.tsx
 import { AdminRecipeDetailResponse } from "@/types/admin/recipe.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -14,7 +13,6 @@ interface RecipeDetailModalProps {
   onDelete: (recipeId: string) => void;
   onApprove?: (recipeId: string) => void;
   onReject?: (recipeId: string) => void;
-  onToggleFeatured?: (recipeId: string) => void;
   onTogglePublished?: (recipeId: string) => void;
 }
 
@@ -26,7 +24,6 @@ export default function RecipeDetailModal({
   onDelete,
   onApprove,
   onReject,
-  onToggleFeatured,
   onTogglePublished,
 }: RecipeDetailModalProps) {
   return (
@@ -67,10 +64,6 @@ export default function RecipeDetailModal({
           onReject={onReject ? (recipeId) => {
             onClose();
             onReject(recipeId);
-          } : undefined}
-          onToggleFeatured={onToggleFeatured ? (recipeId) => {
-            onClose();
-            onToggleFeatured(recipeId);
           } : undefined}
           onTogglePublished={onTogglePublished ? (recipeId) => {
             onClose();

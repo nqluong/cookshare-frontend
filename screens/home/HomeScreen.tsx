@@ -24,6 +24,7 @@ import TopRatedRecipes from '../../components/home/sections/TopRatedRecipes';
 import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
 
 // Services & Hooks
+import { useRecipeLikeContext } from '@/context/RecipeLikeContext';
 import { useCachedPagination } from '../../hooks/useCachedRecipes';
 import {
   getLikedRecipes,
@@ -34,7 +35,6 @@ import {
   getTrendingRecipes
 } from '../../services/homeService';
 import { CACHE_CATEGORIES as CACHE_KEYS } from '../../services/unifiedCacheService';
-import { useRecipeLikeContext } from '@/context/RecipeLikeContext';
 
 // Types & Styles
 import { SearchHistoryItem } from '@/types/search';
@@ -168,7 +168,7 @@ export default function HomeScreen() {
   // Register callback to update like counts when liked from detail screen
   useEffect(() => {
     const handleLikeUpdate = (recipeId: string, delta: number) => {
-      console.log(`📢 Like count updated for ${recipeId}: ${delta > 0 ? '+' : ''}${delta}`);
+      console.log(`Like count updated for ${recipeId}: ${delta > 0 ? '+' : ''}${delta}`);
 
       // Update in all paginations
       newest.updateRecipe(recipeId, {

@@ -28,7 +28,6 @@ export default function AdminRecipesScreen() {
   const [showRecipeDetailModal, setShowRecipeDetailModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [filterPublished, setFilterPublished] = useState<boolean | null>(null);
-  const [filterFeatured, setFilterFeatured] = useState<boolean | null>(null);
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDir, setSortDir] = useState<string>('desc');
   const [showFilterOptions, setShowFilterOptions] = useState(false);
@@ -37,6 +36,10 @@ export default function AdminRecipesScreen() {
 
   const handleExitAdmin = () => {
     router.replace('/(tabs)/home' as any);
+  };
+
+  const handleNotificationPress = () => {
+    router.push('/admin/notifications' as any);
   };
 
   const loadRecipes = useCallback(async (page: number = 0, search: string = "", reset: boolean = true) => {
@@ -58,7 +61,7 @@ export default function AdminRecipesScreen() {
           response = await adminRecipeService.getRejectedRecipes(search, page, 20, sortBy, sortDir);
           break;
         default:
-          response = await adminRecipeService.getAllRecipes(search, filterPublished || undefined, filterFeatured || undefined, page, 20, sortBy, sortDir);
+          response = await adminRecipeService.getAllRecipes(search, filterPublished || undefined, undefined, page, 20, sortBy, sortDir);
       }
 
       if (reset) {
@@ -77,7 +80,7 @@ export default function AdminRecipesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filterStatus, filterPublished, filterFeatured, sortBy, sortDir, showError]);
+  }, [filterStatus, filterPublished, sortBy, sortDir, showError]);
 
   useEffect(() => {
     setRecipes([]);
@@ -97,8 +100,12 @@ export default function AdminRecipesScreen() {
     loadRecipes(0, searchQuery, true);
   }, [loadRecipes, searchQuery]);
 
-  const handleSearch = useCallback(() => {
-    loadRecipes(0, searchQuery, true);
+  const handleSearch = useCallback((queryOverride?: string) => {
+    const query = queryOverride !== undefined ? queryOverride : searchQuery;
+    if (queryOverride !== undefined) {
+      setSearchQuery(queryOverride);
+    }
+    loadRecipes(0, query, true);
   }, [loadRecipes, searchQuery]);
 
   const handleLoadMore = useCallback(() => {
@@ -169,7 +176,23 @@ export default function AdminRecipesScreen() {
               }
               showSuccess('Thành công', 'Đã phê duyệt công thức thành công');
             } catch (err: any) {
-              showError('Lỗi', err.message || 'Không thể phê duyệt công thức');
+              let errorMessage = 'Không thể phê duyệt công thức';
+              try {
+                const errorData = JSON.parse(err.message);
+                if (errorData.code === 1001) {
+                  errorMessage = 'Công thức đã bị xóa hoặc không tồn tại';
+                } else if (errorData.message) {
+                  errorMessage = errorData.message;
+                }
+              } catch (parseError) {
+                errorMessage = err.message || errorMessage;
+              }
+              showError('Lỗi', errorMessage);
+              // Reload lại danh sách để cập nhật
+              await loadRecipes(0, searchQuery, true);
+              if (showRecipeDetailModal) {
+                setShowRecipeDetailModal(false);
+              }
             } finally {
               setLoading(false);
             }
@@ -202,7 +225,23 @@ export default function AdminRecipesScreen() {
               }
               showSuccess('Thành công', 'Đã từ chối công thức');
             } catch (error: any) {
-              showError('Lỗi', error.message || 'Không thể từ chối công thức');
+              let errorMessage = 'Không thể từ chối công thức';
+              try {
+                const errorData = JSON.parse(error.message);
+                if (errorData.code === 1001) {
+                  errorMessage = 'Công thức đã bị xóa hoặc không tồn tại';
+                } else if (errorData.message) {
+                  errorMessage = errorData.message;
+                }
+              } catch (parseError) {
+                errorMessage = error.message || errorMessage;
+              }
+              showError('Lỗi', errorMessage);
+              // Reload lại danh sách để cập nhật
+              await loadRecipes(0, searchQuery, true);
+              if (showRecipeDetailModal) {
+                setShowRecipeDetailModal(false);
+              }
             } finally {
               setLoading(false);
             }
@@ -235,7 +274,23 @@ export default function AdminRecipesScreen() {
               }
               showSuccess('Thành công', 'Đã xóa công thức thành công');
             } catch (err: any) {
-              showError('Lỗi', err.message || 'Không thể xóa công thức');
+              let errorMessage = 'Không thể xóa công thức';
+              try {
+                const errorData = JSON.parse(err.message);
+                if (errorData.code === 1001) {
+                  errorMessage = 'Công thức đã bị xóa hoặc không tồn tại';
+                } else if (errorData.message) {
+                  errorMessage = errorData.message;
+                }
+              } catch (parseError) {
+                errorMessage = err.message || errorMessage;
+              }
+              showError('Lỗi', errorMessage);
+              // Reload lại danh sách để cập nhật
+              await loadRecipes(0, searchQuery, true);
+              if (showRecipeDetailModal) {
+                setShowRecipeDetailModal(false);
+              }
             } finally {
               setLoading(false);
             }
@@ -243,30 +298,6 @@ export default function AdminRecipesScreen() {
         }
       ]
     );
-  };
-
-  const handleToggleFeatured = async (recipeId: string) => {
-    // Tìm recipe từ danh sách hoặc dùng selectedRecipeDetail nếu có
-    const recipe = recipes.find(r => r.recipeId === recipeId) || selectedRecipeDetail;
-    if (!recipe) return;
-
-    try {
-      setLoading(true);
-      await adminRecipeService.setFeaturedRecipe(recipeId, !recipe.isFeatured);
-
-      // Nếu đang mở modal, reload recipe detail
-      if (showRecipeDetailModal && selectedRecipeDetail) {
-        const updatedRecipe = await adminRecipeService.getRecipeDetail(recipeId);
-        setSelectedRecipeDetail(updatedRecipe);
-      }
-
-      await loadRecipes(0, searchQuery, true);
-      showSuccess('Thành công', recipe.isFeatured ? 'Đã bỏ nổi bật công thức' : 'Đã đặt nổi bật công thức');
-    } catch (err: any) {
-      showError('Lỗi', err.message || 'Không thể thay đổi trạng thái nổi bật');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleTogglePublished = async (recipeId: string) => {
@@ -307,6 +338,7 @@ export default function AdminRecipesScreen() {
         onBack={() => router.back()}
         onFilterPress={() => setShowFilterOptions(true)}
         onExitAdmin={handleExitAdmin}
+        onNotificationPress={handleNotificationPress}
       />
 
       <SearchBar
@@ -335,7 +367,6 @@ export default function AdminRecipesScreen() {
           onDeleteRecipe={handleDeleteRecipe}
           onApproveRecipe={handleApproveRecipe}
           onRejectRecipe={handleRejectRecipe}
-          onToggleFeatured={handleToggleFeatured}
           onTogglePublished={handleTogglePublished}
         />
       </View>
@@ -351,7 +382,6 @@ export default function AdminRecipesScreen() {
         onApprove={handleApproveRecipe}
         onReject={handleRejectRecipe}
         onDelete={handleDeleteRecipe}
-        onToggleFeatured={handleToggleFeatured}
         onTogglePublished={handleTogglePublished}
       />
 

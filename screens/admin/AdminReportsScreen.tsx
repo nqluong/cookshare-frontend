@@ -5,23 +5,23 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AdminHeader from "../../components/admin/management/AdminHeader";
 import {
-  GroupedReportList,
-  IndividualReportList,
-  ReportActionModal,
-  ReportDetailModal,
-  ReportFilterModal,
-  ReportStatsBar
+    GroupedReportList,
+    IndividualReportList,
+    ReportActionModal,
+    ReportDetailModal,
+    ReportFilterModal,
+    ReportStatsBar
 } from "../../components/admin/reports";
 import CustomAlert from "../../components/ui/CustomAlert";
 import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { adminGroupedReportService } from "../../services/adminGroupedReportService";
 import {
-  GroupedReport,
-  ProcessedReport,
-  ReportActionType,
-  ReportStatus,
-  ReportType,
-  ReviewReportRequest
+    GroupedReport,
+    ProcessedReport,
+    ReportActionType,
+    ReportStatus,
+    ReportType,
+    ReviewReportRequest
 } from "../../types/admin/groupedReport.types";
 
 interface Filters {
@@ -181,6 +181,10 @@ export default function AdminReportsScreen() {
     router.replace("/(tabs)/home" as any);
   };
 
+  const handleNotificationPress = () => {
+    router.push('/admin/notifications' as any);
+  };
+
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     loadStatistics();
@@ -275,6 +279,7 @@ export default function AdminReportsScreen() {
           onBack={() => router.back()}
           onExitAdmin={handleExitAdmin}
           onFilterPress={handleFilterPress}
+          onNotificationPress={handleNotificationPress}
         />
       </View>
 

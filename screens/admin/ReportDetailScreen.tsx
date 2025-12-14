@@ -3,23 +3,23 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AdminHeader from "../../components/admin/management/AdminHeader";
 import {
-  IndividualReportsList,
-  RecipeCard,
-  ReportStatistics,
-  ReportTypeBreakdownCard,
-  ThresholdBanner,
+    IndividualReportsList,
+    RecipeCard,
+    ReportStatistics,
+    ReportTypeBreakdownCard,
+    ThresholdBanner,
 } from "../../components/admin/reportDetail";
 import { ReportActionModal } from "../../components/admin/reports";
 import CustomAlert from "../../components/ui/CustomAlert";
@@ -27,10 +27,10 @@ import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { adminGroupedReportService } from "../../services/adminGroupedReportService";
 import { Colors } from "../../styles/colors";
 import {
-  GroupedReportDetail,
-  REPORT_ACTION_TYPE_COLORS,
-  REPORT_ACTION_TYPE_LABELS,
-  ReviewReportRequest
+    GroupedReportDetail,
+    REPORT_ACTION_TYPE_COLORS,
+    REPORT_ACTION_TYPE_LABELS,
+    ReviewReportRequest
 } from "../../types/admin/groupedReport.types";
 
 interface ReportDetailScreenProps {
@@ -99,7 +99,7 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
   if (loading && !report) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} />
+        <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} showNotification={false} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#10B981" />
           <Text style={styles.loadingText}>Đang tải...</Text>
@@ -111,7 +111,7 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
   if (error) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} />
+        <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} showNotification={false} />
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
           <Text style={styles.errorText}>{error}</Text>
@@ -150,7 +150,7 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} />
+      <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} showNotification={false} />
 
       <ScrollView
         style={styles.scrollView}

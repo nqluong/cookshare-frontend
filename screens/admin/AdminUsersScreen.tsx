@@ -16,6 +16,10 @@ export default function AdminUsersScreen() {
   const handleExitAdmin = () => {
     router.replace('/(tabs)/home' as any);
   };
+
+  const handleNotificationPress = () => {
+    router.push('/admin/notifications' as any);
+  };
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,8 +75,12 @@ export default function AdminUsersScreen() {
     loadUsers(0, searchQuery, true);
   }, [loadUsers, searchQuery]);
 
-  const handleSearch = useCallback(() => {
-    loadUsers(0, searchQuery, true);
+  const handleSearch = useCallback((queryOverride?: string) => {
+    const query = queryOverride !== undefined ? queryOverride : searchQuery;
+    if (queryOverride !== undefined) {
+      setSearchQuery(queryOverride);
+    }
+    loadUsers(0, query, true);
   }, [loadUsers, searchQuery]);
 
   const handleLoadMore = useCallback(() => {
@@ -167,6 +175,7 @@ export default function AdminUsersScreen() {
         title="Người Dùng"
         onBack={() => router.back()}
         onExitAdmin={handleExitAdmin}
+        onNotificationPress={handleNotificationPress}
       />
 
       <SearchBar
@@ -174,6 +183,7 @@ export default function AdminUsersScreen() {
         onChangeText={setSearchQuery}
         onSearch={handleSearch}
         placeholder="Tìm kiếm theo tên, email..."
+        showSuggestions={false}
       />
 
       <View style={styles.listSection}>

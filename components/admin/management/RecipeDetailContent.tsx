@@ -11,7 +11,6 @@ interface RecipeDetailContentProps {
   onDelete: (recipeId: string) => void;
   onApprove?: (recipeId: string) => void;
   onReject?: (recipeId: string) => void;
-  onToggleFeatured?: (recipeId: string) => void;
   onTogglePublished?: (recipeId: string) => void;
 }
 
@@ -21,7 +20,6 @@ export default function RecipeDetailContent({
   onDelete,
   onApprove,
   onReject,
-  onToggleFeatured,
   onTogglePublished,
 }: RecipeDetailContentProps) {
   if (!recipeDetail) {
@@ -71,13 +69,6 @@ export default function RecipeDetailContent({
               </Text>
             </View>
             
-            {/* Featured status */}
-            {recipeDetail.isFeatured && (
-              <View style={styles.featuredBadge}>
-                <Ionicons name="star" size={14} color="#f59e0b" />
-                <Text style={styles.featuredText}>Nổi bật</Text>
-              </View>
-            )}
           </View>
         </View>
       </View>
@@ -280,8 +271,8 @@ export default function RecipeDetailContent({
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        {/* Nút phê duyệt/từ chối - chỉ hiện khi status là PENDING */}
-        {onApprove && recipeDetail.status === 'PENDING' && (
+        {/* Nút phê duyệt - hiện cho PENDING hoặc REJECTED */}
+        {onApprove && (recipeDetail.status === 'PENDING' || recipeDetail.status === 'REJECTED') && (
           <TouchableOpacity 
             style={[styles.actionButton, styles.approveButton]}
             onPress={() => onApprove(recipeDetail.recipeId)}
@@ -291,7 +282,8 @@ export default function RecipeDetailContent({
           </TouchableOpacity>
         )}
         
-        {onReject && recipeDetail.status === 'PENDING' && (
+        {/* Nút từ chối - hiện cho PENDING hoặc APPROVED */}
+        {onReject && (recipeDetail.status === 'PENDING' || recipeDetail.status === 'APPROVED') && (
           <TouchableOpacity 
             style={[styles.actionButton, styles.rejectButton]}
             onPress={() => onReject(recipeDetail.recipeId)}
@@ -300,26 +292,10 @@ export default function RecipeDetailContent({
             <Text style={[styles.actionButtonText, { color: "#ef4444" }]}>Từ chối</Text>
           </TouchableOpacity>
         )}
+      
         
-        {/* Nút nổi bật */}
-        {onToggleFeatured && (
-          <TouchableOpacity 
-            style={[styles.actionButton, recipeDetail.isFeatured ? styles.featuredButton : styles.toggleButton]}
-            onPress={() => onToggleFeatured(recipeDetail.recipeId)}
-          >
-            <Ionicons 
-              name={recipeDetail.isFeatured ? "star" : "star-outline"} 
-              size={16} 
-              color="#f59e0b" 
-            />
-            <Text style={[styles.actionButtonText, { color: "#f59e0b" }]}>
-              {recipeDetail.isFeatured ? 'Bỏ nổi bật' : 'Đặt nổi bật'}
-            </Text>
-          </TouchableOpacity>
-        )}
-        
-        {/* Nút xuất bản/ẩn */}
-        {onTogglePublished && (
+        {/* Nút xuất bản/ẩn - chỉ hiện cho APPROVED */}
+        {onTogglePublished && recipeDetail.status === 'APPROVED' && (
           <TouchableOpacity 
             style={[styles.actionButton, recipeDetail.isPublished ? styles.toggleButton : styles.publishedButton]}
             onPress={() => onTogglePublished(recipeDetail.recipeId)}
@@ -335,13 +311,13 @@ export default function RecipeDetailContent({
           </TouchableOpacity>
         )}
         
-        {/* <TouchableOpacity 
+        <TouchableOpacity 
           style={[styles.actionButton, styles.editButton]}
           onPress={() => onEdit(recipeDetail.recipeId)}
         >
           <Ionicons name="create-outline" size={16} color="#3b82f6" />
           <Text style={[styles.actionButtonText, { color: "#3b82f6" }]}>Chỉnh sửa</Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.actionButton, styles.deleteButton]}

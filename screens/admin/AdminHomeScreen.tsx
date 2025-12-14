@@ -79,6 +79,10 @@ export default function AdminHomeScreen() {
     router.replace('/(tabs)/home' as any);
   };
 
+  const handleNotificationPress = () => {
+    router.push('/admin/notifications' as any);
+  };
+
   const quickStats: QuickStat[] = [
     {
       icon: "document-text",
@@ -166,7 +170,7 @@ export default function AdminHomeScreen() {
           <Text style={styles.headerTitle}>{user?.fullName || "Admin"}</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity style={styles.notificationButton} onPress={handleNotificationPress}>
             <Ionicons name="notifications-outline" size={24} color="#fff" />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>3</Text>

@@ -19,7 +19,6 @@ interface RecipeListProps {
   onDeleteRecipe: (recipeId: string) => void;
   onApproveRecipe?: (recipeId: string) => void;
   onRejectRecipe?: (recipeId: string) => void;
-  onToggleFeatured?: (recipeId: string) => void;
   onTogglePublished?: (recipeId: string) => void;
 }
 
@@ -37,7 +36,6 @@ export default function RecipeList({
   onDeleteRecipe,
   onApproveRecipe,
   onRejectRecipe,
-  onToggleFeatured,
   onTogglePublished,
 }: RecipeListProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -155,7 +153,6 @@ export default function RecipeList({
           onDelete={onDeleteRecipe}
           onApprove={onApproveRecipe}
           onReject={onRejectRecipe}
-          onToggleFeatured={onToggleFeatured}
           onTogglePublished={onTogglePublished}
         />
       ))}
