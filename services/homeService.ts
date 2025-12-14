@@ -79,6 +79,22 @@ export const getHomeSuggestions = async () => {
     handleError(error);
   }
 };
+
+// Lấy danh sách công thức gợi ý hàng ngày
+export const getDailyRecipes = async () => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    const res = await api.get("/recommendations/daily", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 // Lấy danh sách công thức mới nhất với pagination
 export const getNewestRecipes = async (page: number = 0, size: number = 10) => {
   try {

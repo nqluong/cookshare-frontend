@@ -1,9 +1,13 @@
 import { Dispatch, SetStateAction } from 'react';
 import {
   checkMultipleLikes,
-  getHomeSuggestions,
+  getDailyRecipes,
   getLikedRecipes,
+  getNewestRecipes,
+  getPopularRecipes,
   getRecipebyFollowing,
+  getTopRatedRecipes,
+  getTrendingRecipes,
   getUserSuggestions,
   searchRecipeByUser,
 } from '../services/homeService';
@@ -155,16 +159,16 @@ export class HomeViewModel {
             popularRecipes,
             newestRecipes,
             topRatedRecipes,
-            featuredRecipes,
-            dailyRecommendations,
+            dailyRecipes,
           } = cachedData;
 
           this.newestPagination.reset(newestRecipes || []);
           this.trendingPagination.reset(trendingRecipes || []);
           this.popularPagination.reset(popularRecipes || []);
           this.topRatedPagination.reset(topRatedRecipes || []);
-          this.setFeaturedRecipes(featuredRecipes || []);
-          this.setDailyRecommendations(dailyRecommendations || []);
+
+          // Set daily recommendations từ cache
+          this.setDailyRecommendations(dailyRecipes || []);
 
           console.log('Đã tải gợi ý trang chủ từ cache');
         } else {
@@ -173,62 +177,123 @@ export class HomeViewModel {
         return;
       }
 
-      // Nếu online, fetch từ API
-      const response = await getHomeSuggestions();
+      // Gọi song song tất cả các API - mỗi API khi có data sẽ hiển thị ngay
+      console.log('Đang gọi song song các API trang chủ...');
+      const startTime = Date.now();
 
-      if (response.success && response.data) {
-        const {
-          trendingRecipes,
-          popularRecipes,
-          newestRecipes,
-          topRatedRecipes,
-          featuredRecipes,
-          dailyRecommendations,
-        } = response.data;
+      // Mảng để thu thập recipeIds cho việc check likes
+      const allRecipeIds: string[] = [];
+      const cacheData: any = {};
 
-        // Lưu vào cache
-        await unifiedCacheService.saveToCache(CACHE_CATEGORIES.HOME_SUGGESTIONS, response.data);
-        console.log('Đã lưu gợi ý trang chủ vào cache');
+      // Tạo promises và xử lý ngay khi mỗi API trả về
+      const newestPromise = getNewestRecipes(0, 10)
+        .then(response => {
+          const recipes = response?.success && response?.data?.content ? response.data.content : [];
+          this.newestPagination.reset(recipes);
+          cacheData.newestRecipes = recipes;
+          allRecipeIds.push(...recipes.map((r: DishRecipe) => r.recipeId).filter(Boolean));
+          console.log(`✅ Newest recipes loaded: ${recipes.length} items`);
+          // Tắt loading ngay khi có data đầu tiên
+          this.setLoading(false);
+          return recipes;
+        })
+        .catch(err => {
+          console.log('Lỗi khi lấy newest recipes:', err.message);
+          return [];
+        });
 
-        // Reset paginations với data từ API
-        this.newestPagination.reset(newestRecipes || []);
-        this.trendingPagination.reset(trendingRecipes || []);
-        this.popularPagination.reset(popularRecipes || []);
-        this.topRatedPagination.reset(topRatedRecipes || []);
+      const trendingPromise = getTrendingRecipes(0, 10)
+        .then(response => {
+          const recipes = response?.success && response?.data?.content ? response.data.content : [];
+          this.trendingPagination.reset(recipes);
+          cacheData.trendingRecipes = recipes;
+          allRecipeIds.push(...recipes.map((r: DishRecipe) => r.recipeId).filter(Boolean));
+          console.log(`✅ Trending recipes loaded: ${recipes.length} items`);
+          this.setLoading(false);
+          return recipes;
+        })
+        .catch(err => {
+          console.log('Lỗi khi lấy trending recipes:', err.message);
+          return [];
+        });
 
-        this.setFeaturedRecipes(featuredRecipes || []);
-        this.setDailyRecommendations(dailyRecommendations || []);
+      const popularPromise = getPopularRecipes(0, 10)
+        .then(response => {
+          const recipes = response?.success && response?.data?.content ? response.data.content : [];
+          this.popularPagination.reset(recipes);
+          cacheData.popularRecipes = recipes;
+          allRecipeIds.push(...recipes.map((r: DishRecipe) => r.recipeId).filter(Boolean));
+          console.log(`✅ Popular recipes loaded: ${recipes.length} items`);
+          this.setLoading(false);
+          return recipes;
+        })
+        .catch(err => {
+          console.log('Lỗi khi lấy popular recipes:', err.message);
+          return [];
+        });
 
-        // Thu thập và loại bỏ duplicate recipeIds
-        const allRecipeIds = Array.from(new Set([
-          ...(trendingRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(popularRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(newestRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(topRatedRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(featuredRecipes || []).map((r: DishRecipe) => r.recipeId),
-          ...(dailyRecommendations || []).map((r: DishRecipe) => r.recipeId),
-        ])).filter(Boolean);
+      const topRatedPromise = getTopRatedRecipes(0, 10)
+        .then(response => {
+          const recipes = response?.success && response?.data?.content ? response.data.content : [];
+          this.topRatedPagination.reset(recipes);
+          cacheData.topRatedRecipes = recipes;
+          allRecipeIds.push(...recipes.map((r: DishRecipe) => r.recipeId).filter(Boolean));
+          console.log(`✅ Top rated recipes loaded: ${recipes.length} items`);
+          this.setLoading(false);
+          return recipes;
+        })
+        .catch(err => {
+          console.log('Lỗi khi lấy top rated recipes:', err.message);
+          return [];
+        });
 
-        console.log(`Đang kiểm tra likes cho ${allRecipeIds.length} công thức duy nhất`);
+      const dailyPromise = getDailyRecipes()
+        .then(response => {
+          const recipes = response?.success && response?.data ? response.data : [];
+          this.setDailyRecommendations(recipes);
+          cacheData.dailyRecipes = recipes;
+          allRecipeIds.push(...recipes.map((r: DishRecipe) => r.recipeId).filter(Boolean));
+          console.log(`✅ Daily recipes loaded: ${recipes.length} items`);
+          this.setLoading(false);
+          return recipes;
+        })
+        .catch(err => {
+          console.log('Lỗi khi lấy daily recipes:', err.message);
+          return [];
+        });
 
-        if (allRecipeIds.length > 0) {
-          try {
-            const likeCheckResponse = await checkMultipleLikes(allRecipeIds);
+      // Đợi tất cả API hoàn thành để lưu cache và check likes
+      await Promise.allSettled([newestPromise, trendingPromise, popularPromise, topRatedPromise, dailyPromise]);
 
-            if (likeCheckResponse.code === 1000 && likeCheckResponse.result) {
-              const likedSet = new Set(
-                Object.entries(likeCheckResponse.result)
-                  .filter(([_, isLiked]) => isLiked)
-                  .map(([recipeId, _]) => recipeId)
-              );
+      const endTime = Date.now();
+      console.log(`Đã tải xong tất cả API trong ${endTime - startTime}ms`);
 
-              console.log(`Tìm thấy ${likedSet.size} công thức đã like`);
-              this.likeHook.setLikedRecipes(likedSet);
-            }
-          } catch (likeError: any) {
-            console.log('Lỗi khi kiểm tra likes (không nghiêm trọng):', likeError.message);
-            // Không throw error, chỉ log - không ảnh hưởng đến việc hiển thị recipes
+      // Lưu vào cache
+      await unifiedCacheService.saveToCache(CACHE_CATEGORIES.HOME_SUGGESTIONS, cacheData);
+      console.log('Đã lưu gợi ý trang chủ vào cache');
+
+      // Thu thập và loại bỏ duplicate recipeIds
+      const uniqueRecipeIds = Array.from(new Set(allRecipeIds));
+
+      console.log(`Đang kiểm tra likes cho ${uniqueRecipeIds.length} công thức duy nhất`);
+
+      if (uniqueRecipeIds.length > 0) {
+        try {
+          const likeCheckResponse = await checkMultipleLikes(uniqueRecipeIds);
+
+          if (likeCheckResponse.code === 1000 && likeCheckResponse.result) {
+            const likedSet = new Set(
+              Object.entries(likeCheckResponse.result)
+                .filter(([_, isLiked]) => isLiked)
+                .map(([recipeId, _]) => recipeId)
+            );
+
+            console.log(`Tìm thấy ${likedSet.size} công thức đã like`);
+            this.likeHook.setLikedRecipes(likedSet);
           }
+        } catch (likeError: any) {
+          console.log('Lỗi khi kiểm tra likes (không nghiêm trọng):', likeError.message);
+          // Không throw error, chỉ log - không ảnh hưởng đến việc hiển thị recipes
         }
       }
     } catch (err: any) {
