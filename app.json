@@ -19,8 +19,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.nqluong14.cookshareapp",
-      "softwareKeyboardLayoutMode": "pan",
-      "usesCleartextTraffic": true
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "output": "static",
