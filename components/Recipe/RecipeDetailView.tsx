@@ -1,7 +1,8 @@
+import { useRecipeLikeContext } from "@/context/RecipeLikeContext";
 import { commentService } from "@/services/commentService";
 import { ratingService } from "@/services/ratingService";
-import { useRecipeLikeContext } from "@/context/RecipeLikeContext";
 import { CommentResponse } from "@/types/comment";
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -12,7 +13,6 @@ import {
   View,
 } from "react-native";
 import Toast from "react-native-toast-message";
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getImageUrl } from "../../config/api.config";
 import styles from "../../styles/RecipeDetailView.styles";
 import ReportModal from "../componentsModal/ReportModal";
@@ -633,6 +633,7 @@ export default function RecipeDetailView({
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         recipeId={recipe.id}
+        authorId={authorInfo?.userId || ""}
         recipeTitle={recipe.title}
       />
     </View>

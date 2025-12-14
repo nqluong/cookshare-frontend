@@ -1,15 +1,16 @@
+import { moderateScale, scale, verticalScale } from "@/constants/layout";
 import { CollectionUserDto } from "@/types/collection.types";
 import { getDifficultyText } from "@/utils/recipeUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { Colors } from "../../../styles/colors";
 import { Recipe } from "../../../types/dish";
@@ -345,52 +346,56 @@ export default function TopRatedRecipes({
         windowSize={7}
         // 📏 Item layout (tối ưu cho horizontal scroll)
         getItemLayout={(data, index) => ({
-          length: 162, // width: 150 + marginRight: 12
-          offset: 162 * index,
+          length: ITEM_LENGTH,
+          offset: ITEM_LENGTH * index,
           index,
         })}
         // 🎨 Styling
         contentContainerStyle={styles.listContent}
         // 📱 Smooth scrolling
         decelerationRate="fast"
-        snapToInterval={162} // Snap to each card
+        snapToInterval={ITEM_LENGTH} // Snap to each card
         snapToAlignment="start"
       />
     </View>
   );
 }
 
+const CARD_WIDTH = scale(150);
+const CARD_GAP = scale(12);
+const ITEM_LENGTH = CARD_WIDTH + CARD_GAP;
+
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: verticalScale(24),
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    paddingHorizontal: scale(16),
+    marginBottom: verticalScale(12),
   },
   title: {
-    fontSize: 17,
+    fontSize: moderateScale(17),
     fontWeight: "700",
     color: Colors.text.primary,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: scale(16),
   },
   separator: {
-    width: 12,
+    width: scale(12),
   },
   card: {
-    width: 150,
+    width: CARD_WIDTH,
     backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 8,
+    borderRadius: scale(12),
+    padding: scale(8),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: verticalScale(1) },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: scale(2),
     elevation: 2,
   },
   firstCard: {
@@ -398,12 +403,12 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     position: "relative",
-    marginBottom: 8,
+    marginBottom: verticalScale(8),
   },
   imageContainer: {
     width: "100%",
-    height: 134,
-    borderRadius: 8,
+    height: verticalScale(134),
+    borderRadius: scale(8),
     backgroundColor: Colors.gray[100],
     overflow: "hidden",
     position: "relative",
@@ -421,64 +426,64 @@ const styles = StyleSheet.create({
   },
   ratingBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
+    top: scale(8),
+    right: scale(8),
     backgroundColor: "rgba(0, 0, 0, 0.7)",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: scale(12),
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(4),
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: scale(4),
   },
   ratingText: {
     color: Colors.white,
-    fontSize: 11,
+    fontSize: moderateScale(11),
     fontWeight: "600",
   },
   info: {
-    gap: 6,
+    gap: verticalScale(6),
   },
   dishName: {
-    fontSize: 13,
+    fontSize: moderateScale(13),
     fontWeight: "600",
     color: Colors.text.primary,
-    minHeight: 32,
-    lineHeight: 16,
+    minHeight: verticalScale(32),
+    lineHeight: verticalScale(16),
   },
   viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: scale(4),
   },
   viewAllText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: Colors.primary,
     fontWeight: "600",
   },
   loadingContainer: {
-    width: 150,
-    height: 220,
+    width: CARD_WIDTH,
+    height: verticalScale(220),
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: scale(8),
   },
   loadingText: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
     color: Colors.text.secondary,
-    marginTop: 4,
+    marginTop: verticalScale(4),
   },
   loadMoreButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
     backgroundColor: Colors.white,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
     elevation: 3,
     borderWidth: 1,
     borderColor: Colors.primary,
@@ -488,30 +493,30 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     position: "absolute",
-    bottom: 6,
+    bottom: verticalScale(6),
     left: 0,
     right: 0,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: scale(6),
   },
   actionButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: scale(30),
+    height: scale(30),
+    borderRadius: scale(15),
     backgroundColor: Colors.white,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: verticalScale(1) },
     shadowOpacity: 0.15,
-    shadowRadius: 3,
+    shadowRadius: scale(3),
     elevation: 3,
   },
   infoGrid: {
-    marginTop: 6,
-    gap: 6,
+    marginTop: verticalScale(6),
+    gap: verticalScale(6),
   },
   infoRow: {
     flexDirection: "row",
@@ -522,10 +527,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: scale(4),
   },
   infoText: {
-    fontSize: 11,
+    fontSize: moderateScale(11),
     color: Colors.text.secondary,
   },
 });

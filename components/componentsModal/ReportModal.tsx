@@ -17,6 +17,7 @@ interface ReportModalProps {
   onClose: () => void;
   recipeId: string;
   recipeTitle: string;
+  authorId: string;
 }
 
 export default function ReportModal({
@@ -24,6 +25,7 @@ export default function ReportModal({
   onClose,
   recipeId,
   recipeTitle,
+  authorId,
 }: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState<ReportType | null>(null);
   const [description, setDescription] = useState<string>('');
@@ -57,6 +59,7 @@ export default function ReportModal({
       await reportService.createReport({
         reportType: selectedReason,
         recipeId: recipeId,
+        reportedId: authorId,
         reason: selectedReason,
         description: description.trim() || undefined,
       });

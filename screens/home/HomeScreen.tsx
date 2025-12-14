@@ -1,6 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useGlobalSearchParams, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Layout, verticalScale } from "../../constants/layout";
 
 import {
   ActivityIndicator,
@@ -22,6 +23,8 @@ import NewestRecipes from '../../components/home/sections/NewestRecipes';
 import PopularRecipes from '../../components/home/sections/PopularRecipes';
 import TopRatedRecipes from '../../components/home/sections/TopRatedRecipes';
 import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
+
+// Layout & Responsive
 
 // Services & Hooks
 import { useRecipeLikeContext } from '@/context/RecipeLikeContext';
@@ -599,40 +602,40 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   bottomPadding: {
-    height: 80,
+    height: verticalScale(80),
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: Layout.spacing.xl,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
+    marginTop: Layout.spacing.md,
+    fontSize: Layout.fontSize.lg,
     color: Colors.text.secondary,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: Layout.fontSize.lg,
     color: "#FF3B30",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: Layout.spacing.lg,
   },
   retryText: {
-    fontSize: 16,
+    fontSize: Layout.fontSize.lg,
     color: Colors.primary,
     fontWeight: "600",
     textDecorationLine: "underline",
   },
   offlineBar: {
     backgroundColor: '#FFA500',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: Layout.spacing.sm,
+    paddingHorizontal: Layout.spacing.lg,
     alignItems: 'center',
   },
   offlineText: {
     color: '#FFF',
-    fontSize: 14,
+    fontSize: Layout.fontSize.md,
     fontWeight: '600',
   },
 });
