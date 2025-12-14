@@ -103,6 +103,10 @@ export const searchStyles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    maxHeight: 300,
+  },
+  filterScrollView: {
+    maxHeight: 276,
   },
   ingredientsGrid: {
     flexDirection: 'row',
@@ -216,27 +220,27 @@ export const searchStyles = StyleSheet.create({
     fontWeight: '600',
   },
   // styles/SearchStyles.ts - THÊM
-historyItem: {
-  flexDirection: 'row',
-  padding: 16,
-  borderBottomWidth: 1,
-  borderBottomColor: '#f0f0f0',
-  alignItems: 'center',
-  backgroundColor: '#fff',
-},
-historyQuery: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: '#333',
-  marginBottom: 4,
-},
-historyType: {
-  fontSize: 14,
-  color: '#fbbc05',
-  marginBottom: 2,
-},
-historyCount: {
-  fontSize: 12,
-  color: '#666',
-},
+  historyItem: {
+    flexDirection: 'row',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  historyQuery: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  historyType: {
+    fontSize: 14,
+    color: '#fbbc05',
+    marginBottom: 2,
+  },
+  historyCount: {
+    fontSize: 12,
+    color: '#666',
+  },
 });

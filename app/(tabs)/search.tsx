@@ -67,8 +67,7 @@ export default function SearchScreen() {
 
         const recipeHistory = historyData
           .filter(item => item.searchType === 'recipe')
-          .slice(0, 5)
-          .reverse();
+          .slice(-5);
         setHistory(recipeHistory);
       } catch (error) {
         console.log('❌ Load history error:', error);
@@ -205,7 +204,7 @@ export default function SearchScreen() {
             const updated = [
               ...prev.filter(item => item.searchQuery !== searchQuery),
               newItem,
-            ].slice(0, 5);
+            ].slice(-5);
 
             return updated;
           });
@@ -245,7 +244,7 @@ export default function SearchScreen() {
         setSearchQuery={handleQueryChange}
         onSearch={handleSearch}
         onGetSuggestions={fetchRecipeSuggestions}
-        showSuggestions={!hasSearched}
+        showSuggestions={!hasSearched && !showFilter}
         onToggleFilter={() => setShowFilter(!showFilter)}
       />
 

@@ -1,15 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { searchStyles } from '../../styles/SearchStyles';
 import { Ingredient } from '../../types/search';
 
 interface IngredientFilterProps {
-  selectedIngredients: string[]; 
-  toggleIngredient: (ingredientId: string) => void; 
+  selectedIngredients: string[];
+  toggleIngredient: (ingredientId: string) => void;
   setShowInputModal: (show: boolean) => void;
-  popularIngredients: Ingredient[]; 
-  customIngredients: string[]; 
-  loading?: boolean; 
+  popularIngredients: Ingredient[];
+  customIngredients: string[];
+  loading?: boolean;
 }
 
 export default function IngredientFilter({
@@ -18,9 +18,9 @@ export default function IngredientFilter({
   setShowInputModal,
   popularIngredients,
   customIngredients,
-  loading = false, 
+  loading = false,
 }: IngredientFilterProps) {
-  
+
   // ✅ LOADING STATE
   if (loading) {
     return (
@@ -37,65 +37,71 @@ export default function IngredientFilter({
 
   return (
     <View style={searchStyles.filterContainer}>
-      <View style={searchStyles.ingredientsGrid}>
-        {popularIngredients.map((ingredient) => {
-          const isSelected = selectedIngredients.includes(ingredient.name);
-          return (
-            <TouchableOpacity
-              key={ingredient.name} 
-              style={[
-                searchStyles.ingredientButton, 
-                isSelected && searchStyles.selectedIngredient
-              ]}
-              onPress={() => toggleIngredient(ingredient.name)}  
-            >
-              <Text
+      <ScrollView
+        style={searchStyles.filterScrollView}
+        nestedScrollEnabled={true}
+        showsVerticalScrollIndicator={true}
+      >
+        <View style={searchStyles.ingredientsGrid}>
+          {popularIngredients.map((ingredient) => {
+            const isSelected = selectedIngredients.includes(ingredient.name);
+            return (
+              <TouchableOpacity
+                key={ingredient.name}
                 style={[
-                  searchStyles.ingredientText, 
-                  isSelected && searchStyles.selectedText
+                  searchStyles.ingredientButton,
+                  isSelected && searchStyles.selectedIngredient
                 ]}
-                numberOfLines={1}
+                onPress={() => toggleIngredient(ingredient.name)}
               >
-                {ingredient.name} {}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-    
-        <TouchableOpacity
-          style={searchStyles.inputIngredientButton}
-          onPress={() => setShowInputModal(true)}
-        >
-          <Ionicons name="add-circle-outline" size={18} color="#666" />
-          <Text style={searchStyles.inputIngredientText}>Nhập nguyên liệu</Text>
-        </TouchableOpacity>
-        
-        {/* ✅ CUSTOM INGREDIENTS (VẪN LÀ STRING[]) */}
-        {customIngredients.map((item) => {
-          const isSelected = selectedIngredients.includes(item);
-          return (
-            <TouchableOpacity
-              key={item}
-              style={[
-                searchStyles.ingredientButton,
-                searchStyles.customIngredientButton,
-                isSelected && searchStyles.selectedIngredient,
-              ]}
-              onPress={() => toggleIngredient(item)} 
-            >
-              <Text
+                <Text
+                  style={[
+                    searchStyles.ingredientText,
+                    isSelected && searchStyles.selectedText
+                  ]}
+                  numberOfLines={1}
+                >
+                  {ingredient.name} { }
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          <TouchableOpacity
+            style={searchStyles.inputIngredientButton}
+            onPress={() => setShowInputModal(true)}
+          >
+            <Ionicons name="add-circle-outline" size={18} color="#666" />
+            <Text style={searchStyles.inputIngredientText}>Nhập nguyên liệu</Text>
+          </TouchableOpacity>
+
+          {/* ✅ CUSTOM INGREDIENTS (VẪN LÀ STRING[]) */}
+          {customIngredients.map((item) => {
+            const isSelected = selectedIngredients.includes(item);
+            return (
+              <TouchableOpacity
+                key={item}
                 style={[
-                  searchStyles.ingredientText,
-                  isSelected && searchStyles.selectedText
+                  searchStyles.ingredientButton,
+                  searchStyles.customIngredientButton,
+                  isSelected && searchStyles.selectedIngredient,
                 ]}
-                numberOfLines={1}
+                onPress={() => toggleIngredient(item)}
               >
-                {item}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+                <Text
+                  style={[
+                    searchStyles.ingredientText,
+                    isSelected && searchStyles.selectedText
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
     </View>
   );
 }

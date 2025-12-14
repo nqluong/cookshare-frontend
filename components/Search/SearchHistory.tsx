@@ -2,10 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface SearchHistoryProps {
-  history: string[];                     
-  onSelect: (query: string) => void;     
-  onClearAll: () => void;               
-  onDeleteItem: (query: string) => void; 
+  history: string[];
+  onSelect: (query: string) => void;
+  onClearAll: () => void;
+  onDeleteItem: (query: string) => void;
   onSearch: () => void;
 }
 
@@ -39,7 +39,7 @@ export default function SearchHistory({
             <TouchableOpacity
               style={styles.itemTextContainer}
               onPress={() => {
-                onSelect(item);  
+                onSelect(item);
                 onSearch();
               }}
             >
@@ -52,6 +52,9 @@ export default function SearchHistory({
           </View>
         )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
+        style={styles.listContainer}
       />
     </View>
   );
@@ -100,5 +103,8 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#f0f0f0',
+  },
+  listContainer: {
+    maxHeight: 200,
   },
 });
