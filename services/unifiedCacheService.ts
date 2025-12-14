@@ -58,6 +58,9 @@ interface CacheIndex {
 }
 
 class UnifiedCacheService {
+  removeCategory(USER_COLLECTIONS: any) {
+    throw new Error("Method not implemented.");
+  }
   /**
    * Kiểm tra thiết bị có kết nối internet không
    */

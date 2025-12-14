@@ -13,6 +13,7 @@ export enum NotificationType {
   REPORT_REVIEW = 'REPORT_REVIEW',
   WARNING = 'WARNING',
   ACCOUNT_STATUS = 'ACCOUNT_STATUS',
+  REPORT = 'REPORT',
 }
 
 export enum RelatedType {

@@ -9,17 +9,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  FlatList,
-  Image,
-  PanResponder,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    FlatList,
+    Image,
+    PanResponder,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -92,245 +92,12 @@ const SwipeableNotificationItem = ({
     const avatarUrl = item.actorAvatar || 'https://i.pravatar.cc/150';
 
     switch (item.type) {
-      case NotificationType.FOLLOW:
+      case NotificationType.REPORT:
         return (
           <View style={styles.notificationContent}>
             <View style={styles.avatarContainer}>
               <Image
                 source={{ uri: getImageUrl(avatarUrl) }}
-                style={styles.avatar}
-              />
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
-                {' đã bắt đầu theo dõi bạn. '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-          </View>
-        );
-
-      case NotificationType.COMMENT:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.avatar}
-              />
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
-                {' đã bình luận về công thức của bạn. '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-            {item.recipeImage && (
-              <Image
-                source={{ uri: getImageUrl(item.recipeImage) }}
-                style={styles.recipeThumb}
-              />
-            )}
-          </View>
-        );
-
-      case NotificationType.MENTION:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.avatar}
-              />
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
-                {' đã trả lời bình luận của bạn. '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-            {item.recipeImage && (
-              <Image
-                source={{ uri: getImageUrl(item.recipeImage) }}
-                style={styles.recipeThumb}
-              />
-            )}
-          </View>
-        );
-
-      case NotificationType.LIKE:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.avatar}
-              />
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
-                {' đã thích công thức của bạn. '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-            {item.recipeImage && (
-              <Image
-                source={{ uri: getImageUrl(item.recipeImage) }}
-                style={styles.recipeThumb}
-              />
-            )}
-          </View>
-        );
-
-      case NotificationType.RECIPE_PUBLISHED:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.avatar}
-              />
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                <Text style={styles.actorName}>{item.actorName || 'Người dùng'}</Text>
-                {' vừa đăng công thức mới'}
-                {item.recipeTitle && (
-                  <>
-                    {': "'}
-                    <Text style={styles.recipeTitle}>{item.recipeTitle}</Text>
-                    {'"'}
-                  </>
-                )}
-                {'. '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-            {item.recipeImage && (
-              <Image
-                source={{ uri: getImageUrl(item.recipeImage) }}
-                style={styles.recipeThumb}
-              />
-            )}
-          </View>
-        );
-
-      case NotificationType.SYSTEM:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, styles.systemAvatar]}>
-                <Ionicons name="notifications" size={24} color={Colors.primary} />
-              </View>
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                {item.message}
-                {' '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-            {item.recipeImage && (
-              <Image
-                source={{ uri: getImageUrl(item.recipeImage) }}
-                style={styles.recipeThumb}
-              />
-            )}
-          </View>
-        );
-
-        case NotificationType.RECIPE_STATUS:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, styles.systemAvatar]}>
-                <Ionicons name="notifications" size={24} color={Colors.primary} />
-              </View>
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                {item.message}
-                {' '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-          </View>
-        );
-
-        case NotificationType.REPORT_REVIEW:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, styles.systemAvatar]}>
-                <Ionicons name="notifications" size={24} color={Colors.primary} />
-              </View>
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                {item.message}
-                {' '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-          </View>
-        );
-
-        case NotificationType.WARNING:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, styles.systemAvatar]}>
-                <Ionicons name="notifications" size={24} color={Colors.primary} />
-              </View>
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                {item.message}
-                {' '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-          </View>
-        );
-
-        case NotificationType.ACCOUNT_STATUS:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, styles.systemAvatar]}>
-                <Ionicons name="notifications" size={24} color={Colors.primary} />
-              </View>
-              {!item.isRead && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.message}>
-                {item.message}
-                {' '}
-                <Text style={styles.timeAgo}>{getTimeAgo(item.createdAt)}</Text>
-              </Text>
-            </View>
-          </View>
-        );
-
-      default:
-        return (
-          <View style={styles.notificationContent}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: avatarUrl }}
                 style={styles.avatar}
               />
               {!item.isRead && <View style={styles.unreadDot} />}
@@ -761,11 +528,6 @@ const Header = ({ unreadCount }: { unreadCount?: number }) => (
   <View style={styles.header}>
     <View style={styles.headerCenter}>
       <Text style={styles.headerTitle}>Thông báo</Text>
-      {unreadCount! > 0 && (
-        <View style={styles.unreadBadge}>
-          <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
-        </View>
-      )}
     </View>
   </View>
 );
