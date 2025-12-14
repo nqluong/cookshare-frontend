@@ -25,7 +25,10 @@ export const RecipeLikeProvider = ({ children }: { children: ReactNode }) => {
     // Wrap toggleLike to notify callbacks
     const toggleLikeWithNotify: typeof likeHook.toggleLike = async (recipeId, onUpdateCount, onSuccess) => {
         const wrappedUpdateCount = (delta: number) => {
-            onUpdateCount(delta);
+            // Call local callback if provided
+            if (onUpdateCount) {
+                onUpdateCount(delta);
+            }
             // Notify all registered callbacks
             callbacksRef.current.forEach(cb => cb(recipeId, delta));
         };
