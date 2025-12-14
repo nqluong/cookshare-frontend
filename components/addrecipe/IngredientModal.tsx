@@ -1,11 +1,12 @@
 import { useState } from "react";
 import {
-    Alert,
-    FlatList,
-    Modal,
-    Text, TextInput, TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  Modal,
+  Text, TextInput, TouchableOpacity,
+  View
 } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons';
 import { defaultPlaceholderColor, styles } from "../../styles/RecipeStyle";
 
 interface ListItem {
@@ -33,7 +34,7 @@ interface Props {
 }
 
 export default function IngredientModal({
-  visible, ingredients, ingredientInputs, onClose, onSelect, 
+  visible, ingredients, ingredientInputs, onClose, onSelect,
   onInputChange, onCreate, onDelete
 }: Props) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,17 +76,20 @@ export default function IngredientModal({
         />
 
         <TouchableOpacity onPress={handleCreate} style={styles.createBtn}>
-          <Text style={{ color: "white", fontWeight: "600" }}>✅ Tạo mới</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialIcons name="add-circle" size={18} color="white" />
+            <Text style={{ color: "white", fontWeight: "600" }}>Tạo mới</Text>
+          </View>
         </TouchableOpacity>
 
         <FlatList
           data={filtered}
           keyExtractor={(item, index) => item?.id || index.toString()}
           renderItem={({ item }) => {
-            const inputs = ingredientInputs[item.id] || { 
-              quantity: '', unit: '', selected: false 
+            const inputs = ingredientInputs[item.id] || {
+              quantity: '', unit: '', selected: false
             };
-            
+
             return (
               <View
                 style={[
@@ -98,13 +102,13 @@ export default function IngredientModal({
                     {item.name}
                     {item.isLocal && <Text style={{ color: '#ff9800' }}> (mới)</Text>}
                   </Text>
-                  
+
                   {item.isLocal && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => onDelete(item)}
                       style={{ padding: 4 }}
                     >
-                      <Text style={{ fontSize: 18, color: '#d32f2f' }}>🗑️</Text>
+                      <MaterialIcons name="delete" size={20} color="#d32f2f" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -127,8 +131,8 @@ export default function IngredientModal({
                     style={[styles.input, { flex: 1, marginRight: 8 }]}
                   />
 
-                  <TouchableOpacity 
-                    onPress={() => onSelect(item)} 
+                  <TouchableOpacity
+                    onPress={() => onSelect(item)}
                     style={styles.addButton}
                   >
                     <Text style={styles.addButtonText}>

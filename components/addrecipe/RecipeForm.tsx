@@ -1,4 +1,5 @@
 import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons';
 import { defaultPlaceholderColor, styles } from "../../styles/RecipeStyle";
 
 interface Props {
@@ -36,13 +37,16 @@ export default function RecipeForm({
         <Text style={styles.inputLabel}>Ảnh món ăn <Text style={styles.required}>*</Text></Text>
         <TouchableOpacity onPress={onImagePick} style={styles.imagePicker}>
           {image ? (
-            <Image 
-              source={{ uri: image }} 
+            <Image
+              source={{ uri: image }}
               style={{ width: "100%", height: "100%", borderRadius: 10 }}
               resizeMode="cover"
             />
           ) : (
-            <Text>📸 Chọn ảnh món</Text>
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialIcons name="add-a-photo" size={40} color="#999" />
+              <Text style={{ marginTop: 8, color: '#999' }}>Chọn ảnh món</Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
@@ -50,12 +54,12 @@ export default function RecipeForm({
       {/* Tên món ăn */}
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Tên món ăn <Text style={styles.required}>*</Text></Text>
-        <TextInput 
-          placeholder="VD: Phở bò Hà Nội" 
+        <TextInput
+          placeholder="VD: Phở bò Hà Nội"
           placeholderTextColor={defaultPlaceholderColor}
-          value={title} 
-          onChangeText={onTitleChange} 
-          style={styles.input} 
+          value={title}
+          onChangeText={onTitleChange}
+          style={styles.input}
         />
       </View>
 
@@ -109,7 +113,7 @@ export default function RecipeForm({
               <View style={styles.radioButton}>
                 {difficulty === option.value && <View style={styles.radioButtonInner} />}
               </View>
-              <Text 
+              <Text
                 style={[
                   styles.difficultyButtonText,
                   difficulty === option.value && styles.difficultyButtonTextSelected

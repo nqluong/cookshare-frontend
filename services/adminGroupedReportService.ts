@@ -1,10 +1,11 @@
 // services/adminGroupedReportService.ts
 import { API_CONFIG } from '@/config/api.config';
 import {
-  GroupedReportDetail,
-  GroupedReportResponse,
-  ReviewReportRequest,
-  ReviewReportResponse
+    GroupedReportDetail,
+    GroupedReportResponse,
+    ReportStatistics,
+    ReviewReportRequest,
+    ReviewReportResponse
 } from '@/types/admin/groupedReport.types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -75,24 +76,29 @@ class AdminGroupedReportService {
    * Lấy danh sách báo cáo nhóm theo công thức
    * @param page Số trang (bắt đầu từ 0)
    * @param size Số lượng item mỗi trang
-   * @param priority Lọc theo mức độ ưu tiên (optional)
    * @param reportType Lọc theo loại báo cáo (optional)
+   * @param status Lọc theo trạng thái (optional)
+   * @param actionType Lọc theo loại hành động (optional)
    */
   async getGroupedReports(
     page: number = 0,
     size: number = 20,
-    priority?: string,
-    reportType?: string
+    reportType?: string,
+    status?: string,
+    actionType?: string
   ): Promise<GroupedReportResponse> {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('size', size.toString());
     
-    if (priority) {
-      params.append('priority', priority);
-    }
     if (reportType) {
       params.append('reportType', reportType);
+    }
+    if (status) {
+      params.append('status', status);
+    }
+    if (actionType) {
+      params.append('actionType', actionType);
     }
 
     return this.handleFetchRequest<GroupedReportResponse>(
@@ -123,6 +129,16 @@ class AdminGroupedReportService {
       `${BASE_URL}/api/admin/reports/grouped/recipe/${recipeId}/review`,
       'POST',
       request
+    );
+  }
+
+  /**
+   * Lấy thống kê báo cáo
+   * @returns Thống kê tổng quan về báo cáo
+   */
+  async getReportStatistics(): Promise<ReportStatistics> {
+    return this.handleFetchRequest<ReportStatistics>(
+      `${BASE_URL}/api/admin/reports/statistics`
     );
   }
 }

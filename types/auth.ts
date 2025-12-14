@@ -67,4 +67,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   updateAuthUser: (newUserData: Partial<User>) => void;
+  // Dev-only functions for testing
+  __DEV_toggleOfflineMode?: () => void;
+  __DEV_isForceOffline?: boolean;
 }

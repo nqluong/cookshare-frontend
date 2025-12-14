@@ -23,7 +23,7 @@ import { UserProfile } from "../../types/user.types";
 export default function OwnProfileScreen() {
 
   const canGoBack = router.canGoBack();
-  const { user, logout } = useAuth();
+  const { user, logout, __DEV_toggleOfflineMode, __DEV_isForceOffline } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { reload } = useLocalSearchParams<{ reload?: string }>();
   const [loading, setLoading] = useState(true);
@@ -296,6 +296,23 @@ export default function OwnProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* 🧪 Dev-only: Offline Mode Toggle Button */}
+      {__DEV__ && __DEV_toggleOfflineMode && (
+        <TouchableOpacity
+          onPress={__DEV_toggleOfflineMode}
+          style={styles.devButton}
+        >
+          <MaterialCommunityIcons 
+            name={__DEV_isForceOffline ? "wifi-off" : "wifi"} 
+            size={16} 
+            color="#fff" 
+          />
+          <Text style={styles.devButtonText}>
+            {__DEV_isForceOffline ? '📴 Offline' : '🌐 Online'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       <FlatList
         ListHeaderComponent={renderHeader}
         data={[{}]}
@@ -494,5 +511,30 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginLeft: 12,
     fontWeight: "500",
+  },
+  
+  // Dev Button Styles
+  devButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    backgroundColor: '#FF6B35',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  devButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

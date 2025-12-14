@@ -1,12 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 
+// Dev-only: Key cho force offline mode
+const DEV_OFFLINE_KEY = '__DEV_FORCE_OFFLINE__';
+
 // Cấu hình cache cho từng loại dữ liệu
 interface CacheConfig {
   expiryTime: number; // Thời gian hết hạn (ms)
   maxItems?: number; // Giới hạn số lượng item (cho LRU)
   useLRU?: boolean; // Có sử dụng LRU không
 }
+
+// Export cache categories để sử dụng ở nơi khác
 
 // Các khóa cache và config tương ứng
 const CACHE_CONFIGS: Record<string, CacheConfig> = {
@@ -25,6 +30,9 @@ const CACHE_CONFIGS: Record<string, CacheConfig> = {
     maxItems: 20, 
     useLRU: true 
   },
+  
+  // User info - 30 ngày, cho phép offline login
+  LAST_USER_INFO: { expiryTime: 30 * 24 * 60 * 60 * 1000 },
   USER_COLLECTIONS: { expiryTime: 60 * 60 * 1000 },
   COLLECTION_DETAIL: { 
     expiryTime: 7 * 24 * 60 * 60 * 1000, 
@@ -58,13 +66,40 @@ interface CacheIndex {
 }
 
 class UnifiedCacheService {
-  removeCategory(USER_COLLECTIONS: any) {
-    throw new Error("Method not implemented.");
+  private devForceOffline: boolean = false;
+
+  /**
+   * Dev-only: Set force offline mode
+   */
+  setDevForceOffline(value: boolean) {
+    if (__DEV__) {
+      this.devForceOffline = value;
+      console.log('🧪 UnifiedCacheService Force Offline:', value ? 'ENABLED' : 'DISABLED');
+    }
   }
+
+  /**
+   * Dev-only: Load force offline mode from AsyncStorage
+   */
+  async loadDevForceOffline() {
+    if (__DEV__) {
+      const value = await AsyncStorage.getItem(DEV_OFFLINE_KEY);
+      this.devForceOffline = value === 'true';
+      if (this.devForceOffline) {
+        console.log('🧪 UnifiedCacheService loaded Force Offline: ENABLED');
+      }
+    }
+  }
+
   /**
    * Kiểm tra thiết bị có kết nối internet không
    */
   async isConnected(): Promise<boolean> {
+    // Dev-only: Nếu force offline, return false ngay
+    if (__DEV__ && this.devForceOffline) {
+      return false;
+    }
+    
     const netInfo = await NetInfo.fetch();
     return netInfo.isConnected ?? false;
   }
@@ -463,4 +498,5 @@ export const CACHE_CATEGORIES = {
   COLLECTION_DETAIL: 'COLLECTION_DETAIL',
   COLLECTION_RECIPES: 'COLLECTION_RECIPES',
   USER_RECIPES: 'USER_RECIPES',
+  LAST_USER_INFO: 'LAST_USER_INFO',
 } as const;

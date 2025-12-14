@@ -12,6 +12,7 @@ interface GroupedReportListProps {
   error: string | null;
   totalElements: number;
   hasMore: boolean;
+  bottomInset?: number;
   onRefresh: () => void;
   onLoadMore: () => void;
   onViewDetails: (report: GroupedReport) => void;
@@ -26,6 +27,7 @@ export default function GroupedReportList({
   error,
   totalElements,
   hasMore,
+  bottomInset = 0,
   onRefresh,
   onLoadMore,
   onViewDetails,
@@ -56,6 +58,7 @@ export default function GroupedReportList({
   return (
     <ScrollView
       style={styles.scrollView}
+      contentContainerStyle={{ paddingBottom: bottomInset + 16 }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl 

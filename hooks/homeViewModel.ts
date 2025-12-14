@@ -29,6 +29,7 @@ export class HomeViewModel {
   private setIsFollowingTabLoaded: (loaded: boolean) => void;
   private setSearchQuery: (query: string) => void;
   private setIsOffline: (offline: boolean) => void;
+  private setLoadingMoreSearch: (loading: boolean) => void;
   // Hooks
   public likeHook: ReturnType<typeof useRecipeLike>;
   public newestPagination: ReturnType<typeof useRecipePagination>;
@@ -59,6 +60,7 @@ export class HomeViewModel {
       setIsFollowingTabLoaded: (loaded: boolean) => void;
       setSearchQuery: (query: string) => void;
       setIsOffline: (offline: boolean) => void;
+      setLoadingMoreSearch: (loading: boolean) => void;
     },
     hooks: {
       likeHook: ReturnType<typeof useRecipeLike>;
@@ -89,6 +91,7 @@ export class HomeViewModel {
     this.setIsFollowingTabLoaded = setters.setIsFollowingTabLoaded;
     this.setSearchQuery = setters.setSearchQuery;
     this.setIsOffline = setters.setIsOffline;
+    this.setLoadingMoreSearch = setters.setLoadingMoreSearch;
     this.likeHook = hooks.likeHook;
     this.newestPagination = hooks.newestPagination;
     this.trendingPagination = hooks.trendingPagination;
@@ -145,7 +148,7 @@ export class HomeViewModel {
         // Nếu offline, load từ cache
         console.log('Offline - Đang tải gợi ý trang chủ từ cache...');
         const cachedData = await unifiedCacheService.getFromCache<any>(CACHE_CATEGORIES.HOME_SUGGESTIONS);
-        
+
         if (cachedData) {
           const {
             trendingRecipes,
@@ -162,7 +165,7 @@ export class HomeViewModel {
           this.topRatedPagination.reset(topRatedRecipes || []);
           this.setFeaturedRecipes(featuredRecipes || []);
           this.setDailyRecommendations(dailyRecommendations || []);
-          
+
           console.log('Đã tải gợi ý trang chủ từ cache');
         } else {
           this.setError('Không có dữ liệu offline');
@@ -287,7 +290,13 @@ export class HomeViewModel {
       return;
     }
     console.log('Tìm kiếm người dùng với từ khóa:', queryToSearch);
-    this.setLoading(true);
+
+    if (reset) {
+      this.setLoading(true);
+    } else {
+      this.setLoadingMoreSearch(true);
+    }
+
     this.setError(null);
     this.setHasSearched(true);
 
@@ -310,6 +319,7 @@ export class HomeViewModel {
           this.setSearchPage(0);
         } else {
           this.setRecipes((prev: SearchRecipe[]) => [...prev, ...newRecipes]);
+          this.setSearchPage(currentPage);
         }
 
         this.setHasMoreSearch(!data.result.last);
@@ -341,7 +351,11 @@ export class HomeViewModel {
       }
       this.setError(errorMessage);
     } finally {
-      this.setLoading(false);
+      if (reset) {
+        this.setLoading(false);
+      } else {
+        this.setLoadingMoreSearch(false);
+      }
     }
   }
 
@@ -354,9 +368,9 @@ export class HomeViewModel {
     // ✅ Kiểm tra trạng thái liked TRƯỚC khi toggle
     const wasLiked = this.likeHook.likedRecipes.has(recipeId);
     const currentTab = this.activeTab; // ✅ Lưu tab hiện tại
-    
+
     console.log(`🔄 Toggle Like - Recipe: ${recipeId}, Was Liked: ${wasLiked}, Current Tab: ${currentTab}`);
-    
+
     const updateCount = (delta: number) => {
       this.newestPagination.updateRecipe(recipeId, {
         likeCount:
@@ -387,7 +401,7 @@ export class HomeViewModel {
 
     const onSuccess = (recipeId: string, isLiked: boolean) => {
       console.log(`✅ Toggle Success - Recipe: ${recipeId}, Is Liked: ${isLiked}, Tab: ${currentTab}`);
-      
+
       // ✅ XỬ LÝ CHO MỌI TAB, KHÔNG CHỈ TAB "YÊU THÍCH"
       if (isLiked && !wasLiked) {
         // ✅ LIKE MỚI: Thêm vào danh sách liked (dù đang ở tab nào)

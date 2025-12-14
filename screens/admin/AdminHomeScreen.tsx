@@ -2,14 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CustomAlert from "../../components/ui/CustomAlert";
+import { Layout, getGridLayout } from "../../constants/layout";
 import { useAuth } from "../../context/AuthContext";
 import { useCustomAlert } from "../../hooks/useCustomAlert";
 import adminStatisticApi, { getDefaultDateRange } from "../../services/adminStatisticsService";
@@ -140,13 +141,6 @@ export default function AdminHomeScreen() {
       color: "#3b82f6",
       onPress: () => router.push('/admin/recipes' as any),
     },
-    // {
-    //   icon: "leaf",
-    //   label: "Quản Lý Nguyên Liệu",
-    //   description: "Thêm, sửa nguyên liệu",
-    //   color: "#f59e0b",
-    //   onPress: () => router.push('/admin/ingredients' as any),
-    // },
     {
       icon: "people",
       label: "Quản Lý Người Dùng",
@@ -267,6 +261,8 @@ const formatDate = (dateStr: string | undefined): string => {
   });
 };
 
+const gridLayout = getGridLayout(3);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -339,74 +335,67 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statsSection: {
-    padding: 16,
+    padding: Layout.spacing.lg,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: Layout.spacing.lg,
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: gridLayout.gap,
   },
   statCard: {
-    width: "31%",
+    width: gridLayout.cardWidth,
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: Layout.borderRadius.md,
+    padding: Layout.spacing.md,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    ...Layout.shadow.small,
   },
   statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: Layout.spacing.sm,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.text.secondary,
     textAlign: "center",
+    lineHeight: 12,
   },
   menuSection: {
-    padding: 16,
+    padding: Layout.spacing.lg,
     paddingTop: 0,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    borderRadius: Layout.borderRadius.lg,
+    padding: Layout.spacing.lg,
+    marginBottom: Layout.spacing.md,
+    ...Layout.shadow.small,
   },
   menuIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: Layout.borderRadius.lg,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: Layout.spacing.lg,
   },
   menuContent: {
     flex: 1,

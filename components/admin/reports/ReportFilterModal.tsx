@@ -2,36 +2,64 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { Colors } from "../../../styles/colors";
 import {
-    REPORT_PRIORITY_CONFIG,
-    REPORT_TYPE_COLORS,
-    REPORT_TYPE_LABELS,
-    ReportPriority,
-    ReportType
+  REPORT_ACTION_TYPE_COLORS,
+  REPORT_ACTION_TYPE_LABELS,
+  REPORT_STATUS_COLORS,
+  REPORT_STATUS_LABELS,
+  REPORT_TYPE_COLORS,
+  REPORT_TYPE_LABELS,
+  ReportActionType,
+  ReportStatus,
+  ReportType
 } from "../../../types/admin/groupedReport.types";
 
 interface ReportFilterModalProps {
   visible: boolean;
   onClose: () => void;
-  onApply: (filters: { priority?: ReportPriority; reportType?: ReportType }) => void;
-  currentFilters: { priority?: ReportPriority; reportType?: ReportType };
+  onApply: (filters: { 
+    reportType?: ReportType;
+    status?: ReportStatus;
+    actionType?: ReportActionType;
+  }) => void;
+  currentFilters: { 
+    reportType?: ReportType;
+    status?: ReportStatus;
+    actionType?: ReportActionType;
+  };
 }
 
-const PRIORITIES: ReportPriority[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 const REPORT_TYPES: ReportType[] = [
   'HARASSMENT', 
   'COPYRIGHT', 
   'SPAM', 
-  'INAPPROPRIATE_CONTENT', 
+  'INAPPROPRIATE', 
   'MISLEADING', 
+  'OTHER'
+];
+
+const STATUSES: ReportStatus[] = [
+  'PENDING',
+  'RESOLVED',
+  'REJECTED'
+];
+
+const ACTION_TYPES: ReportActionType[] = [
+  'NO_ACTION',
+  'USER_WARNED',
+  'USER_SUSPENDED',
+  'USER_BANNED',
+  'RECIPE_UNPUBLISHED',
+  'RECIPE_EDITED',
+  'CONTENT_REMOVED',
   'OTHER'
 ];
 
@@ -41,21 +69,29 @@ export default function ReportFilterModal({
   onApply,
   currentFilters 
 }: ReportFilterModalProps) {
-  const [selectedPriority, setSelectedPriority] = useState<ReportPriority | undefined>(
-    currentFilters.priority
-  );
   const [selectedType, setSelectedType] = useState<ReportType | undefined>(
     currentFilters.reportType
   );
+  const [selectedStatus, setSelectedStatus] = useState<ReportStatus | undefined>(
+    currentFilters.status
+  );
+  const [selectedActionType, setSelectedActionType] = useState<ReportActionType | undefined>(
+    currentFilters.actionType
+  );
 
   const handleApply = () => {
-    onApply({ priority: selectedPriority, reportType: selectedType });
+    onApply({ 
+      reportType: selectedType,
+      status: selectedStatus,
+      actionType: selectedActionType
+    });
     onClose();
   };
 
   const handleClear = () => {
-    setSelectedPriority(undefined);
     setSelectedType(undefined);
+    setSelectedStatus(undefined);
+    setSelectedActionType(undefined);
   };
 
   return (
@@ -76,42 +112,6 @@ export default function ReportFilterModal({
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Priority Filter */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Mức độ ưu tiên</Text>
-              <View style={styles.optionsGrid}>
-                {PRIORITIES.map((priority) => {
-                  const config = REPORT_PRIORITY_CONFIG[priority];
-                  const isSelected = selectedPriority === priority;
-                  return (
-                    <TouchableOpacity
-                      key={priority}
-                      style={[
-                        styles.optionButton,
-                        isSelected && { 
-                          backgroundColor: config.backgroundColor,
-                          borderColor: config.backgroundColor,
-                        }
-                      ]}
-                      onPress={() => setSelectedPriority(
-                        isSelected ? undefined : priority
-                      )}
-                    >
-                      <Text style={styles.optionIcon}>{config.icon}</Text>
-                      <Text 
-                        style={[
-                          styles.optionText,
-                          isSelected && { color: config.color }
-                        ]}
-                      >
-                        {config.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
             {/* Report Type Filter */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Loại báo cáo</Text>
@@ -152,9 +152,90 @@ export default function ReportFilterModal({
                 })}
               </View>
             </View>
+
+            {/* Status Filter */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Trạng thái</Text>
+              <View style={styles.optionsGrid}>
+                {STATUSES.map((status) => {
+                  const isSelected = selectedStatus === status;
+                  const color = REPORT_STATUS_COLORS[status];
+                  return (
+                    <TouchableOpacity
+                      key={status}
+                      style={[
+                        styles.optionButton,
+                        isSelected && { 
+                          backgroundColor: color,
+                          borderColor: color,
+                        }
+                      ]}
+                      onPress={() => setSelectedStatus(
+                        isSelected ? undefined : status
+                      )}
+                    >
+                      <View 
+                        style={[
+                          styles.typeIndicator,
+                          { backgroundColor: isSelected ? '#FFFFFF' : color }
+                        ]} 
+                      />
+                      <Text 
+                        style={[
+                          styles.optionText,
+                          isSelected && { color: '#FFFFFF' }
+                        ]}
+                      >
+                        {REPORT_STATUS_LABELS[status]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Action Type Filter */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Loại hành động</Text>
+              <View style={styles.optionsGrid}>
+                {ACTION_TYPES.map((actionType) => {
+                  const isSelected = selectedActionType === actionType;
+                  const color = REPORT_ACTION_TYPE_COLORS[actionType];
+                  return (
+                    <TouchableOpacity
+                      key={actionType}
+                      style={[
+                        styles.optionButton,
+                        isSelected && { 
+                          backgroundColor: color,
+                          borderColor: color,
+                        }
+                      ]}
+                      onPress={() => setSelectedActionType(
+                        isSelected ? undefined : actionType
+                      )}
+                    >
+                      <View 
+                        style={[
+                          styles.typeIndicator,
+                          { backgroundColor: isSelected ? '#FFFFFF' : color }
+                        ]} 
+                      />
+                      <Text 
+                        style={[
+                          styles.optionText,
+                          isSelected && { color: '#FFFFFF' }
+                        ]}
+                      >
+                        {REPORT_ACTION_TYPE_LABELS[actionType]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           </ScrollView>
 
-          {/* Footer Actions */}
           <View style={styles.footer}>
             <TouchableOpacity 
               style={styles.clearButton}

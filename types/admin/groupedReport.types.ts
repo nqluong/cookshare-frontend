@@ -4,11 +4,26 @@ export type ReportType =
   | 'HARASSMENT' 
   | 'COPYRIGHT' 
   | 'SPAM' 
-  | 'INAPPROPRIATE_CONTENT' 
+  | 'INAPPROPRIATE' 
   | 'MISLEADING' 
   | 'OTHER';
 
 export type ReportPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export type ReportStatus = 
+  | 'PENDING' 
+  | 'RESOLVED' 
+  | 'REJECTED';
+
+export type ReportActionType = 
+  | 'NO_ACTION'
+  | 'USER_WARNED'
+  | 'USER_SUSPENDED'
+  | 'USER_BANNED'
+  | 'RECIPE_UNPUBLISHED'
+  | 'RECIPE_EDITED'
+  | 'CONTENT_REMOVED'
+  | 'OTHER';
 
 export interface GroupedReport {
   recipeId: string;
@@ -27,11 +42,12 @@ export interface GroupedReport {
   latestReportTime: string;
   oldestReportTime: string;
   
-  reportTypeBreakdown: { [key in ReportType]?: number };
+  reportTypeBreakdown?: { [key in ReportType]?: number };
   
   autoActioned: boolean;
   exceedsThreshold: boolean;
   priority: ReportPriority;
+  allResolved: boolean;
   
   topReporters: string[];
 }
@@ -82,7 +98,7 @@ export const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   HARASSMENT: 'Quấy rối',
   COPYRIGHT: 'Bản quyền',
   SPAM: 'Spam',
-  INAPPROPRIATE_CONTENT: 'Nội dung không phù hợp',
+  INAPPROPRIATE: 'Nội dung không phù hợp',
   MISLEADING: 'Gây hiểu lầm',
   OTHER: 'Khác',
 };
@@ -91,8 +107,42 @@ export const REPORT_TYPE_COLORS: Record<ReportType, string> = {
   HARASSMENT: '#DC2626',
   COPYRIGHT: '#7C3AED',
   SPAM: '#F59E0B',
-  INAPPROPRIATE_CONTENT: '#EC4899',
+  INAPPROPRIATE: '#EC4899',
   MISLEADING: '#3B82F6',
+  OTHER: '#6B7280',
+};
+
+export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
+  PENDING: 'Chờ xử lý',
+  RESOLVED: 'Đã được xử lý',
+  REJECTED: 'Đã từ chối'
+};
+
+export const REPORT_STATUS_COLORS: Record<ReportStatus, string> = {
+  PENDING: '#F59E0B',
+  RESOLVED: '#10B981',
+  REJECTED: '#EF4444'
+};
+
+export const REPORT_ACTION_TYPE_LABELS: Record<ReportActionType, string> = {
+  NO_ACTION: 'Không có hành động',
+  USER_WARNED: 'Cảnh cáo người dùng',
+  USER_SUSPENDED: 'Tạm khóa tài khoản',
+  USER_BANNED: 'Vĩnh viễn cấm',
+  RECIPE_UNPUBLISHED: 'Gỡ công thức',
+  RECIPE_EDITED: 'Yêu cầu chỉnh sửa',
+  CONTENT_REMOVED: 'Xóa nội dung',
+  OTHER: 'Hành động khác',
+};
+
+export const REPORT_ACTION_TYPE_COLORS: Record<ReportActionType, string> = {
+  NO_ACTION: '#10B981',
+  USER_WARNED: '#F59E0B',
+  USER_SUSPENDED: '#EA580C',
+  USER_BANNED: '#DC2626',
+  RECIPE_UNPUBLISHED: '#3B82F6',
+  RECIPE_EDITED: '#8B5CF6',
+  CONTENT_REMOVED: '#EF4444',
   OTHER: '#6B7280',
 };
 
@@ -125,7 +175,7 @@ export interface GroupedReportDetail {
   exceedsThreshold: boolean;
   threshold: number;
   
-  reportTypeBreakdown: { [key in ReportType]?: number };
+  reportTypeBreakdown?: { [key in ReportType]?: number };
   
   reports: IndividualReport[];
 }
@@ -236,3 +286,40 @@ export const ACTION_OPTIONS: ActionOption[] = [
     requiresDescription: true,
   },
 ];
+
+// Report Statistics Types
+export interface RecentReport {
+  reportId: string;
+  recipeTitle: string;
+  reportType: ReportType;
+  createdAt: string;
+}
+
+export interface TopReportedRecipe {
+  itemId: string;
+  itemName: string;
+  reportCount: number;
+}
+
+export interface ReportStatistics {
+  totalReports: number;
+  pendingReports: number;
+  resolvedReports: number;
+  rejectedReports: number;
+  reportsByType?: {
+    SPAM?: number;
+    INAPPROPRIATE_CONTENT?: number;
+    COPYRIGHT?: number;
+    HARASSMENT?: number;
+    MISLEADING?: number;
+    OTHER?: number;
+  };
+  recentReports?: RecentReport[];
+  topReportedRecipes?: TopReportedRecipe[];
+}
+
+export interface ReportStatisticsResponse {
+  success: boolean;
+  message: string;
+  data: ReportStatistics;
+}
