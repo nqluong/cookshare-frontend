@@ -15,6 +15,7 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 export function NotificationToastProvider({ children }: { children: React.ReactNode }) {
   const [notification, setNotification] = useState<Notification | null>(null);
@@ -111,8 +112,8 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     // Navigate based on notification type
     switch (notification.type) {
       case NotificationType.FOLLOW:
-        if (notification.actorId) {
-          router.push(`/profile/${notification.actorId}`);
+        if (notification.relatedId) {
+          router.push(`/profile/${notification.relatedId}`);
         }
         break;
 
@@ -124,6 +125,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
             params: {
               openComments: 'true',
               focusCommentId: notification.relatedId,
+              from: Toast
             },
           } as any);
         }
@@ -149,46 +151,40 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
   const renderMessage = () => {
     if (!notification) return null;
 
-    const actorName = notification.actorName || 'Người dùng';
 
     switch (notification.type) {
       case NotificationType.FOLLOW:
         return (
           <>
-            <Text style={styles.actorName}>{actorName}</Text>
-            <Text style={styles.message}> đã bắt đầu theo dõi bạn</Text>
+            <Text style={styles.message}>{notification.message}</Text>
           </>
         );
 
       case NotificationType.LIKE:
         return (
           <>
-            <Text style={styles.actorName}>{actorName}</Text>
-            <Text style={styles.message}> đã thích công thức của bạn</Text>
+            <Text style={styles.message}>{notification.message}</Text>
           </>
         );
 
       case NotificationType.COMMENT:
         return (
           <>
-            <Text style={styles.actorName}>{actorName}</Text>
-            <Text style={styles.message}> đã bình luận về công thức của bạn</Text>
+            <Text style={styles.message}>{notification.message}</Text>
           </>
         );
 
       case NotificationType.MENTION:
         return (
           <>
-            <Text style={styles.actorName}>{actorName}</Text>
-            <Text style={styles.message}> đã trả lời bình luận của bạn</Text>
+            <Text style={styles.message}>{notification.message}</Text>
           </>
         );
 
       case NotificationType.RECIPE_PUBLISHED:
         return (
           <>
-            <Text style={styles.actorName}>{actorName}</Text>
-            <Text style={styles.message}> vừa đăng công thức mới</Text>
+            <Text style={styles.message}>{notification.message}</Text>
           </>
         );
 
