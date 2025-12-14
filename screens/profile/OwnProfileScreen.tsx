@@ -1,5 +1,6 @@
 import CollectionListTab from "@/components/profile/CollectionListTab";
 import RecipeGrid from "@/components/profile/RecipeGrid";
+import { useFollowWebSocket } from "@/hooks/useFollowWebSocket";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -43,59 +44,56 @@ export default function OwnProfileScreen() {
     }
   }, [user?.username]);
 
-  // Cập nhật userProfile khi followingCount hoặc followerCount thay đổi trong AuthContext
   useEffect(() => {
-    if (user && userProfile) {
-      setUserProfile(prev => prev ? {
-        ...prev,
-        followingCount: user.followingCount,
-        followerCount: user.followerCount,
-      } : null);
+  if (!userProfile || !user) return;
+
+  if (
+    userProfile.followerCount !== user.followerCount ||
+    userProfile.followingCount !== user.followingCount
+  ) {
+    setUserProfile(prev => prev ? {
+      ...prev,
+      followerCount: user.followerCount,
+      followingCount: user.followingCount,
+    } : prev);
+  }
+}, [user?.followerCount, user?.followingCount]);
+
+
+  useFocusEffect(
+  useCallback(() => {
+    if (reload) {
+      loadProfile();
+      setRefreshKey(k => k + 1);
+      return;
     }
-  }, [user?.followingCount, user?.followerCount]);
 
-  // Chỉ reload khi avatar thay đổi (detect từ AuthContext)
-  useFocusEffect(
-    useCallback(() => {
-      // Kiểm tra nếu avatar trong context khác với avatar đã load
-      if (user?.avatarUrl && user.avatarUrl !== lastLoadedAvatarUrl) {
-        console.log('🔄 Avatar changed, reloading profile...');
-        loadProfile();
-      }
-    }, [user?.avatarUrl, lastLoadedAvatarUrl])
-  );
-
-  // Nếu bị điều hướng về profile với param reload -> reload profile and notify child to refetch
-  useFocusEffect(
-    useCallback(() => {
-      if (reload) {
-        console.log('🔁 reload param detected, refreshing profile and recipes');
-        loadProfile();
-        setRefreshKey(k => k + 1);
-      }
-    }, [reload])
-  );
+    if (user?.avatarUrl && user.avatarUrl !== lastLoadedAvatarUrl) {
+      loadProfile();
+    }
+  }, [reload, user?.avatarUrl, lastLoadedAvatarUrl])
+);
 
   const loadProfile = async () => {
     if (!user?.username) {
-      console.log('⚠️ [OwnProfile] No username available, skipping load');
+      console.log('[OwnProfile] No username available, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('📥 [OwnProfile] Loading profile for username:', user.username);
+      console.log('[OwnProfile] Loading profile for username:', user.username);
       const profile = await userService.getUserByUsername(user.username);
-      console.log('🔍 [OwnProfile] Profile loaded successfully');
-      console.log('🖼️ [OwnProfile] Avatar URL:', profile.avatarUrl);
+      console.log('[OwnProfile] Profile loaded successfully');
+      console.log('[OwnProfile] Avatar URL:', profile.avatarUrl);
       setUserProfile(profile);
       setLastLoadedAvatarUrl(profile.avatarUrl || null);
     } catch (error: any) {
-      console.error("❌ [OwnProfile] Error loading profile:", error.message);
+      console.error("[OwnProfile] Error loading profile:", error.message);
 
       // Fallback: Use user from context nếu có
       if (user) {
-        console.log('💡 [OwnProfile] Using user data from context as fallback');
+        console.log('[OwnProfile] Using user data from context as fallback');
         setUserProfile({
           userId: user.userId,
           username: user.username,
@@ -118,10 +116,25 @@ export default function OwnProfileScreen() {
     }
   };
 
+  // WEBSOCKET: Listen to follow updates
+    useFollowWebSocket({
+      userId: userProfile?.userId,
+      onFollowUpdate: (data) => {
+        console.log('Realtime follow update:', data);
+    // Cập nhật userProfile followerCount
+    setUserProfile(prev => prev ? {
+      ...prev,
+      followerCount: data.action === 'FOLLOW'
+        ? (prev.followerCount ?? 0) + 1
+        : (prev.followerCount ?? 0) - 1
+    } : prev);
+      },
+    });
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadProfile();
-    setRefreshKey(k => k + 1); // Trigger recipe reload
+    setRefreshKey(k => k + 1); 
     setRefreshing(false);
   };
 
@@ -165,11 +178,11 @@ export default function OwnProfileScreen() {
                 transition={200}
                 recyclingKey={userProfile.avatarUrl} // Help with cache
                 onError={(error) => {
-                  console.error('❌ Lỗi load avatar:', error);
+                  console.error('Lỗi load avatar:', error);
                   console.log('URL gây lỗi:', userProfile.avatarUrl);
                 }}
                 onLoad={() => {
-                  console.log('✅ Avatar loaded successfully');
+                  console.log('Avatar loaded successfully');
                 }}
               />
             </>

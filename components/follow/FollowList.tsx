@@ -1,3 +1,6 @@
+// FILE: components/profile/FollowList.tsx - WITH WEBSOCKET
+
+import { useFollowWebSocket } from "@/hooks/useFollowWebSocket";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -18,7 +21,7 @@ import { FollowUser } from "../../types/follow.types";
 import FollowItem from "./FollowItem";
 
 interface FollowListProps {
-  userId: string;
+  userId: string; // ID của user đang được xem (profile owner)
   type: "followers" | "following";
   onCountUpdate?: (change: 1 | -1) => void;
 }
@@ -35,6 +38,7 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [followLoadingStates, setFollowLoadingStates] = useState<{ [key: string]: boolean }>({});
 
+  // Load current user ID
   useEffect(() => {
     loadCurrentUser();
   }, []);
@@ -53,6 +57,167 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
       setCurrentUserId(profile.userId);
     } catch (error) {
       console.log("Error loading current user:", error);
+    }
+  };
+
+  // WEBSOCKET: Listen to follow updates
+  useFollowWebSocket({
+    userId, // Profile owner's ID
+    onFollowUpdate: (data) => {
+      console.log('👥 [FollowList] Follow update:', data);
+
+      const { action, followerId, followingId } = data;
+
+      // ========================================
+      // CASE 1: TAB "FOLLOWERS" (Danh sách người follow userId)
+      // ========================================
+      if (type === 'followers') {
+        if (action === 'FOLLOW' && followingId === userId) {
+          // Có người mới follow userId
+          console.log('New follower detected');
+
+          // Thêm follower mới vào danh sách (nếu chưa có)
+          setUsers((prev) => {
+            const exists = prev.some(u => u.userId === followerId);
+            if (exists) {
+              console.log('Follower already in list');
+              return prev;
+            }
+
+            // Load thông tin user mới
+            loadNewFollower(followerId);
+            return prev;
+          });
+
+          // Update count cho parent
+          onCountUpdate?.(1);
+        } else if (action === 'UNFOLLOW' && followingId === userId) {
+          // Có người unfollow userId
+          console.log('Follower removed');
+
+          // Xóa khỏi danh sách
+          setUsers((prev) => prev.filter(u => u.userId !== followerId));
+          setFilteredUsers((prev) => prev.filter(u => u.userId !== followerId));
+
+          // Update count cho parent
+          onCountUpdate?.(-1);
+        }
+      }
+
+      // ========================================
+      // CASE 2: TAB "FOLLOWING" (Danh sách người mà userId đang follow)
+      // ========================================
+      else if (type === 'following') {
+        if (action === 'FOLLOW' && followerId === userId) {
+          // userId follow người mới
+          console.log('New following detected');
+
+          // Thêm vào danh sách (nếu chưa có)
+          setUsers((prev) => {
+            const exists = prev.some(u => u.userId === followingId);
+            if (exists) {
+              console.log('User already in following list');
+              return prev;
+            }
+
+            // Load thông tin user mới
+            loadNewFollowing(followingId);
+            return prev;
+          });
+
+          // Update count cho parent
+          onCountUpdate?.(1);
+        } else if (action === 'UNFOLLOW' && followerId === userId) {
+          // userId unfollow người nào đó
+          console.log(' Following removed');
+
+          // Xóa khỏi danh sách
+          setUsers((prev) => prev.filter(u => u.userId !== followingId));
+          setFilteredUsers((prev) => prev.filter(u => u.userId !== followingId));
+
+          // Update count cho parent
+          onCountUpdate?.(-1);
+        }
+      }
+
+      // ========================================
+      // CASE 3: CẬP NHẬT TRẠNG THÁI isFollowing
+      // ========================================
+      // Nếu current user là người follow/unfollow → update isFollowing status
+      if (followerId === currentUserId) {
+        const updateFollowStatus = (user: FollowUser) => {
+          if (user.userId === followingId) {
+            return {
+              ...user,
+              isFollowing: action === 'FOLLOW',
+            };
+          }
+          return user;
+        };
+
+        setUsers(prev => prev.map(updateFollowStatus));
+        setFilteredUsers(prev => prev.map(updateFollowStatus));
+      }
+    },
+  });
+
+  // Load thông tin follower mới
+  const loadNewFollower = async (followerId: string) => {
+    try {
+      const userProfile = await userService.getUserById(followerId);
+      
+      // Check follow status
+      let isFollowing = false;
+      if (currentUserId && followerId !== currentUserId) {
+        const response = await followService.checkFollowStatus(currentUserId, followerId);
+        isFollowing = response.data;
+      }
+
+      const newFollower: FollowUser = {
+        userId: userProfile.userId,
+        username: userProfile.username,
+        fullName: userProfile.fullName,
+        avatarUrl: userProfile.avatarUrl ?? null,
+        bio: userProfile.bio ?? null,
+        followerCount: userProfile.followerCount,
+        followingCount: userProfile.followingCount,
+        isFollowing,
+      };
+
+      setUsers((prev) => [newFollower, ...prev]);
+      setFilteredUsers((prev) => [newFollower, ...prev]);
+      
+      console.log('New follower added to list:', userProfile.username);
+    } catch (error) {
+      console.log('Error loading new follower:', error);
+    }
+  };
+
+  // Load thông tin following mới
+  const loadNewFollowing = async (followingId: string) => {
+    try {
+      const userProfile = await userService.getUserById(followingId);
+      
+      // Nếu currentUser là userId (chính mình) → tất cả following đều là true
+      const isFollowing = currentUserId === userId;
+
+      const newFollowing: FollowUser = {
+        userId: userProfile.userId,
+        username: userProfile.username,
+        fullName: userProfile.fullName,
+        avatarUrl: userProfile.avatarUrl ?? null,
+        bio: userProfile.bio ?? null,
+        followerCount: userProfile.followerCount,
+        followingCount: userProfile.followingCount,
+        isFollowing,
+      };
+
+      setUsers((prev) => [newFollowing, ...prev]);
+      setFilteredUsers((prev) => [newFollowing, ...prev]);
+      
+      console.log(' New following added to list:', userProfile.username);
+    } catch (error) {
+      console.log(' Error loading new following:', error);
     }
   };
 
@@ -151,22 +316,23 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
         await followService.followUser(currentUserId, targetUserId);
       }
 
+      //  Optimistic update - WebSocket sẽ confirm lại
       const updateUser = (user: FollowUser) => {
         if (user.userId === targetUserId) {
           return { ...user, isFollowing: !isFollowing };
         }
         return user;
-      }
+      };
 
       setUsers((prev) => prev.map(updateUser));
       setFilteredUsers((prev) => prev.map(updateUser));
 
+      // Update current user's following count
       const currentCount = currentUser?.followingCount ?? 0;
       const newFollowingCount = isFollowing ? currentCount - 1 : currentCount + 1;
-
       updateAuthUser({ followingCount: newFollowingCount });
 
-      // 3. THÔNG BÁO CHO COMPONENT CHA (PROFILE) CẬP NHẬT FOLLOWER COUNT CỦA NGƯỜI BỊ ẢNH HƯỞNG
+      // Thông báo cho component cha cập nhật follower count
       if (onCountUpdate) {
         const change = isFollowing ? -1 : 1;
         onCountUpdate(change);
@@ -174,6 +340,17 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
 
     } catch (error) {
       console.log("Error toggling follow:", error);
+      
+      // Rollback nếu API fail
+      const rollbackUser = (user: FollowUser) => {
+        if (user.userId === targetUserId) {
+          return { ...user, isFollowing };
+        }
+        return user;
+      };
+      
+      setUsers((prev) => prev.map(rollbackUser));
+      setFilteredUsers((prev) => prev.map(rollbackUser));
     } finally {
       setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false }));
     }
@@ -193,7 +370,7 @@ export default function FollowList({ userId, type, onCountUpdate }: FollowListPr
         onPress={() => router.push(`/profile/${item.userId}` as any)}
         onFollowPress={() => handleFollowPress(item.userId, !!item.isFollowing)}
         showFollowButton={!isCurrentUser}
-        isFollowLoading={followLoadingStates[item.userId] || false} // TRUYỀN TRẠNG THÁI LOADING
+        isFollowLoading={followLoadingStates[item.userId] || false}
       />
     );
   };

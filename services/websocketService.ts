@@ -23,6 +23,7 @@ class WebSocketService {
   private pendingSubscriptions: Set<string> = new Set();
   private networkListenerUnsubscribe: (() => void) | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private _isConnected = false; // ✅ Cache trạng thái kết nối
 
   constructor() {
     console.log("🔌 WebSocketService initialized | URL:", WS_URL);
@@ -32,14 +33,20 @@ class WebSocketService {
   connect(userId: string, accessToken: string): Promise<void> {
     // ✅ Nếu đang kết nối, trả về promise hiện tại
     if (this.isConnecting && this.connectPromise) {
-      console.log("⏳ Connection already in progress...");
+      console.log("Connection already in progress...");
       return this.connectPromise;
     }
 
-    // ✅ Nếu đã kết nối thành công
-    if (this.client?.connected) {
-      console.log("✅ Already connected");
+    // ✅ Nếu đã kết nối thành công với cùng user
+    if (this._isConnected && this.userId === userId) {
+      console.log("Already connected with same user");
       return Promise.resolve();
+    }
+
+    // ✅ Nếu đang kết nối với user khác, disconnect trước
+    if (this._isConnected && this.userId !== userId) {
+      console.log("Switching user, disconnect first");
+      this.disconnect();
     }
 
     this.isConnecting = true;
@@ -47,7 +54,7 @@ class WebSocketService {
     this.accessToken = accessToken;
 
     this.connectPromise = new Promise((resolve, reject) => {
-      console.log("🔄 Connecting via SockJS →", WS_URL);
+      console.log("Connecting via SockJS ", WS_URL);
 
       this.client = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
@@ -57,21 +64,21 @@ class WebSocketService {
         debug: (str) => {
           if (__DEV__) {
             if (str.includes("CONNECT") || str.includes("ERROR") || str.includes("CONNECTED")) {
-              console.log("📡 STOMP:", str);
+              console.log("STOMP:", str);
             }
           }
         },
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
-        reconnectDelay: 0, // ❌ Tắt auto-reconnect của STOMP, ta tự xử lý
+        reconnectDelay: 0,
 
         onConnect: () => {
-          console.log("✅ SOCKJS + STOMP CONNECTED!");
+          console.log("SOCKJS + STOMP CONNECTED!");
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.connectPromise = null;
+          this._isConnected = true;
 
-          // ✅ QUAN TRỌNG: Emit event ngay khi kết nối thành công
           this.emit("connectionStatusChange", true);
 
           this.setupSubscriptions();
@@ -82,22 +89,30 @@ class WebSocketService {
 
         onStompError: (frame) => {
           const errorMsg = frame.headers["message"] || frame.body || "STOMP error";
-          console.log("❌ STOMP ERROR:", errorMsg);
+          console.log("STOMP ERROR:", errorMsg);
           this.isConnecting = false;
           this.connectPromise = null;
+          this._isConnected = false;
 
           this.emit("connectionStatusChange", false);
 
-          // ✅ Tự động reconnect
+          if (errorMsg.includes("TOKEN_EXPIRED") || errorMsg.includes("Unauthorized")) {
+            console.log("Token expired detected");
+            this.emit("TOKEN_EXPIRED", {});
+            return; 
+          }
+
+          // Tự động reconnect cho các lỗi khác
           this.scheduleReconnect();
 
           reject(new Error(errorMsg));
         },
 
         onWebSocketError: (error) => {
-          console.log("❌ SOCKJS ERROR:", error);
+          console.log("SOCKJS ERROR:", error);
           this.isConnecting = false;
           this.connectPromise = null;
+          this._isConnected = false;
 
           this.emit("connectionStatusChange", false);
 
@@ -105,15 +120,18 @@ class WebSocketService {
         },
 
         onWebSocketClose: (event) => {
-          console.log("🔌 SOCKJS CLOSED:", event?.code, event?.reason);
+          console.log("SOCKJS CLOSED:", event?.code, event?.reason);
           this.isConnecting = false;
           this.connectPromise = null;
+          this._isConnected = false;
 
-          // ✅ Emit disconnected
           this.emit("connectionStatusChange", false);
 
-          // ✅ Tự động reconnect nếu không phải logout
-          if (this.userId && this.accessToken) {
+          // Chỉ reconnect nếu:
+          // - Có userId và token (chưa logout)
+          // - Không phải lỗi token expired
+          // - Code không phải 1000 (normal closure)
+          if (this.userId && this.accessToken && event?.code !== 1000) {
             this.scheduleReconnect();
           }
         },
@@ -122,9 +140,10 @@ class WebSocketService {
       try {
         this.client.activate();
       } catch (error) {
-        console.log("❌ Failed to activate client:", error);
+        console.log("Failed to activate client:", error);
         this.isConnecting = false;
         this.connectPromise = null;
+        this._isConnected = false;
         this.emit("connectionStatusChange", false);
         reject(error);
       }
@@ -135,27 +154,37 @@ class WebSocketService {
 
   // === TỰ ĐỘNG RECONNECT ===
   private scheduleReconnect() {
+    // Clear timer cũ
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
 
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log("❌ Max reconnect attempts reached");
+    // Kiểm tra điều kiện reconnect
+    if (!this.userId || !this.accessToken) {
+      console.log(" No credentials, skip reconnect");
       return;
     }
 
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log(" Max reconnect attempts reached");
+      this.emit("MAX_RECONNECT_FAILED", {});
+      return;
+    }
+
+    //  Exponential backoff
     const delay = Math.min(
       this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts),
       30000 // Max 30s
     );
 
-    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+    console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
 
     this.reconnectTimer = setTimeout(() => {
-      if (this.userId && this.accessToken && !this.client?.connected) {
+      if (this.userId && this.accessToken && !this._isConnected) {
         this.reconnectAttempts++;
         this.connect(this.userId, this.accessToken).catch(err => {
-          console.log("Reconnect failed:", err);
+          console.log(" Reconnect failed:", err.message);
         });
       }
     }, delay);
@@ -163,30 +192,56 @@ class WebSocketService {
 
   // === NGHE MẠNG ===
   private startNetworkListener() {
-    if (this.networkListenerUnsubscribe) return;
+    if (this.networkListenerUnsubscribe) {
+      console.log(" Network listener already active");
+      return;
+    }
 
     this.networkListenerUnsubscribe = NetInfo.addEventListener(state => {
-      console.log("📱 Network state:", state.isConnected);
+      console.log(" Network state:", {
+        connected: state.isConnected,
+        type: state.type,
+      });
 
-      if (state.isConnected && !this.client?.connected && this.userId && this.accessToken) {
-        console.log("🌐 Network restored → reconnecting...");
+      //  Khi mạng khôi phục, reconnect nếu chưa connected
+      if (state.isConnected && !this._isConnected && this.userId && this.accessToken) {
+        console.log(" Network restored → reconnecting...");
+        
+        //  Reset reconnect attempts khi mạng khôi phục
+        this.reconnectAttempts = 0;
+        
+        //  Delay nhỏ để đảm bảo mạng ổn định
         setTimeout(() => {
-          this.connect(this.userId!, this.accessToken!).catch(err => {
-            console.log("Network reconnect failed:", err);
-          });
+          if (!this._isConnected && this.userId && this.accessToken) {
+            this.connect(this.userId!, this.accessToken!).catch(err => {
+              console.log(" Network reconnect failed:", err.message);
+            });
+          }
         }, 1000);
       }
     });
+
+    console.log(" Network listener started");
   }
 
   // === SETUP SUBSCRIPTIONS ===
   private setupSubscriptions() {
     if (!this.client?.connected || !this.userId) {
-      console.warn("⚠️ Cannot setup subscriptions: not connected or no userId");
+      console.warn(" Cannot setup subscriptions: not connected or no userId");
       return;
     }
 
     console.log("📡 Setting up subscriptions for user:", this.userId);
+
+    // Clear subscriptions cũ trước khi tạo mới
+    this.subscriptions.forEach((sub, key) => {
+      try {
+        sub.unsubscribe();
+      } catch (e) {
+        console.log(" Error unsubscribing old subscription:", key);
+      }
+    });
+    this.subscriptions.clear();
 
     // 1. Thông báo cá nhân
     this.subscribeOnce(
@@ -195,65 +250,95 @@ class WebSocketService {
       (msg) => {
         try {
           const data = JSON.parse(msg.body);
-          console.log("🔔 Received notification:", data);
+          console.log(" Notification received:", data.action);
+          
+          //  Emit event chính
           this.emit("NOTIFICATION", data);
 
+          //  Emit event con theo action
           if (data.action === "NEW") this.emit("NEW_NOTIFICATION", data);
           if (data.action === "READ") this.emit("READ_NOTIFICATION", data);
           if (data.action === "DELETE") this.emit("DELETE_NOTIFICATION", data);
           if (data.action === "READ_ALL") this.emit("READ_ALL_NOTIFICATIONS", data);
         } catch (e) {
-          console.log("❌ Parse notification error:", e);
+          console.log(" Parse notification error:", e);
         }
       }
     );
 
-    // 2. Trạng thái tài khoản (ban/unban)
+    // 2. Trạng thái tài khoản
     this.subscribeOnce(
       `/user/${this.userId}/queue/account-status`,
       "account-status",
       (msg) => {
         try {
           const data = JSON.parse(msg.body);
-          console.log("⚠️ Received account status:", data);
+          console.log(" Account status received:", data.type);
 
           if (data.type === "ACCOUNT_BANNED") {
             this.emit("ACCOUNT_BANNED", data);
           }
         } catch (e) {
-          console.log("❌ Parse account status error:", e);
+          console.log(" Parse account status error:", e);
         }
       }
     );
 
-    // 3. Retry các recipe đang chờ
+    // 3.  FOLLOW/UNFOLLOW Updates
+    this.subscribeOnce(
+      `/user/${this.userId}/queue/follow`,
+      "follow-updates",
+      (msg) => {
+        try {
+          const data = JSON.parse(msg.body);
+          console.log(" Follow update received:", data.action);
+
+          // Emit event chính
+          this.emit("FOLLOW_UPDATE", data);
+
+          //  Emit event con theo action
+          if (data.action === "FOLLOW") this.emit("USER_FOLLOWED", data);
+          if (data.action === "UNFOLLOW") this.emit("USER_UNFOLLOWED", data);
+        } catch (e) {
+          console.log(" Parse follow update error:", e);
+        }
+      }
+    );
+
+    // 4. Re-subscribe các recipe đang chờ
     if (this.pendingSubscriptions.size > 0) {
-      console.log("🔄 Retrying pending subscriptions:", Array.from(this.pendingSubscriptions));
-      this.pendingSubscriptions.forEach(recipeId => {
+      console.log(" Re-subscribing to pending recipes:", Array.from(this.pendingSubscriptions));
+      const pending = Array.from(this.pendingSubscriptions);
+      this.pendingSubscriptions.clear();
+      
+      pending.forEach(recipeId => {
         this.subscribeToRecipeComments(recipeId);
       });
-      this.pendingSubscriptions.clear();
     }
+
+    console.log(" All subscriptions setup complete");
   }
 
   // === SUBSCRIBE CHUNG ===
   private subscribeOnce(destination: string, key: string, callback: (msg: IMessage) => void) {
+    //  Kiểm tra đã subscribe chưa
     if (this.subscriptions.has(key)) {
-      console.log("ℹ️ Already subscribed:", key);
+      console.log(" Already subscribed:", key);
       return;
     }
 
+    //  Kiểm tra kết nối
     if (!this.client?.connected) {
-      console.warn("⚠️ Not connected → cannot subscribe:", key);
+      console.warn(" Not connected → cannot subscribe:", key);
       return;
     }
 
     try {
       const sub = this.client.subscribe(destination, callback);
       this.subscriptions.set(key, sub);
-      console.log("✅ Subscribed:", destination);
+      console.log(" Subscribed:", destination);
     } catch (e) {
-      console.log("❌ Subscribe failed:", key, e);
+      console.log(" Subscribe failed:", key, e);
     }
   }
 
@@ -262,13 +347,15 @@ class WebSocketService {
     const topic = `/topic/recipe/${recipeId}/comments`;
     const key = `recipe_${recipeId}`;
 
+    // Kiểm tra đã subscribe
     if (this.subscriptions.has(key)) {
-      console.log("ℹ️ Already subscribed to recipe:", recipeId);
+      console.log(" Already subscribed to recipe:", recipeId);
       return;
     }
 
-    if (!this.client?.connected) {
-      console.warn("⚠️ Not connected → queuing recipe subscription:", recipeId);
+    // Nếu chưa connected, lưu vào pending
+    if (!this._isConnected) {
+      console.warn(" Not connected → queuing recipe subscription:", recipeId);
       this.pendingSubscriptions.add(recipeId);
       return;
     }
@@ -276,14 +363,16 @@ class WebSocketService {
     this.subscribeOnce(topic, key, (msg) => {
       try {
         const data = JSON.parse(msg.body);
-        console.log("💬 Received comment update:", data);
+        console.log(" Comment update:", data.action, "on recipe:", recipeId);
+        
+        //  Emit với recipeId
         this.emit("COMMENT_UPDATE", { recipeId, ...data });
 
         if (data.action === "CREATE") this.emit("NEW_COMMENT", data);
         if (data.action === "UPDATE") this.emit("UPDATE_COMMENT", data);
         if (data.action === "DELETE") this.emit("DELETE_COMMENT", data);
       } catch (e) {
-        console.log("❌ Parse comment error:", e);
+        console.log(" Parse comment error:", e);
       }
     });
   }
@@ -291,11 +380,16 @@ class WebSocketService {
   unsubscribeFromRecipeComments(recipeId: string) {
     const key = `recipe_${recipeId}`;
     const sub = this.subscriptions.get(key);
+    
     if (sub) {
-      sub.unsubscribe();
-      this.subscriptions.delete(key);
-      this.pendingSubscriptions.delete(recipeId);
-      console.log("✅ Unsubscribed from recipe:", recipeId);
+      try {
+        sub.unsubscribe();
+        this.subscriptions.delete(key);
+        this.pendingSubscriptions.delete(recipeId);
+        console.log(" Unsubscribed from recipe:", recipeId);
+      } catch (e) {
+        console.log(" Error unsubscribing from recipe:", recipeId, e);
+      }
     }
   }
 
@@ -304,34 +398,54 @@ class WebSocketService {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, []);
     }
-    this.eventListeners.get(event)!.push(callback);
-    console.log(`👂 Registered listener for: ${event} (total: ${this.eventListeners.get(event)!.length})`);
+    
+    const listeners = this.eventListeners.get(event)!;
+    
+    //  Tránh duplicate listeners
+    if (listeners.includes(callback)) {
+      console.log(` Listener already registered for: ${event}`);
+      return;
+    }
+    
+    listeners.push(callback);
+    console.log(` Registered listener for: ${event} (total: ${listeners.length})`);
   }
 
   off(event: string, callback: EventCallback) {
     const listeners = this.eventListeners.get(event);
-    if (listeners) {
-      const idx = listeners.indexOf(callback);
-      if (idx > -1) {
-        listeners.splice(idx, 1);
-        console.log(`🔇 Removed listener for: ${event}`);
+    if (!listeners) return;
+
+    const idx = listeners.indexOf(callback);
+    if (idx > -1) {
+      listeners.splice(idx, 1);
+      console.log(` Removed listener for: ${event} (remaining: ${listeners.length})`);
+      
+      //  Cleanup map nếu không còn listeners
+      if (listeners.length === 0) {
+        this.eventListeners.delete(event);
       }
     }
   }
 
   private emit(event: string, data?: any) {
     const listeners = this.eventListeners.get(event);
-    if (!listeners?.length) {
-      console.log(`📢 No listeners for: ${event}`);
+    
+    if (!listeners || listeners.length === 0) {
+      //  Chỉ log cho các event quan trọng
+      if (["connectionStatusChange", "TOKEN_EXPIRED", "ACCOUNT_BANNED"].includes(event)) {
+        console.log(` No listeners for important event: ${event}`);
+      }
       return;
     }
 
-    console.log(`📢 Emitting ${event} to ${listeners.length} listeners`);
-    listeners.forEach((cb, i) => {
+    console.log(` Emitting ${event} to ${listeners.length} listener(s)`);
+    
+    //  Clone array để tránh issues khi listener modify array
+    [...listeners].forEach((cb, i) => {
       try {
         cb(data);
       } catch (e) {
-        console.log(`❌ Error in listener ${i} for ${event}:`, e);
+        console.log(` Error in listener ${i} for ${event}:`, e);
       }
     });
   }
@@ -340,59 +454,81 @@ class WebSocketService {
   disconnect() {
     console.log("🔌 Disconnecting WebSocket...");
 
+    //  Clear reconnect timer
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
 
-    this.subscriptions.forEach(sub => {
+    // Unsubscribe tất cả
+    this.subscriptions.forEach((sub, key) => {
       try {
         sub.unsubscribe();
+        console.log(" Unsubscribed:", key);
       } catch (e) {
-        console.log("Error unsubscribing:", e);
+        console.log(" Error unsubscribing:", key);
       }
     });
     this.subscriptions.clear();
     this.pendingSubscriptions.clear();
 
+    //  Stop network listener
     if (this.networkListenerUnsubscribe) {
       this.networkListenerUnsubscribe();
       this.networkListenerUnsubscribe = null;
     }
 
+    //  Deactivate client
     if (this.client) {
       try {
         this.client.deactivate();
       } catch (e) {
-        console.log("Error deactivating client:", e);
+        console.log(" Error deactivating client:", e);
       }
       this.client = null;
     }
 
+    //  Reset state
     this.userId = null;
     this.accessToken = null;
     this.reconnectAttempts = 0;
     this.isConnecting = false;
     this.connectPromise = null;
+    this._isConnected = false;
 
+    //  Emit disconnected
     this.emit("connectionStatusChange", false);
-    console.log("✅ WebSocket disconnected");
+    
+    console.log("✅ WebSocket fully disconnected");
   }
 
   // === TRẠNG THÁI ===
   isConnected(): boolean {
-    const connected = this.client?.connected ?? false;
-    console.log("🔍 isConnected check:", connected);
-    return connected;
+    //  Sử dụng cached state thay vì check client mỗi lần
+    return this._isConnected;
   }
 
   getConnectionStatus(): "connected" | "connecting" | "disconnected" {
-    if (this.client?.connected) return "connected";
+    if (this._isConnected) return "connected";
     if (this.isConnecting) return "connecting";
     return "disconnected";
   }
-}
 
-// === EXPORT SINGLETON ===
+  //  Debug info
+  getDebugInfo() {
+    return {
+      isConnected: this._isConnected,
+      isConnecting: this.isConnecting,
+      userId: this.userId,
+      hasToken: !!this.accessToken,
+      subscriptions: Array.from(this.subscriptions.keys()),
+      pendingSubscriptions: Array.from(this.pendingSubscriptions),
+      reconnectAttempts: this.reconnectAttempts,
+      listeners: Object.fromEntries(
+        Array.from(this.eventListeners.entries()).map(([key, val]) => [key, val.length])
+      ),
+    };
+  }
+}
 const websocketService = new WebSocketService();
 export default websocketService;

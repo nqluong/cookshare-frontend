@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
+import { NotificationToastProvider } from '@/components/componentsModal/NotificationToast';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { RecipeLikeProvider } from '@/context/RecipeLikeContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -61,12 +62,14 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
+      <NotificationToastProvider>
       <RecipeLikeProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <RootLayoutNav />
           <StatusBar style="auto" />
         </ThemeProvider>
       </RecipeLikeProvider>
+      </NotificationToastProvider>
     </AuthProvider>
   );
 }

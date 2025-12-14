@@ -1,5 +1,3 @@
-// hooks/useWebSocketStatus.ts - SIMPLIFIED & FIXED
-
 import websocketService from '@/services/websocketService';
 import { useEffect, useState } from 'react';
 
@@ -9,10 +7,10 @@ export function useWebSocketStatus() {
   );
 
   useEffect(() => {
-    console.log('🎣 [useWebSocketStatus] Setup listener');
+    console.log(' [useWebSocketStatus] Setup listener');
 
     const handleStatusChange = (connected: boolean) => {
-      console.log('🎣 [useWebSocketStatus] Status changed:', connected);
+      console.log(' [useWebSocketStatus] Status changed:', connected);
       setIsConnected(connected);
     };
 
@@ -22,13 +20,13 @@ export function useWebSocketStatus() {
     // ✅ Sync initial state
     const currentStatus = websocketService.isConnected();
     if (currentStatus !== isConnected) {
-      console.log('🎣 [useWebSocketStatus] Syncing initial state:', currentStatus);
+      console.log(' [useWebSocketStatus] Syncing initial state:', currentStatus);
       setIsConnected(currentStatus);
     }
 
     // ✅ Cleanup
     return () => {
-      console.log('🎣 [useWebSocketStatus] Cleanup listener');
+      console.log(' [useWebSocketStatus] Cleanup listener');
       websocketService.off('connectionStatusChange', handleStatusChange);
     };
   }, []);

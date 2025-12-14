@@ -1,9 +1,10 @@
 import RecipeGrid from "@/components/profile/RecipeGrid";
 import { useAuth } from "@/context/AuthContext";
+import { useFollowWebSocket } from "@/hooks/useFollowWebSocket";
 import { followService } from "@/services/followService";
 import { userService } from "@/services/userService";
 import { UserProfile } from "@/types/user.types";
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -30,6 +31,7 @@ export default function UserProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
 
+  //  Load current user profile ID
   useEffect(() => {
     const loadCurrentProfileId = async () => {
       if (!currentUser?.username) return;
@@ -45,7 +47,7 @@ export default function UserProfileScreen() {
     loadCurrentProfileId();
   }, [currentUser]);
 
-  // Tải Profile và kiểm tra trạng thái Follow
+  // Load profile và check follow status
   useEffect(() => {
     if (userId) {
       loadUserProfile();
@@ -82,7 +84,51 @@ export default function UserProfileScreen() {
     }
   };
 
-  // --- Logic Follow/Unfollow ---
+  // WEBSOCKET: Listen to follow updates
+  useFollowWebSocket({
+    userId,
+    onFollowUpdate: (data) => {
+      console.log("👥 [Profile] Follow update received:", data);
+
+      if (data.action === "FOLLOW") {
+        console.log("✅ Someone followed this user");
+
+        //  Update follower count
+        setUser((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            followerCount: (prev.followerCount ?? 0) + 1,
+          };
+        });
+
+        //  Nếu người follow là current user → update isFollowing
+        if (data.followerId === currentProfileId) {
+          console.log(" Current user followed this profile");
+          setIsFollowing(true);
+        }
+      } else if (data.action === "UNFOLLOW") {
+        console.log(" Someone unfollowed this user");
+
+        //  Update follower count
+        setUser((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            followerCount: Math.max(0, (prev.followerCount ?? 0) - 1),
+          };
+        });
+
+        //  Nếu người unfollow là current user → update isFollowing
+        if (data.followerId === currentProfileId) {
+          console.log("❌ Current user unfollowed this profile");
+          setIsFollowing(false);
+        }
+      }
+    },
+  });
+
+  // Handle Follow/Unfollow
   const handleFollowPress = async () => {
     if (!currentProfileId || !updateAuthUser) {
       Alert.alert("Lỗi", "Vui lòng đăng nhập");
@@ -92,26 +138,37 @@ export default function UserProfileScreen() {
     setIsFollowLoading(true);
     try {
       if (isFollowing) {
+        // Unfollow
         await followService.unfollowUser(currentProfileId, userId);
+
+        // Optimistic update - WebSocket sẽ confirm lại
         setIsFollowing(false);
         setUser((prev) =>
           prev
-            ? { ...prev, followerCount: (prev.followerCount ?? 0) - 1 }
+            ? {
+                ...prev,
+                followerCount: Math.max(0, (prev.followerCount ?? 0) - 1),
+              }
             : null
         );
+
         if (currentUser) {
           updateAuthUser({
-            followingCount: (currentUser.followingCount ?? 0) - 1,
+            followingCount: Math.max(0, (currentUser.followingCount ?? 0) - 1),
           });
         }
       } else {
+        // Follow
         await followService.followUser(currentProfileId, userId);
+
+        // Optimistic update - WebSocket sẽ confirm lại
         setIsFollowing(true);
         setUser((prev) =>
           prev
             ? { ...prev, followerCount: (prev.followerCount ?? 0) + 1 }
             : null
         );
+
         if (currentUser) {
           updateAuthUser({
             followingCount: (currentUser.followingCount ?? 0) + 1,
@@ -119,8 +176,14 @@ export default function UserProfileScreen() {
         }
       }
     } catch (error: any) {
+      console.error(" Follow/Unfollow error:", error);
       Alert.alert("Lỗi", error.message || "Có lỗi xảy ra");
+
+      //  Rollback optimistic update
       setIsFollowing(!isFollowing);
+
+      // Reload để đảm bảo state đúng
+      await Promise.all([loadUserProfile(), checkFollowStatus()]);
     } finally {
       setIsFollowLoading(false);
     }
@@ -154,15 +217,15 @@ export default function UserProfileScreen() {
           >
             <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={() => Alert.alert("Chia sẻ", "Chức năng đang phát triển")}
             style={styles.shareButton}
           >
             <FontAwesome name="share" size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
-        {/* === Avatar & Basic Info (ProfileHeader) === */}
+        {/* === Avatar & Basic Info === */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
             {user.avatarUrl ? (
@@ -179,7 +242,7 @@ export default function UserProfileScreen() {
           <Text style={styles.bioText}>{user.bio || ""}</Text>
         </View>
 
-        {/* === Stats (ProfileStats) === */}
+        {/* === Stats === */}
         <View style={styles.statsContainer}>
           <TouchableOpacity
             style={styles.statItem}
@@ -219,7 +282,7 @@ export default function UserProfileScreen() {
           </View>
         </View>
 
-        {/* === Actions (ProfileActions) === */}
+        {/* === Actions === */}
         <View style={[styles.actionsContainer, styles.container]}>
           {/* Follow Button */}
           <TouchableOpacity
@@ -248,12 +311,12 @@ export default function UserProfileScreen() {
           </TouchableOpacity>
 
           {/* Message Button */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.messageButton}
             onPress={() => router.push(`/messages/${user.username}` as any)}
           >
             <Text style={styles.messageButtonText}>Nhắn tin</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* === Recipe Tabs === */}
@@ -267,14 +330,17 @@ export default function UserProfileScreen() {
   };
 
   const data = [{}];
-  const isOwnProfile = currentProfileId && userId && currentProfileId === userId;
-  
+  const isOwnProfile =
+    currentProfileId && userId && currentProfileId === userId;
+
   const renderItem = () => {
-    return <RecipeGrid 
-      userId={userId || ""} 
-      isOwnProfile={isOwnProfile || false}
-      currentProfileId={currentProfileId || ""}
-    />;
+    return (
+      <RecipeGrid
+        userId={userId || ""}
+        isOwnProfile={isOwnProfile || false}
+        currentProfileId={currentProfileId || ""}
+      />
+    );
   };
 
   // --- Render Chính ---
@@ -400,13 +466,15 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
     backgroundColor: "#fff",
+    justifyContent: "center",
   },
   followButton: {
-    flex: 1,
+    width: 150,
     height: 42,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
+    alignSelf: "center",
   },
   notFollowingButton: {
     backgroundColor: "#FF385C",

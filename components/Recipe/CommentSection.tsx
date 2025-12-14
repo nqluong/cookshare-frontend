@@ -1,6 +1,6 @@
 // components/CommentModal.tsx - FIXED: Sort, Keyboard, Avatar touchable area
+import { useWebSocketStatus } from "@/hooks/useWebSocketStatus";
 import { commentService } from "@/services/commentService";
-import { useWebSocketStatus } from "@/services/useWebSocketStatus";
 import websocketService from "@/services/websocketService";
 import { CommentResponse } from "@/types/comment";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -19,14 +19,12 @@ import {
   FlatList,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -157,8 +155,8 @@ const CommentModal: React.FC<CommentModalProps> = ({
         inputRef.current?.focus();
       }, 200);
     } else {
-      if (commentText.startsWith('@') && !editingComment) {
-        setCommentText('');
+      if (commentText.startsWith("@") && !editingComment) {
+        setCommentText("");
       }
     }
   }, [replyingTo]);
@@ -385,8 +383,8 @@ const CommentModal: React.FC<CommentModalProps> = ({
           c.commentId === updated.commentId
             ? { ...c, content: updated.content, updatedAt: updated.updatedAt }
             : c.replies
-              ? { ...c, replies: updateRecursively(c.replies) }
-              : c
+            ? { ...c, replies: updateRecursively(c.replies) }
+            : c
         );
       };
       setComments(updateRecursively);
@@ -667,8 +665,8 @@ const CommentModal: React.FC<CommentModalProps> = ({
                   {opt === "relevant"
                     ? "Phù hợp nhất"
                     : opt === "newest"
-                      ? "Mới nhất"
-                      : "Tất cả bình luận"}
+                    ? "Mới nhất"
+                    : "Tất cả bình luận"}
                 </Text>
                 {sortOption === opt && (
                   <Ionicons name="checkmark-done" size={20} color="#1877F2" />
@@ -685,17 +683,14 @@ const CommentModal: React.FC<CommentModalProps> = ({
   return (
     <Modal
       visible={visible}
-      animationType="fade"
+      animationType="slide"
       transparent={false}
       onRequestClose={onClose}
+      presentationStyle="pageSheet"
     >
       {renderSortModal()}
 
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "#FFF" }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      >
+      <View style={{ flex: 1, backgroundColor: "#FFF" }}>
         <View style={styles.modalHeader}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Bình luận ({totalComments})</Text>
@@ -748,8 +743,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
           style={[
             styles.inputContainer,
             {
-              paddingBottom:
-                Platform.OS === "android" ? 8 : Math.max(insets.bottom, 16),
+              paddingBottom: insets.bottom + (isKeyboardOpen ? 16 : 8),
             },
           ]}
         >
@@ -804,7 +798,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
               style={[
                 styles.sendButton,
                 (!commentText.trim() || submitting) &&
-                styles.sendButtonDisabled,
+                  styles.sendButtonDisabled,
               ]}
               onPress={handleSubmit}
               disabled={!commentText.trim() || submitting}
@@ -824,7 +818,20 @@ const CommentModal: React.FC<CommentModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+        {isKeyboardOpen && (
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+            activeOpacity={1}
+            onPress={Keyboard.dismiss}
+          />
+        )}
+      </View>
     </Modal>
   );
 };
