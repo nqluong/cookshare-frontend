@@ -1,24 +1,27 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Animated, StatusBar, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AdminHeader from "../../components/admin/management/AdminHeader";
 import {
   GroupedReportList,
+  IndividualReportList,
   ReportActionModal,
+  ReportDetailModal,
   ReportFilterModal,
-  ReportStatsBar,
+  ReportStatsBar
 } from "../../components/admin/reports";
 import CustomAlert from "../../components/ui/CustomAlert";
 import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { adminGroupedReportService } from "../../services/adminGroupedReportService";
 import {
   GroupedReport,
+  ProcessedReport,
   ReportActionType,
   ReportStatus,
   ReportType,
-  ReviewReportRequest,
+  ReviewReportRequest
 } from "../../types/admin/groupedReport.types";
 
 interface Filters {
@@ -32,11 +35,16 @@ interface StatCount {
   pending: number;
   resolved: number;
   rejected: number;
+  totalReportedRecipes: number;
+  recipesWithPendingReports: number;
 }
 
 export default function AdminReportsScreen() {
-  // State
+  // State for grouped reports (ALL, PENDING)
   const [reports, setReports] = useState<GroupedReport[]>([]);
+  // State for individual reports (RESOLVED, REJECTED)
+  const [individualReports, setIndividualReports] = useState<ProcessedReport[]>([]);
+  
   const [statCount, setStatCount] = useState<StatCount | null>(null);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -45,6 +53,9 @@ export default function AdminReportsScreen() {
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [totalElements, setTotalElements] = useState(0);
+
+  // Animation for transition
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Filter state
   const [activeStatusFilter, setActiveStatusFilter] = useState<ReportStatus | 'ALL'>('ALL');
@@ -55,8 +66,15 @@ export default function AdminReportsScreen() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState<GroupedReport | null>(null);
 
+  // Detail modal state
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+
   // Custom alert
   const { alert, showSuccess, showError, hideAlert } = useCustomAlert();
+
+  // Check if current filter shows individual reports
+  const isIndividualView = activeStatusFilter === 'RESOLVED' || activeStatusFilter === 'REJECTED';
 
   // Load statistics (only counts)
   const loadStatistics = useCallback(async () => {
@@ -68,6 +86,8 @@ export default function AdminReportsScreen() {
         pending: stats.pendingReports,
         resolved: stats.resolvedReports,
         rejected: stats.rejectedReports,
+        totalReportedRecipes: stats.totalReportedRecipes,
+        recipesWithPendingReports: stats.recipesWithPendingReports,
       });
     } catch (err: any) {
       console.error("Error loading statistics:", err);
@@ -89,33 +109,62 @@ export default function AdminReportsScreen() {
 
         // Determine status filter
         const currentStatus = statusFilter !== undefined ? statusFilter : activeStatusFilter;
-        const statusParam = currentStatus === 'ALL' ? undefined : currentStatus;
+        
+        // Check if we need individual reports (RESOLVED or REJECTED)
+        if (currentStatus === 'RESOLVED' || currentStatus === 'REJECTED') {
+          const response = await adminGroupedReportService.getProcessedReports(
+            page,
+            20,
+            currentStatus
+          );
 
-        const response = await adminGroupedReportService.getGroupedReports(
-          page,
-          20,
-          filters.reportType,
-          statusParam,
-          filters.actionType
-        );
+          if (reset) {
+            setIndividualReports(response.content);
+            setReports([]); // Clear grouped reports
+          } else {
+            setIndividualReports((prev) => [...prev, ...response.content]);
+          }
 
-        if (reset) {
-          setReports(response.content);
+          setCurrentPage(page);
+          setHasMore(page < response.totalPages - 1);
+          setTotalElements(response.totalElements);
         } else {
-          setReports((prev) => [...prev, ...response.content]);
-        }
+          // Grouped reports for ALL or PENDING
+          const statusParam = currentStatus === 'ALL' ? undefined : currentStatus;
 
-        setCurrentPage(page);
-        setHasMore(page < response.totalPages - 1);
-        setTotalElements(response.totalElements);
+          const response = await adminGroupedReportService.getGroupedReports(
+            page,
+            20,
+            filters.reportType,
+            statusParam,
+            filters.actionType
+          );
+
+          if (reset) {
+            setReports(response.content);
+            setIndividualReports([]); // Clear individual reports
+          } else {
+            setReports((prev) => [...prev, ...response.content]);
+          }
+
+          setCurrentPage(page);
+          setHasMore(page < response.totalPages - 1);
+          setTotalElements(response.totalElements);
+        }
       } catch (err: any) {
         setError(err.message || "Không thể tải danh sách báo cáo");
       } finally {
         setLoading(false);
         setRefreshing(false);
+        // Fade in animation after loading
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
       }
     },
-    [filters, activeStatusFilter]
+    [filters, activeStatusFilter, fadeAnim]
   );
 
   // Focus effect - reload when screen comes into focus
@@ -159,9 +208,14 @@ export default function AdminReportsScreen() {
   ) => {
     try {
       const result = await adminGroupedReportService.reviewReport(recipeId, request);
-      loadStatistics();
+      
+      // Reload statistics and reports after successful action
+      await loadStatistics();
+      
+      // Force reload reports with current filter
+      await loadReports(0, true, activeStatusFilter);
+      
       showSuccess("Thành công", `Đã xử lý ${result.processedCount} báo cáo thành công`);
-      loadReports(0, true);
     } catch (err: any) {
       showError("Lỗi", err.message || "Không thể xử lý báo cáo");
       throw err;
@@ -184,13 +238,30 @@ export default function AdminReportsScreen() {
 
   // Handler for stats bar filter change
   const handleStatusFilterChange = (status: ReportStatus | 'ALL') => {
-    setActiveStatusFilter(status);
-    setFilters((prev) => ({
-      ...prev,
-      status: status === 'ALL' ? undefined : status,
-    }));
-    setCurrentPage(0);
-    loadReports(0, true, status);
+    // Fade out animation first
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      // Clear data during transition
+      setReports([]);
+      setIndividualReports([]);
+      setActiveStatusFilter(status);
+      setFilters((prev) => ({
+        ...prev,
+        status: status === 'ALL' ? undefined : status,
+      }));
+      setCurrentPage(0);
+      loadReports(0, true, status);
+    });
+  };
+
+  // Handler for viewing report detail
+  const handleViewReportDetail = (reportId: string) => {
+    console.log('[AdminReportsScreen] View report detail:', reportId);
+    setSelectedReportId(reportId);
+    setShowDetailModal(true);
   };
 
   const insets = useSafeAreaInsets();
@@ -216,22 +287,40 @@ export default function AdminReportsScreen() {
           onFilterChange={handleStatusFilterChange}
         />
 
-        {/* Reports List */}
+        {/* Reports List with transition animation */}
         <View style={styles.listSection}>
-          <GroupedReportList
-            reports={reports}
-            loading={loading && !refreshing}
-            refreshing={refreshing}
-            error={error}
-            totalElements={totalElements}
-            hasMore={hasMore}
-            bottomInset={insets.bottom}
-            onRefresh={handleRefresh}
-            onLoadMore={handleLoadMore}
-            onViewDetails={handleViewDetails}
-            onTakeAction={handleTakeAction}
-            onRetry={() => loadReports(0, true)}
-          />
+          <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+            {isIndividualView ? (
+              <IndividualReportList
+                reports={individualReports}
+                loading={loading && !refreshing}
+                refreshing={refreshing}
+                error={error}
+                totalElements={totalElements}
+                hasMore={hasMore}
+                bottomInset={insets.bottom}
+                onRefresh={handleRefresh}
+                onLoadMore={handleLoadMore}
+                onViewDetail={handleViewReportDetail}
+                onRetry={() => loadReports(0, true)}
+              />
+            ) : (
+              <GroupedReportList
+                reports={reports}
+                loading={loading && !refreshing}
+                refreshing={refreshing}
+                error={error}
+                totalElements={totalElements}
+                hasMore={hasMore}
+                bottomInset={insets.bottom}
+                onRefresh={handleRefresh}
+                onLoadMore={handleLoadMore}
+                onViewDetails={handleViewDetails}
+                onTakeAction={handleTakeAction}
+                onRetry={() => loadReports(0, true)}
+              />
+            )}
+          </Animated.View>
         </View>
       </View>
 
@@ -252,6 +341,16 @@ export default function AdminReportsScreen() {
           setSelectedReport(null);
         }}
         onAction={handleAction}
+      />
+
+      {/* Detail Modal */}
+      <ReportDetailModal
+        visible={showDetailModal}
+        reportId={selectedReportId}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedReportId(null);
+        }}
       />
 
       {/* Custom Alert */}

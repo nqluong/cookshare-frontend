@@ -9,6 +9,8 @@ interface StatCount {
   pending: number;
   resolved: number;
   rejected: number;
+  totalReportedRecipes: number;
+  recipesWithPendingReports: number;
 }
 
 interface ReportStatsBarProps {
@@ -49,40 +51,61 @@ export default function ReportStatsBar({
           <ActivityIndicator size="small" color={Colors.primary} />
         </View>
       ) : (
-        <View style={styles.statsRow}>
-          {STAT_CONFIGS.map((config) => {
-            const isActive = activeFilter === config.key;
-            return (
-              <TouchableOpacity
-                key={config.key}
-                style={[
-                  styles.statCard,
-                  { backgroundColor: isActive ? config.color : config.bgColor },
-                ]}
-                onPress={() => onFilterChange(config.key)}
-                activeOpacity={0.7}
-              >
-                <Ionicons 
-                  name={config.icon as any} 
-                  size={scale(16)} 
-                  color={isActive ? '#FFFFFF' : config.color} 
-                />
-                <Text style={[
-                  styles.statValue,
-                  { color: isActive ? '#FFFFFF' : config.color }
-                ]}>
-                  {getCount(config.key)}
-                </Text>
-                <Text style={[
-                  styles.statLabel,
-                  { color: isActive ? '#FFFFFF' : Colors.text.secondary }
-                ]} numberOfLines={1}>
-                  {config.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <>
+          {/* Recipe Summary Row */}
+          <View style={styles.recipeSummaryRow}>
+            <View style={styles.recipeSummaryCard}>
+              <Ionicons name="book-outline" size={scale(18)} color="#6366F1" />
+              <View style={styles.recipeSummaryInfo}>
+                <Text style={styles.recipeSummaryValue}>{stats?.totalReportedRecipes || 0}</Text>
+                <Text style={styles.recipeSummaryLabel}>Công thức bị báo cáo</Text>
+              </View>
+            </View>
+            <View style={[styles.recipeSummaryCard, styles.recipePendingCard]}>
+              <Ionicons name="alert-circle-outline" size={scale(18)} color="#F59E0B" />
+              <View style={styles.recipeSummaryInfo}>
+                <Text style={[styles.recipeSummaryValue, { color: '#F59E0B' }]}>{stats?.recipesWithPendingReports || 0}</Text>
+                <Text style={styles.recipeSummaryLabel}>Cần xử lý</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Report Status Filter Row */}
+          <View style={styles.statsRow}>
+            {STAT_CONFIGS.map((config) => {
+              const isActive = activeFilter === config.key;
+              return (
+                <TouchableOpacity
+                  key={config.key}
+                  style={[
+                    styles.statCard,
+                    { backgroundColor: isActive ? config.color : config.bgColor },
+                  ]}
+                  onPress={() => onFilterChange(config.key)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name={config.icon as any} 
+                    size={scale(16)} 
+                    color={isActive ? '#FFFFFF' : config.color} 
+                  />
+                  <Text style={[
+                    styles.statValue,
+                    { color: isActive ? '#FFFFFF' : config.color }
+                  ]}>
+                    {getCount(config.key)}
+                  </Text>
+                  <Text style={[
+                    styles.statLabel,
+                    { color: isActive ? '#FFFFFF' : Colors.text.secondary }
+                  ]} numberOfLines={1}>
+                    {config.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
       )}
     </View>
   );
@@ -95,10 +118,41 @@ const styles = StyleSheet.create({
     paddingVertical: Layout.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    gap: scale(10),
   },
   loadingContainer: {
     paddingVertical: Layout.spacing.md,
     alignItems: 'center',
+  },
+  recipeSummaryRow: {
+    flexDirection: 'row',
+    gap: scale(10),
+  },
+  recipeSummaryCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: Layout.spacing.sm,
+    paddingHorizontal: Layout.spacing.md,
+    borderRadius: Layout.borderRadius.md,
+    gap: scale(8),
+  },
+  recipePendingCard: {
+    backgroundColor: '#FEF3C7',
+  },
+  recipeSummaryInfo: {
+    flex: 1,
+  },
+  recipeSummaryValue: {
+    fontSize: moderateScale(18),
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  recipeSummaryLabel: {
+    fontSize: moderateScale(10),
+    color: Colors.text.secondary,
+    fontWeight: '500',
   },
   statsRow: {
     flexDirection: 'row',

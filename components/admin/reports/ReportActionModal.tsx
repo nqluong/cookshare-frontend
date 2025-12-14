@@ -1,4 +1,3 @@
-// components/admin/reports/ReportActionModal.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
@@ -11,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../../styles/colors";
 import {
   ACTION_OPTIONS,
@@ -36,6 +36,12 @@ export default function ReportActionModal({
   const [actionDescription, setActionDescription] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const insets = useSafeAreaInsets();
+
+  // Check if confirm button should be disabled
+  const isConfirmDisabled = !selectedAction || 
+    (selectedAction.requiresDescription && !actionDescription.trim());
 
   const handleConfirm = async () => {
     if (!report || !selectedAction) return;
@@ -179,7 +185,7 @@ export default function ReportActionModal({
           </ScrollView>
 
           {/* Footer */}
-          <View style={styles.footer}>
+          <View style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom) }]}>
             <TouchableOpacity 
               style={styles.cancelButton}
               onPress={handleClose}
@@ -190,12 +196,13 @@ export default function ReportActionModal({
             <TouchableOpacity 
               style={[
                 styles.confirmButton,
-                (!selectedAction || (selectedAction.requiresDescription && !actionDescription.trim())) && 
-                  styles.confirmButtonDisabled,
-                selectedAction && { backgroundColor: selectedAction.color }
+                // Apply action color when action is selected
+                selectedAction && { backgroundColor: selectedAction.color },
+                // Apply disabled style (opacity) when disabled
+                isConfirmDisabled && styles.confirmButtonDisabled,
               ]}
               onPress={handleConfirm}
-              disabled={loading || !selectedAction || (selectedAction.requiresDescription && !actionDescription.trim())}
+              disabled={loading || isConfirmDisabled}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -363,7 +370,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   confirmButtonDisabled: {
-    backgroundColor: Colors.gray[300],
+    opacity: 0.5,
   },
   confirmButtonText: {
     fontSize: 15,

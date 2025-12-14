@@ -25,6 +25,27 @@ export type ReportActionType =
   | 'CONTENT_REMOVED'
   | 'OTHER';
 
+// Individual report within a grouped report
+export interface GroupedReportItem {
+  reportId: string;
+  reporterId: string;
+  reporterUsername: string;
+  reporterFullName: string;
+  reporterAvatar: string | null;
+  reportType: ReportType;
+  reason: string;
+  description: string | null;
+  status: ReportStatus;
+  createdAt: string;
+  actionTaken: ReportActionType | null;
+  actionDescription: string | null;
+  adminNote: string | null;
+  reviewedBy: string | null;
+  reviewerUsername: string | null;
+  reviewerFullName: string | null;
+  reviewedAt: string | null;
+}
+
 export interface GroupedReport {
   recipeId: string;
   recipeTitle: string;
@@ -46,10 +67,20 @@ export interface GroupedReport {
   
   autoActioned: boolean;
   exceedsThreshold: boolean;
+  threshold?: number;
   priority: ReportPriority;
   allResolved: boolean;
   
   topReporters: string[];
+  
+  // Reports array (from detail API)
+  reports?: GroupedReportItem[];
+  
+  // Summary fields for resolved reports (optional, derived from reports)
+  lastActionTaken?: ReportActionType;
+  lastReviewerUsername?: string;
+  lastReviewerFullName?: string;
+  lastReviewedAt?: string;
 }
 
 export interface GroupedReportResponse {
@@ -148,15 +179,78 @@ export const REPORT_ACTION_TYPE_COLORS: Record<ReportActionType, string> = {
 
 // Chi tiết một báo cáo cá nhân
 export interface IndividualReport {
-  reportId: string; // ID của người báo cáo 
+  reportId: string;
   reporterId: string;
   reporterUsername: string;
   reporterFullName: string;
-  reporterAvatar: string;
+  reporterAvatar: string | null;
   reportType: ReportType;
   reason: string;
-  description: string;
+  description: string | null;
+  status: ReportStatus;
   createdAt: string;
+  // Fields for resolved reports
+  actionTaken: ReportActionType | null;
+  actionDescription: string | null;
+  adminNote: string | null;
+  reviewedBy: string | null;
+  reviewerUsername: string | null;
+  reviewerFullName: string | null;
+  reviewedAt: string | null;
+}
+
+// Response cho danh sách báo cáo đã xử lý (individual reports)
+export interface ProcessedReportReporter {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  fullName: string | null;
+}
+
+export interface ProcessedReportRecipe {
+  recipeId: string;
+  title: string;
+  slug: string;
+  featuredImage: string | null;
+  status: string;
+  isPublished: boolean;
+  viewCount: number;
+  userId: string;
+  authorUsername: string;
+  authorFullName: string | null;
+}
+
+export interface ProcessedReportReviewer {
+  userId: string;
+  username: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
+export interface ProcessedReport {
+  reportId: string;
+  reporter: ProcessedReportReporter;
+  reportedUser: any | null;
+  reportedRecipe: ProcessedReportRecipe | null;
+  reportType: ReportType;
+  reason: string;
+  description: string | null;
+  status: ReportStatus;
+  actionTaken: ReportActionType | null;
+  actionDescription: string | null;
+  adminNote: string | null;
+  reviewer: ProcessedReportReviewer | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  reportersNotified: boolean | null;
+}
+
+export interface ProcessedReportResponse {
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+  content: ProcessedReport[];
 }
 
 // Response chi tiết nhóm báo cáo của một công thức
@@ -306,6 +400,8 @@ export interface ReportStatistics {
   pendingReports: number;
   resolvedReports: number;
   rejectedReports: number;
+  totalReportedRecipes: number;
+  recipesWithPendingReports: number;
   reportsByType?: {
     SPAM?: number;
     INAPPROPRIATE_CONTENT?: number;

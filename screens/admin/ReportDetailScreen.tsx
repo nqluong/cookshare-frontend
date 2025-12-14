@@ -26,7 +26,12 @@ import CustomAlert from "../../components/ui/CustomAlert";
 import { useCustomAlert } from "../../hooks/useCustomAlert";
 import { adminGroupedReportService } from "../../services/adminGroupedReportService";
 import { Colors } from "../../styles/colors";
-import { GroupedReportDetail, ReviewReportRequest } from "../../types/admin/groupedReport.types";
+import {
+  GroupedReportDetail,
+  REPORT_ACTION_TYPE_COLORS,
+  REPORT_ACTION_TYPE_LABELS,
+  ReviewReportRequest
+} from "../../types/admin/groupedReport.types";
 
 interface ReportDetailScreenProps {
   recipeId: string;
@@ -120,6 +125,29 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
 
   if (!report) return null;
 
+  // Check if all reports are resolved
+  const allResolved = report.reports && report.reports.length > 0 && 
+    report.reports.every(r => r.status === 'RESOLVED' || r.status === 'REJECTED');
+
+  // Get the most recent resolved action info
+  const getResolvedInfo = () => {
+    if (!report.reports || report.reports.length === 0) return null;
+    
+    const resolvedReports = report.reports
+      .filter(r => r.status === 'RESOLVED' && r.actionTaken)
+      .sort((a, b) => {
+        if (!a.reviewedAt || !b.reviewedAt) return 0;
+        return new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime();
+      });
+    
+    if (resolvedReports.length > 0) {
+      return resolvedReports[0];
+    }
+    return null;
+  };
+
+  const resolvedInfo = allResolved ? getResolvedInfo() : null;
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <AdminHeader title="Chi tiết báo cáo" onBack={handleBack} />
@@ -168,14 +196,78 @@ export default function ReportDetailScreen({ recipeId }: ReportDetailScreenProps
         {/* Individual Reports List */}
         <IndividualReportsList reports={report.reports || []} />
 
-        {/* Action Button */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => setShowActionModal(true)}
-        >
-          <Ionicons name="hammer" size={20} color="#FFFFFF" />
-          <Text style={styles.actionButtonText}>Xử lý báo cáo này</Text>
-        </TouchableOpacity>
+        {/* Resolved Info Banner - Show when all reports are resolved */}
+        {allResolved && resolvedInfo && (
+          <View style={styles.resolvedBanner}>
+            <View style={styles.resolvedBannerHeader}>
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <Text style={styles.resolvedBannerTitle}>Đã xử lý tất cả báo cáo</Text>
+            </View>
+            
+            <View style={styles.resolvedInfoContainer}>
+              <View style={styles.resolvedInfoRow}>
+                <Text style={styles.resolvedInfoLabel}>Hành động:</Text>
+                <View style={[
+                  styles.actionBadge,
+                  { backgroundColor: `${REPORT_ACTION_TYPE_COLORS[resolvedInfo.actionTaken!]}20` }
+                ]}>
+                  <Ionicons 
+                    name="hammer" 
+                    size={14} 
+                    color={REPORT_ACTION_TYPE_COLORS[resolvedInfo.actionTaken!]} 
+                  />
+                  <Text style={[
+                    styles.actionBadgeText,
+                    { color: REPORT_ACTION_TYPE_COLORS[resolvedInfo.actionTaken!] }
+                  ]}>
+                    {REPORT_ACTION_TYPE_LABELS[resolvedInfo.actionTaken!]}
+                  </Text>
+                </View>
+              </View>
+              
+              {resolvedInfo.actionDescription && (
+                <View style={styles.resolvedInfoRow}>
+                  <Text style={styles.resolvedInfoLabel}>Lý do:</Text>
+                  <Text style={styles.resolvedInfoValue}>{resolvedInfo.actionDescription}</Text>
+                </View>
+              )}
+              
+              {resolvedInfo.adminNote && (
+                <View style={styles.resolvedInfoRow}>
+                  <Text style={styles.resolvedInfoLabel}>Ghi chú:</Text>
+                  <Text style={styles.resolvedInfoValue}>{resolvedInfo.adminNote}</Text>
+                </View>
+              )}
+              
+              <View style={styles.resolvedInfoRow}>
+                <Text style={styles.resolvedInfoLabel}>Xử lý bởi:</Text>
+                <Text style={styles.resolvedReviewerText}>
+                  {resolvedInfo.reviewerFullName || resolvedInfo.reviewerUsername}
+                </Text>
+              </View>
+              
+              {resolvedInfo.reviewedAt && (
+                <View style={styles.resolvedInfoRow}>
+                  <Text style={styles.resolvedInfoLabel}>Thời gian:</Text>
+                  <Text style={styles.resolvedInfoValue}>
+                    {new Date(resolvedInfo.reviewedAt).toLocaleString('vi-VN')}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Action Button - Only show if not all resolved */}
+        {!allResolved && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setShowActionModal(true)}
+          >
+            <Ionicons name="hammer" size={20} color="#FFFFFF" />
+            <Text style={styles.actionButtonText}>Xử lý báo cáo này</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -270,5 +362,63 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  resolvedBanner: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    backgroundColor: "#ECFDF5",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#10B981",
+  },
+  resolvedBannerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+  },
+  resolvedBannerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#10B981",
+  },
+  resolvedInfoContainer: {
+    gap: 12,
+  },
+  resolvedInfoRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  resolvedInfoLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.text.secondary,
+    width: 80,
+  },
+  resolvedInfoValue: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+    lineHeight: 20,
+  },
+  resolvedReviewerText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+  actionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  actionBadgeText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

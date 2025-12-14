@@ -4,8 +4,10 @@ import { Image } from "expo-image";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Colors } from "../../../styles/colors";
 import {
-    GroupedReport,
-    REPORT_PRIORITY_CONFIG
+  GroupedReport,
+  REPORT_ACTION_TYPE_COLORS,
+  REPORT_ACTION_TYPE_LABELS,
+  REPORT_PRIORITY_CONFIG
 } from "../../../types/admin/groupedReport.types";
 import ReportPriorityBadge from "./ReportPriorityBadge";
 import ReportTypeBreakdown from "./ReportTypeBreakdown";
@@ -38,6 +40,42 @@ export default function GroupedReportCard({
     }
     return 'Vừa xong';
   };
+
+  // Get resolved info from reports array or summary fields
+  const getResolvedInfo = () => {
+    // First check summary fields
+    if (report.lastActionTaken) {
+      return {
+        actionTaken: report.lastActionTaken,
+        reviewerName: report.lastReviewerFullName || report.lastReviewerUsername,
+        reviewedAt: report.lastReviewedAt,
+      };
+    }
+    
+    // Otherwise check reports array
+    if (report.reports && report.reports.length > 0) {
+      // Find the most recent resolved report
+      const resolvedReports = report.reports
+        .filter(r => r.status === 'RESOLVED' && r.actionTaken)
+        .sort((a, b) => {
+          if (!a.reviewedAt || !b.reviewedAt) return 0;
+          return new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime();
+        });
+      
+      if (resolvedReports.length > 0) {
+        const latestResolved = resolvedReports[0];
+        return {
+          actionTaken: latestResolved.actionTaken!,
+          reviewerName: latestResolved.reviewerFullName || latestResolved.reviewerUsername,
+          reviewedAt: latestResolved.reviewedAt,
+        };
+      }
+    }
+    
+    return null;
+  };
+
+  const resolvedInfo = report.allResolved ? getResolvedInfo() : null;
 
   return (
     <View 
@@ -116,11 +154,13 @@ export default function GroupedReportCard({
           </View>
 
           {/* Report Type Breakdown */}
-          <ReportTypeBreakdown 
-            breakdown={report.reportTypeBreakdown}
-            mostSevereType={report.mostSevereType}
-            compact={true}
-          />
+          {report.reportTypeBreakdown && (
+            <ReportTypeBreakdown 
+              breakdown={report.reportTypeBreakdown}
+              mostSevereType={report.mostSevereType}
+              compact={true}
+            />
+          )}
 
           {/* Time Info */}
           <Text style={styles.timeInfo}>
@@ -137,6 +177,43 @@ export default function GroupedReportCard({
             {report.topReporters.slice(0, 3).join(', ')}
             {report.topReporters.length > 3 && ` +${report.topReporters.length - 3}`}
           </Text>
+        </View>
+      )}
+
+      {/* Resolved Info - Show when all reports are resolved */}
+      {report.allResolved && resolvedInfo && (
+        <View style={styles.resolvedInfoContainer}>
+          <View style={styles.resolvedInfoRow}>
+            <Ionicons 
+              name="hammer" 
+              size={14} 
+              color={REPORT_ACTION_TYPE_COLORS[resolvedInfo.actionTaken]} 
+            />
+            <Text 
+              style={[
+                styles.resolvedActionText, 
+                { color: REPORT_ACTION_TYPE_COLORS[resolvedInfo.actionTaken] }
+              ]}
+            >
+              {REPORT_ACTION_TYPE_LABELS[resolvedInfo.actionTaken]}
+            </Text>
+          </View>
+          {resolvedInfo.reviewerName && (
+            <View style={styles.resolvedInfoRow}>
+              <Ionicons name="shield-checkmark-outline" size={14} color="#10B981" />
+              <Text style={styles.resolvedReviewerText}>
+                Xử lý bởi: {resolvedInfo.reviewerName}
+              </Text>
+            </View>
+          )}
+          {resolvedInfo.reviewedAt && (
+            <View style={styles.resolvedInfoRow}>
+              <Ionicons name="time-outline" size={14} color={Colors.text.light} />
+              <Text style={styles.resolvedTimeText}>
+                {formatTimeAgo(resolvedInfo.reviewedAt)}
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -385,5 +462,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#10B981',
+  },
+  resolvedInfoContainer: {
+    marginTop: 10,
+    paddingTop: 10,
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    gap: 6,
+  },
+  resolvedInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  resolvedActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  resolvedReviewerText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '500',
+  },
+  resolvedTimeText: {
+    fontSize: 11,
+    color: Colors.text.light,
   },
 });

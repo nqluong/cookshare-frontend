@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import { AdminUser } from "../../../services/adminUserService";
 import { Colors } from "../../../styles/colors";
 
@@ -22,76 +23,86 @@ export default function UserItem({
 }: UserItemProps) {
   return (
     <View style={styles.userItem}>
-      <View style={styles.userAvatar}>
-        {user.avatarUrl ? (
-          <Image
-            source={{ uri: user.avatarUrl }}
-            style={styles.avatar}
-            contentFit="cover"
-          />
-        ) : (
-          <Image
-            source={require("../../../assets/images/default-avatar.png")}
-            style={styles.avatar}
-            contentFit="cover"
-          />
-        )}
+      {/* Top Row: Avatar + Info */}
+      <View style={styles.topRow}>
+        <View style={styles.userAvatar}>
+          {user.avatarUrl ? (
+            <Image
+              source={{ uri: user.avatarUrl }}
+              style={styles.avatar}
+              contentFit="cover"
+            />
+          ) : (
+            <Image
+              source={require("../../../assets/images/default-avatar.png")}
+              style={styles.avatar}
+              contentFit="cover"
+            />
+          )}
+        </View>
+
+        <View style={styles.userInfo}>
+          <View style={styles.userNameContainer}>
+            <Text style={styles.userName} numberOfLines={1}>{user.fullName}</Text>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: user.isActive ? '#10b981' : '#ef4444' }
+              ]}
+            >
+              <Text style={styles.statusText}>
+                {user.isActive ? 'Hoạt động' : 'Bị cấm'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.userStats}>
+            <View style={styles.statItem}>
+              <Ionicons name="people-outline" size={scale(14)} color={Colors.text.secondary} />
+              <Text style={styles.statText}>{user.followerCount}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="book-outline" size={scale(14)} color={Colors.text.secondary} />
+              <Text style={styles.statText}>{user.recipeCount}</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.userInfo}>
-        <View style={styles.userNameContainer}>
-          <Text style={styles.userName}>{user.fullName}</Text>
-        </View>
-        <View style={styles.userStats}>
-          <View style={styles.statItem}>
-            <Ionicons name="people-outline" size={16} color={Colors.text.secondary} />
-            <Text style={styles.statText}>{user.followerCount}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="book-outline" size={16} color={Colors.text.secondary} />
-            <Text style={styles.statText}>{user.recipeCount}</Text>
-          </View>
-        </View>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: user.isActive ? '#10b981' : '#ef4444' }
-          ]}
-        >
-          <Text style={styles.statusText}>
-            {user.isActive ? 'Hoạt động' : 'Bị cấm'}
-          </Text>
-        </View>
-      </View>
-
+      {/* Bottom Row: Actions */}
       <View style={styles.userActions}>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => onView(user)}
         >
-          <Ionicons name="eye-outline" size={20} color={Colors.text.secondary} />
+          <Ionicons name="eye-outline" size={scale(18)} color={Colors.text.secondary} />
+          <Text style={styles.actionLabel}>Xem</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => onEdit(user.userId)}
         >
-          <Ionicons name="create-outline" size={20} color={Colors.text.secondary} />
+          <Ionicons name="create-outline" size={scale(18)} color={Colors.text.secondary} />
+          <Text style={styles.actionLabel}>Sửa</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[styles.actionButton, { backgroundColor: user.isActive ? '#fef2f2' : '#ecfdf5' }]}
           onPress={() => onBan(user)}
         >
           <Ionicons
             name={user.isActive ? "ban" : "checkmark-circle"}
-            size={20}
+            size={scale(18)}
             color={user.isActive ? "#ef4444" : "#10b981"}
           />
+          <Text style={[styles.actionLabel, { color: user.isActive ? "#ef4444" : "#10b981" }]}>
+            {user.isActive ? 'Cấm' : 'Mở'}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[styles.actionButton, { backgroundColor: '#fef2f2' }]}
           onPress={() => onDelete(user)}
         >
-          <Ionicons name="trash-outline" size={20} color="#ef4444" />
+          <Ionicons name="trash-outline" size={scale(18)} color="#ef4444" />
+          <Text style={[styles.actionLabel, { color: "#ef4444" }]}>Xóa</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -100,81 +111,95 @@ export default function UserItem({
 
 const styles = StyleSheet.create({
   userItem: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: scale(16),
+    padding: scale(14),
+    marginBottom: verticalScale(10),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: verticalScale(1) },
     shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowRadius: scale(3),
     elevation: 2,
   },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
     backgroundColor: "#e0e7ff",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: scale(12),
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
   },
   userInfo: {
     flex: 1,
   },
   userNameContainer: {
-    marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(8),
+    marginBottom: verticalScale(4),
   },
   userName: {
-    fontSize: 16,
+    fontSize: moderateScale(15),
     fontWeight: "600",
     color: Colors.text.primary,
-    marginBottom: 4,
+    flex: 1,
   },
   userStats: {
     flexDirection: "row",
-    gap: 16,
-    marginTop: 4,
+    gap: scale(12),
   },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: scale(4),
   },
   statText: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
     color: Colors.text.secondary,
     fontWeight: "500",
   },
   statusBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginTop: 4,
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(2),
+    borderRadius: scale(12),
   },
   statusText: {
-    fontSize: 12,
+    fontSize: moderateScale(10),
     color: "#fff",
     fontWeight: "600",
   },
   userActions: {
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "space-between",
+    marginTop: verticalScale(12),
+    paddingTop: verticalScale(12),
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray[100],
+    gap: scale(8),
   },
   actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.gray[100],
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: verticalScale(8),
+    borderRadius: scale(8),
+    backgroundColor: Colors.gray[50],
+    gap: scale(4),
+  },
+  actionLabel: {
+    fontSize: moderateScale(11),
+    fontWeight: "500",
+    color: Colors.text.secondary,
   },
 });
