@@ -28,10 +28,10 @@ const getPlatformSpecificHost = (): string | null => {
   }
 
   if (Platform.OS === 'android') {
-    return 'http://192.168.254.1:8080'; // Thay bằng production URL
+    return 'http://172.19.9.196:8080'; // Thay bằng production URL
   }
   if (Platform.OS === 'ios') {
-    return 'http://192.168.254.1:8080'; // Thay bằng production URL
+    return 'http://172.19.9.196:8080'; // Thay bằng production URL
   }
 
   return null; // iOS/Physical devices sẽ dùng IP thật
