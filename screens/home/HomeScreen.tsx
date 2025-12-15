@@ -172,10 +172,21 @@ export default function HomeScreen() {
 
   const lastRefetchTrigger = useRef<string>("0");
 
-  // Register callback to update like counts when liked from detail screen
+  // Track if like action is from this screen to avoid double update
+  const isLocalLikeAction = useRef(false);
+
+  // Register callback to update like counts when liked from OTHER screens (e.g., Detail)
+  // Note: When liking from HomeScreen, viewModel.toggleLike already updates the count
   useEffect(() => {
     const handleLikeUpdate = (recipeId: string, delta: number) => {
-      console.log(`Like count updated for ${recipeId}: ${delta > 0 ? '+' : ''}${delta}`);
+      // Skip if this is our own action (viewModel.toggleLike already updated)
+      if (isLocalLikeAction.current) {
+        isLocalLikeAction.current = false;
+        console.log(`[HomeScreen] Skipping like update for ${recipeId} (local action)`);
+        return;
+      }
+
+      console.log(`[HomeScreen] Like count updated from other screen for ${recipeId}: ${delta > 0 ? '+' : ''}${delta}`);
 
       // Update in all paginations using setRecipes to avoid stale closure
       newest.setRecipes(prev => prev.map(r =>
@@ -383,6 +394,8 @@ export default function HomeScreen() {
   };
 
   const handleToggleLike = async (recipeId: string) => {
+    // Mark as local action to prevent double update from callback
+    isLocalLikeAction.current = true;
     await viewModel.toggleLike(recipeId, dailyRecommendations, featuredRecipes);
   };
 
