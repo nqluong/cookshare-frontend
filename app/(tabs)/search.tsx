@@ -10,6 +10,8 @@ import { fetchPopularIngredients, fetchSearchHistory, getRecipeSuggestions, sear
 import { searchStyles } from '../../styles/SearchStyles';
 import { Ingredient, Recipe, SearchHistoryItem } from '../../types/search';
 import { useRecipeLikeContext } from '../../context/RecipeLikeContext';
+import { useRecipeSaveContext } from '../../context/RecipeSaveContext';
+import { useRecipeViewContext } from '../../context/RecipeViewContext';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 
@@ -33,6 +35,8 @@ export default function SearchScreen() {
   const [historyLoading, setHistoryLoading] = useState(true);
 
   const likeHook = useRecipeLikeContext();
+  const saveHook = useRecipeSaveContext();
+  const viewHook = useRecipeViewContext();
 
   // Register callback to update like counts when liked from detail screen
   useEffect(() => {
@@ -48,7 +52,41 @@ export default function SearchScreen() {
 
     likeHook.registerLikeUpdateCallback(handleLikeUpdate);
     return () => likeHook.unregisterLikeUpdateCallback(handleLikeUpdate);
-  }, []);
+  }, [likeHook.registerLikeUpdateCallback, likeHook.unregisterLikeUpdateCallback]);
+
+  // Register callback to update save counts when saved from detail screen
+  useEffect(() => {
+    const handleSaveUpdate = (recipeId: string, delta: number) => {
+      console.log(`[Search] Save update: ${recipeId}, delta: ${delta}`);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
+          recipe.recipeId === recipeId
+            ? { ...recipe, saveCount: Math.max(0, (recipe.saveCount || 0) + delta) }
+            : recipe
+        )
+      );
+    };
+
+    saveHook.registerSaveUpdateCallback(handleSaveUpdate);
+    return () => saveHook.unregisterSaveUpdateCallback(handleSaveUpdate);
+  }, [saveHook.registerSaveUpdateCallback, saveHook.unregisterSaveUpdateCallback]);
+
+  // Register callback to update view counts when viewed from detail screen
+  useEffect(() => {
+    const handleViewUpdate = (recipeId: string, delta: number) => {
+      console.log(`[Search] View update: ${recipeId}, delta: ${delta}`);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
+          recipe.recipeId === recipeId
+            ? { ...recipe, viewCount: Math.max(0, (recipe.viewCount || 0) + delta) }
+            : recipe
+        )
+      );
+    };
+
+    viewHook.registerViewUpdateCallback(handleViewUpdate);
+    return () => viewHook.unregisterViewUpdateCallback(handleViewUpdate);
+  }, [viewHook.registerViewUpdateCallback, viewHook.unregisterViewUpdateCallback]);
 
   // Flush pending likes when navigating away
   useFocusEffect(

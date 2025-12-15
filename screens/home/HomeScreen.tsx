@@ -28,6 +28,8 @@ import TrendingRecipes from '../../components/home/sections/TrendingRecipes';
 
 // Services & Hooks
 import { useRecipeLikeContext } from '@/context/RecipeLikeContext';
+import { useRecipeSaveContext } from '@/context/RecipeSaveContext';
+import { useRecipeViewContext } from '@/context/RecipeViewContext';
 import { useCachedPagination } from '../../hooks/useCachedRecipes';
 import {
   getLikedRecipes,
@@ -93,6 +95,8 @@ export default function HomeScreen() {
   // Cached Data with hooks
   // Note: dailyRecommendations và featuredRecipes sẽ được load từ state, không cache
   const likeHook = useRecipeLikeContext();
+  const viewHook = useRecipeViewContext();
+  const saveHook = useRecipeSaveContext();
   const newest = useCachedPagination({
     cacheKey: CACHE_KEYS.NEWEST_RECIPES,
     fetchFunction: getNewestRecipes,
@@ -173,37 +177,37 @@ export default function HomeScreen() {
     const handleLikeUpdate = (recipeId: string, delta: number) => {
       console.log(`Like count updated for ${recipeId}: ${delta > 0 ? '+' : ''}${delta}`);
 
-      // Update in all paginations
-      newest.updateRecipe(recipeId, {
-        likeCount: (newest.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
-      });
-      trending.updateRecipe(recipeId, {
-        likeCount: (trending.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
-      });
-      popular.updateRecipe(recipeId, {
-        likeCount: (popular.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
-      });
-      topRated.updateRecipe(recipeId, {
-        likeCount: (topRated.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
-      });
-      liked.updateRecipe(recipeId, {
-        likeCount: (liked.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
-      });
-      following.updateRecipe(recipeId, {
-        likeCount: (following.recipes.find(r => r.recipeId === recipeId)?.likeCount || 0) + delta
-      });
+      // Update in all paginations using setRecipes to avoid stale closure
+      newest.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
+      ));
+      trending.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
+      ));
+      popular.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
+      ));
+      topRated.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
+      ));
+      liked.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
+      ));
+      following.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
+      ));
 
       // Update in dailyRecommendations and featuredRecipes
       setDailyRecommendations(prev => prev.map(r =>
-        r.recipeId === recipeId ? { ...r, likeCount: (r.likeCount || 0) + delta } : r
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
       ));
       setFeaturedRecipes(prev => prev.map(r =>
-        r.recipeId === recipeId ? { ...r, likeCount: (r.likeCount || 0) + delta } : r
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
       ));
 
       // Update search results
       setRecipes(prev => prev.map(r =>
-        r.recipeId === recipeId ? { ...r, likeCount: (r.likeCount || 0) + delta } : r
+        r.recipeId === recipeId ? { ...r, likeCount: Math.max(0, (r.likeCount || 0) + delta) } : r
       ));
     };
 
@@ -212,7 +216,101 @@ export default function HomeScreen() {
     return () => {
       likeHook.unregisterLikeUpdateCallback(handleLikeUpdate);
     };
-  }, [likeHook, newest, trending, popular, topRated, liked, following]);
+  }, [likeHook.registerLikeUpdateCallback, likeHook.unregisterLikeUpdateCallback]);
+
+  // Register callback to update view counts when viewed from detail screen
+  useEffect(() => {
+    const handleViewUpdate = (recipeId: string, delta: number) => {
+      console.log(`[HomeScreen] View count updated for ${recipeId}: +${delta}`);
+
+      // Update in all paginations using setRecipes to avoid stale closure
+      newest.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+      trending.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+      popular.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+      topRated.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+      liked.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+      following.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+
+      // Update in dailyRecommendations and featuredRecipes
+      setDailyRecommendations(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+      setFeaturedRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+
+      // Update search results
+      setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, viewCount: (r.viewCount || 0) + delta } : r
+      ));
+    };
+
+    console.log('[HomeScreen] Registering view update callback');
+    viewHook.registerViewUpdateCallback(handleViewUpdate);
+
+    return () => {
+      console.log('[HomeScreen] Unregistering view update callback');
+      viewHook.unregisterViewUpdateCallback(handleViewUpdate);
+    };
+  }, [viewHook.registerViewUpdateCallback, viewHook.unregisterViewUpdateCallback]);
+
+  // Register callback to update save counts when saved from detail screen
+  useEffect(() => {
+    const handleSaveUpdate = (recipeId: string, delta: number) => {
+      console.log(`Save count updated for ${recipeId}: ${delta > 0 ? '+' : ''}${delta}`);
+
+      // Update in all paginations using setRecipes to avoid stale closure
+      newest.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+      trending.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+      popular.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+      topRated.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+      liked.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+      following.setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+
+      // Update in dailyRecommendations and featuredRecipes
+      setDailyRecommendations(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+      setFeaturedRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+
+      // Update search results
+      setRecipes(prev => prev.map(r =>
+        r.recipeId === recipeId ? { ...r, saveCount: Math.max(0, (r.saveCount || 0) + delta) } : r
+      ));
+    };
+
+    saveHook.registerSaveUpdateCallback(handleSaveUpdate);
+
+    return () => {
+      saveHook.unregisterSaveUpdateCallback(handleSaveUpdate);
+    };
+  }, [saveHook.registerSaveUpdateCallback, saveHook.unregisterSaveUpdateCallback]);
 
   useFocusEffect(
     useCallback(() => {

@@ -1,3 +1,4 @@
+import { useRecipeSaveContext } from "@/context/RecipeSaveContext";
 import { Colors } from "@/styles/colors";
 import { CollectionUserDto } from "@/types/collection.types";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,6 +40,7 @@ export default function RecipeSaveButton({
   onCreateNewCollection,
 }: RecipeSaveButtonProps) {
   const [showModal, setShowModal] = useState(false);
+  const { notifySaveUpdate } = useRecipeSaveContext();
 
   const handlePress = (event: any) => {
     event.stopPropagation();
@@ -54,6 +56,8 @@ export default function RecipeSaveButton({
             onPress: () => {
               onUnsave(recipeId, currentSaveCount, (newSaveCount) => {
                 onUnsaveSuccess(recipeId, newSaveCount);
+                // Notify other screens (e.g., RecipeDetailScreen)
+                notifySaveUpdate(recipeId, -1);
               });
             },
             style: "destructive",
@@ -68,6 +72,8 @@ export default function RecipeSaveButton({
   const handleSaveSuccess = (recipeId: string, collectionId: string, newSaveCount: number) => {
     onSaveSuccess(recipeId, collectionId, newSaveCount);
     setShowModal(false);
+    // Notify other screens (e.g., RecipeDetailScreen)
+    notifySaveUpdate(recipeId, 1);
   };
 
   return (

@@ -7,6 +7,8 @@ import 'react-native-reanimated';
 import { NotificationToastProvider } from '@/components/componentsModal/NotificationToast';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { RecipeLikeProvider } from '@/context/RecipeLikeContext';
+import { RecipeSaveProvider } from '@/context/RecipeSaveContext';
+import { RecipeViewProvider } from '@/context/RecipeViewContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
@@ -63,12 +65,16 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <NotificationToastProvider>
-      <RecipeLikeProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <RootLayoutNav />
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </RecipeLikeProvider>
+        <RecipeLikeProvider>
+          <RecipeViewProvider>
+            <RecipeSaveProvider>
+              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <RootLayoutNav />
+                <StatusBar style="auto" />
+              </ThemeProvider>
+            </RecipeSaveProvider>
+          </RecipeViewProvider>
+        </RecipeLikeProvider>
       </NotificationToastProvider>
     </AuthProvider>
   );

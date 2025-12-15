@@ -1,10 +1,12 @@
 import { useAuth } from '@/context/AuthContext';
+import { useRecipeViewContext } from '@/context/RecipeViewContext';
+import { useCollectionManager } from '@/hooks/useCollectionManager';
 import { commentService } from '@/services/commentService';
 import { userService } from '@/services/userService';
 import { UserProfile } from '@/types/user.types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -82,7 +84,27 @@ export default function RecipeDetailScreen() {
   const [isFromCache, setIsFromCache] = useState(false);
   const [commentCount, setCommentCount] = useState<number>(0);
 
+  const { notifyViewUpdate } = useRecipeViewContext();
+  const hasNotifiedView = useRef(false);
+  const lastNotifiedRecipeId = useRef<string>("");
+
+  // Collection manager for save functionality
+  const {
+    isSaved,
+    collections,
+    userUUID,
+    handleSaveRecipe,
+    handleUnsaveRecipe,
+  } = useCollectionManager();
+
   const recipeId = id || "";
+
+  // Reset hasNotifiedView when recipeId changes
+  useEffect(() => {
+    if (recipeId !== lastNotifiedRecipeId.current) {
+      hasNotifiedView.current = false;
+    }
+  }, [recipeId]);
 
   // Refetch data mỗi khi focus vào screen này (khi quay lại từ chỉnh sửa)
   useFocusEffect(
@@ -97,7 +119,7 @@ export default function RecipeDetailScreen() {
             const online = await unifiedCacheService.isConnected();
             setIsOffline(!online);
 
-            let finalCommentCount = 0;  
+            let finalCommentCount = 0;
 
             if (!online) {
               // Nếu offline, thử load từ cache
@@ -146,13 +168,13 @@ export default function RecipeDetailScreen() {
             }
 
             try {
-                const commentsData = await commentService.getCommentsByRecipe(recipeId);
-                const normalized = normalizeCommentsRecursive(commentsData);
-                finalCommentCount = countAllCommentsRecursive(normalized);
-              } catch (commentErr) {
-                console.log("Không thể load số bình luận:", commentErr);
-                finalCommentCount = data.commentCount || 0; // fallback nếu API recipe có field này
-              }
+              const commentsData = await commentService.getCommentsByRecipe(recipeId);
+              const normalized = normalizeCommentsRecursive(commentsData);
+              finalCommentCount = countAllCommentsRecursive(normalized);
+            } catch (commentErr) {
+              console.log("Không thể load số bình luận:", commentErr);
+              finalCommentCount = data.commentCount || 0; // fallback nếu API recipe có field này
+            }
 
             await unifiedCacheService.saveToCache(CACHE_CATEGORIES.RECIPE_DETAIL, {
               recipe: data,
@@ -165,6 +187,14 @@ export default function RecipeDetailScreen() {
 
             setCommentCount(finalCommentCount);
             setError(null);
+
+            // Notify view update để Home screen cập nhật view count
+            if (!hasNotifiedView.current) {
+              console.log(`[RecipeDetailScreen] Notifying view update for: ${recipeId}`);
+              notifyViewUpdate(recipeId);
+              hasNotifiedView.current = true;
+              lastNotifiedRecipeId.current = recipeId;
+            }
           } catch (err: any) {
             // Khi có lỗi, chỉ hiển thị thông báo lỗi, không fallback sang cache
             setError(err.message || "Không thể tải công thức");
@@ -175,7 +205,7 @@ export default function RecipeDetailScreen() {
 
         fetchData();
       }
-    }, [recipeId])
+    }, [recipeId, notifyViewUpdate])
   );
 
   useEffect(() => {
@@ -287,6 +317,7 @@ export default function RecipeDetailScreen() {
           video: recipe.videoUrl || "",
           likes: recipe.likeCount ?? 0,
           views: recipe.viewCount ?? 0,
+          saves: recipe.saveCount ?? 0,
           commentCount: commentCount,
         }}
         authorInfo={authorInfo || {
@@ -301,6 +332,12 @@ export default function RecipeDetailScreen() {
         onBack={() => router.back()}
         onSearch={() => router.push('/(tabs)/search')}
         sourceRoute={from}
+        // Save props
+        isSaved={isSaved(recipe.recipeId)}
+        collections={collections}
+        userUUID={userUUID}
+        onSaveSuccess={handleSaveRecipe}
+        onUnsaveRecipe={handleUnsaveRecipe}
       />
     </View>
   );

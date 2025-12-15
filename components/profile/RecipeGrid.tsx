@@ -1,8 +1,12 @@
 import { getImageUrl } from "@/config/api.config";
+import { useRecipeLikeContext } from "@/context/RecipeLikeContext";
+import { useRecipeSaveContext } from "@/context/RecipeSaveContext";
+import { useRecipeViewContext } from "@/context/RecipeViewContext";
 import { useCachedUserRecipes } from '@/hooks/useCachedUserRecipes';
 import { RecipeService } from "@/services/recipeService";
 import { Recipe } from "@/types/search";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -46,11 +50,199 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
     setRecipes
   } = useCachedUserRecipes({ userId, autoFetch: false });
 
+  const likeHook = useRecipeLikeContext();
+  const saveHook = useRecipeSaveContext();
+  const viewHook = useRecipeViewContext();
+
+  // Refs to track applied deltas (declared before useEffects that use them)
+  const appliedViewDeltasRef = React.useRef<Set<string>>(new Set());
+  const appliedSaveDeltasRef = React.useRef<Set<string>>(new Set());
+
   const isOwn = isOwnProfile || (currentProfileId && userId && currentProfileId === userId);
 
+  // Register callback to update like counts when liked from detail screen
   useEffect(() => {
+    const handleLikeUpdate = (recipeId: string, delta: number) => {
+      console.log(`[RecipeGrid] Like update: ${recipeId}, delta: ${delta}`);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
+          recipe.recipeId === recipeId
+            ? { ...recipe, likeCount: Math.max(0, (recipe.likeCount || 0) + delta) }
+            : recipe
+        )
+      );
+    };
+
+    likeHook.registerLikeUpdateCallback(handleLikeUpdate);
+    return () => likeHook.unregisterLikeUpdateCallback(handleLikeUpdate);
+  }, [likeHook.registerLikeUpdateCallback, likeHook.unregisterLikeUpdateCallback]);
+
+  // Register callback to update save counts when saved from detail screen
+  useEffect(() => {
+    const handleSaveUpdate = (recipeId: string, delta: number) => {
+      console.log(`[RecipeGrid] Save update: ${recipeId}, delta: ${delta}`);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
+          recipe.recipeId === recipeId
+            ? { ...recipe, saveCount: Math.max(0, (recipe.saveCount || 0) + delta) }
+            : recipe
+        )
+      );
+      // Mark as applied so pending update logic doesn't double-count
+      appliedSaveDeltasRef.current.add(recipeId);
+    };
+
+    console.log('[RecipeGrid] Registering save update callback');
+    saveHook.registerSaveUpdateCallback(handleSaveUpdate);
+    return () => {
+      console.log('[RecipeGrid] Unregistering save update callback');
+      saveHook.unregisterSaveUpdateCallback(handleSaveUpdate);
+    };
+  }, [saveHook.registerSaveUpdateCallback, saveHook.unregisterSaveUpdateCallback]);
+
+  // Register callback to update view counts when viewed from detail screen
+  useEffect(() => {
+    const handleViewUpdate = (recipeId: string, delta: number) => {
+      console.log(`[RecipeGrid] View update callback called: ${recipeId}, delta: ${delta}`);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
+          recipe.recipeId === recipeId
+            ? { ...recipe, viewCount: Math.max(0, (recipe.viewCount || 0) + delta) }
+            : recipe
+        )
+      );
+      // Mark as applied so pending update logic doesn't double-count
+      appliedViewDeltasRef.current.add(recipeId);
+    };
+
+    console.log('[RecipeGrid] Registering view update callback');
+    viewHook.registerViewUpdateCallback(handleViewUpdate);
+    return () => {
+      console.log('[RecipeGrid] Unregistering view update callback');
+      viewHook.unregisterViewUpdateCallback(handleViewUpdate);
+    };
+  }, [viewHook.registerViewUpdateCallback, viewHook.unregisterViewUpdateCallback]);
+
+  useEffect(() => {
+    // Reset applied deltas refs when userId changes
+    appliedViewDeltasRef.current.clear();
+    appliedSaveDeltasRef.current.clear();
     loadRecipes((uid: string) => RecipeService.getAllRecipesByUserId(uid, currentProfileId));
   }, [userId, loadRecipes, currentProfileId, refreshKey]);
+
+  // Apply pending view updates when recipes are loaded or viewedRecipes changes
+  useEffect(() => {
+    if (recipes.length > 0 && viewHook.viewedRecipes.size > 0) {
+      const recipesToUpdate: string[] = [];
+
+      recipes.forEach(recipe => {
+        const delta = viewHook.getViewDelta(recipe.recipeId);
+        if (delta > 0 && !appliedViewDeltasRef.current.has(recipe.recipeId)) {
+          recipesToUpdate.push(recipe.recipeId);
+        }
+      });
+
+      if (recipesToUpdate.length > 0) {
+        console.log(`[RecipeGrid] Applying pending view deltas for ${recipesToUpdate.length} recipes`);
+        setRecipes(prevRecipes =>
+          prevRecipes.map(recipe => {
+            if (recipesToUpdate.includes(recipe.recipeId)) {
+              const delta = viewHook.getViewDelta(recipe.recipeId);
+              console.log(`[RecipeGrid] Applying pending view delta: ${recipe.recipeId}, delta: ${delta}`);
+              appliedViewDeltasRef.current.add(recipe.recipeId);
+              return { ...recipe, viewCount: (recipe.viewCount || 0) + delta };
+            }
+            return recipe;
+          })
+        );
+      }
+    }
+  }, [recipes, viewHook.viewedRecipes]);
+
+  // Apply pending save updates when recipes are loaded or savedDeltas changes
+  useEffect(() => {
+    if (recipes.length > 0 && saveHook.savedDeltas.size > 0) {
+      const recipesToUpdate: string[] = [];
+
+      recipes.forEach(recipe => {
+        const delta = saveHook.getSaveDelta(recipe.recipeId);
+        if (delta !== 0 && !appliedSaveDeltasRef.current.has(recipe.recipeId)) {
+          recipesToUpdate.push(recipe.recipeId);
+        }
+      });
+
+      if (recipesToUpdate.length > 0) {
+        console.log(`[RecipeGrid] Applying pending save deltas for ${recipesToUpdate.length} recipes`);
+        setRecipes(prevRecipes =>
+          prevRecipes.map(recipe => {
+            if (recipesToUpdate.includes(recipe.recipeId)) {
+              const delta = saveHook.getSaveDelta(recipe.recipeId);
+              console.log(`[RecipeGrid] Applying pending save delta: ${recipe.recipeId}, delta: ${delta}`);
+              appliedSaveDeltasRef.current.add(recipe.recipeId);
+              return { ...recipe, saveCount: Math.max(0, (recipe.saveCount || 0) + delta) };
+            }
+            return recipe;
+          })
+        );
+      }
+    }
+  }, [recipes, saveHook.savedDeltas]);
+
+  // Use isFocused to detect when screen becomes active
+  const isFocused = useIsFocused();
+
+  // Apply pending updates when screen is focused (for when navigating back from detail)
+  useEffect(() => {
+    if (!isFocused || recipes.length === 0) return;
+
+    // Apply pending view updates
+    const viewRecipesToUpdate: string[] = [];
+    recipes.forEach(recipe => {
+      const delta = viewHook.getViewDelta(recipe.recipeId);
+      if (delta > 0 && !appliedViewDeltasRef.current.has(recipe.recipeId)) {
+        viewRecipesToUpdate.push(recipe.recipeId);
+      }
+    });
+
+    if (viewRecipesToUpdate.length > 0) {
+      console.log(`[RecipeGrid] isFocused - Applying pending view deltas for ${viewRecipesToUpdate.length} recipes`);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe => {
+          if (viewRecipesToUpdate.includes(recipe.recipeId)) {
+            const delta = viewHook.getViewDelta(recipe.recipeId);
+            console.log(`[RecipeGrid] isFocused - View delta: ${recipe.recipeId}, delta: ${delta}`);
+            appliedViewDeltasRef.current.add(recipe.recipeId);
+            return { ...recipe, viewCount: (recipe.viewCount || 0) + delta };
+          }
+          return recipe;
+        })
+      );
+    }
+
+    // Apply pending save updates
+    const saveRecipesToUpdate: string[] = [];
+    recipes.forEach(recipe => {
+      const delta = saveHook.getSaveDelta(recipe.recipeId);
+      if (delta !== 0 && !appliedSaveDeltasRef.current.has(recipe.recipeId)) {
+        saveRecipesToUpdate.push(recipe.recipeId);
+      }
+    });
+
+    if (saveRecipesToUpdate.length > 0) {
+      console.log(`[RecipeGrid] isFocused - Applying pending save deltas for ${saveRecipesToUpdate.length} recipes`);
+      setRecipes(prevRecipes =>
+        prevRecipes.map(recipe => {
+          if (saveRecipesToUpdate.includes(recipe.recipeId)) {
+            const delta = saveHook.getSaveDelta(recipe.recipeId);
+            console.log(`[RecipeGrid] isFocused - Save delta: ${recipe.recipeId}, delta: ${delta}`);
+            appliedSaveDeltasRef.current.add(recipe.recipeId);
+            return { ...recipe, saveCount: Math.max(0, (recipe.saveCount || 0) + delta) };
+          }
+          return recipe;
+        })
+      );
+    }
+  }, [isFocused, recipes.length, viewHook.viewedRecipes.size, saveHook.savedDeltas.size]);
 
   // Re-sort current list when sort option changes
   const handleTogglePrivacy = async (recipeId: string, currentIsPublic: boolean) => {

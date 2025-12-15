@@ -1,14 +1,16 @@
 import { useRecipeLikeContext } from "@/context/RecipeLikeContext";
+import { useRecipeSaveContext } from "@/context/RecipeSaveContext";
 import { ratingService } from "@/services/ratingService";
 import { CommentResponse } from "@/types/comment";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { getImageUrl } from "../../config/api.config";
 import styles from "../../styles/RecipeDetailView.styles";
 import ReportModal from "../componentsModal/ReportModal";
+import SaveToCollectionModal from "../componentsModal/SaveToCollectionModal";
 import CommentModal from "./CommentSection";
 
 type Ingredient = {
@@ -51,6 +53,7 @@ type Recipe = {
   video?: string;
   likes?: number;
   views?: number;
+  saves?: number;
   averageRating?: number;
   ratingCount?: number;
   commentCount?: number;
@@ -76,6 +79,12 @@ type Props = {
   onBack: () => void;
   onSearch: () => void;
   sourceRoute?: string;
+  // Save props
+  isSaved?: boolean;
+  collections?: any[];
+  userUUID?: string;
+  onSaveSuccess?: (recipeId: string, collectionId: string) => void;
+  onUnsaveRecipe?: (recipeId: string, currentSaveCount: number, onSuccess?: (newSaveCount: number) => void) => Promise<void>;
 };
 
 type RecipeDetailParams = {
@@ -90,12 +99,20 @@ export default function RecipeDetailView({
   currentUserAvatar,
   router,
   sourceRoute,
+  isSaved = false,
+  collections = [],
+  userUUID = "",
+  onSaveSuccess,
+  onUnsaveRecipe,
 }: Props) {
   const params = useLocalSearchParams<RecipeDetailParams>();
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
   const [commentCount, setCommentCount] = useState(recipe.commentCount || 0);
+  const [localSaveCount, setLocalSaveCount] = useState(recipe.saves ?? 0);
+  const [localIsSaved, setLocalIsSaved] = useState(isSaved);
 
   // LIKE STATE
   const {
@@ -105,6 +122,31 @@ export default function RecipeDetailView({
   } = useRecipeLikeContext();
   const [localLikeCount, setLocalLikeCount] = useState(recipe.likes ?? 0);
   const isLiked = likedRecipes.has(recipe.id);
+
+  // SAVE CONTEXT
+  const { notifySaveUpdate, registerSaveUpdateCallback, unregisterSaveUpdateCallback } = useRecipeSaveContext();
+  const isLocalSaveAction = useRef(false);
+
+  // Listen for save updates from other screens (Home, Search, Profile)
+  useEffect(() => {
+    const handleSaveUpdate = (recipeId: string, delta: number) => {
+      // Skip if this is our own action
+      if (isLocalSaveAction.current) {
+        isLocalSaveAction.current = false;
+        return;
+      }
+      if (recipeId === recipe.id) {
+        setLocalSaveCount((prev) => Math.max(0, prev + delta));
+        setLocalIsSaved(delta > 0);
+      }
+    };
+
+    registerSaveUpdateCallback(handleSaveUpdate);
+
+    return () => {
+      unregisterSaveUpdateCallback(handleSaveUpdate);
+    };
+  }, [recipe.id, registerSaveUpdateCallback, unregisterSaveUpdateCallback]);
 
   // RATING STATE
   const [userRating, setUserRating] = useState(0);
@@ -127,7 +169,12 @@ export default function RecipeDetailView({
   useEffect(() => {
     setCommentCount(recipe.commentCount || 0);
     setLocalLikeCount(recipe.likes ?? 0);
-  }, [recipe.likes, recipe.commentCount]);
+    setLocalSaveCount(recipe.saves ?? 0);
+  }, [recipe.likes, recipe.commentCount, recipe.saves]);
+
+  useEffect(() => {
+    setLocalIsSaved(isSaved);
+  }, [isSaved]);
   // Kiểm tra user đã rating chưa
   useEffect(() => {
     if (!recipe?.id || !currentUserId) return;
@@ -194,6 +241,55 @@ export default function RecipeDetailView({
     await toggleLikeService(recipe.id, (delta) => {
       setLocalLikeCount((prev) => Math.max(0, prev + delta));
     });
+  };
+
+  // XỬ LÝ SAVE
+  const handleSavePress = () => {
+    if (!currentUserId) {
+      Toast.show({
+        type: "error",
+        text1: "Vui lòng đăng nhập để lưu công thức",
+        position: "bottom",
+      });
+      return;
+    }
+
+    if (localIsSaved) {
+      Alert.alert(
+        "Công thức đã được lưu",
+        "Bạn có muốn gỡ công thức này khỏi bộ sưu tập không?",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Gỡ",
+            onPress: async () => {
+              if (onUnsaveRecipe) {
+                await onUnsaveRecipe(recipe.id, localSaveCount, (newSaveCount) => {
+                  setLocalSaveCount(newSaveCount);
+                  setLocalIsSaved(false);
+                  // Notify Home và Search screens
+                  isLocalSaveAction.current = true;
+                  notifySaveUpdate(recipe.id, -1);
+                });
+              }
+            },
+            style: "destructive",
+          },
+        ]
+      );
+    } else {
+      setSaveModalVisible(true);
+    }
+  };
+
+  const handleSaveSuccess = (recipeId: string, collectionId: string) => {
+    setLocalIsSaved(true);
+    setLocalSaveCount((prev) => prev + 1);
+    onSaveSuccess?.(recipeId, collectionId);
+    setSaveModalVisible(false);
+    // Notify Home và Search screens
+    isLocalSaveAction.current = true;
+    notifySaveUpdate(recipeId, 1);
   };
 
   // XỬ LÝ GỬI ĐÁNH GIÁ
@@ -377,6 +473,19 @@ export default function RecipeDetailView({
             >
               <MaterialIcons name="visibility" size={20} color="#9B59B6" />
               <Text style={styles.infoText}>{recipe.views ?? 0}</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.infoButton} onPress={handleSavePress}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <Ionicons
+                name={localIsSaved ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color={localIsSaved ? "#FFD700" : "#27AE60"}
+              />
+              <Text style={styles.infoText}>{localSaveCount}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -708,6 +817,16 @@ export default function RecipeDetailView({
         recipeId={recipe.id}
         authorId={authorInfo?.userId || ""}
         recipeTitle={recipe.title}
+      />
+
+      {/* Save to Collection Modal */}
+      <SaveToCollectionModal
+        visible={saveModalVisible}
+        recipeId={recipe.id}
+        collections={collections}
+        userUUID={userUUID}
+        onClose={() => setSaveModalVisible(false)}
+        onSaveSuccess={handleSaveSuccess}
       />
     </View>
   );

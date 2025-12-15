@@ -1,4 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
+import { useRecipeSaveContext } from "@/context/RecipeSaveContext";
 import { collectionService } from "@/services/collectionService";
 import { userService } from "@/services/userService";
 import { CollectionUserDto } from "@/types/collection.types";
@@ -20,6 +21,7 @@ interface UseCollectionManagerReturn {
 
 export function useCollectionManager(): UseCollectionManagerReturn {
   const { user } = useAuth();
+  const { registerSaveUpdateCallback, unregisterSaveUpdateCallback } = useRecipeSaveContext();
 
   const [savedRecipes, setSavedRecipes] = useState<Set<string>>(new Set());
   const [recipeToCollectionMap, setRecipeToCollectionMap] = useState<Map<string, string>>(new Map());
@@ -27,6 +29,35 @@ export function useCollectionManager(): UseCollectionManagerReturn {
   const [userUUID, setUserUUID] = useState<string>("");
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
   const [savedVersion, setSavedVersion] = useState(0);
+
+  // Listen for save updates from other screens (e.g., RecipeDetailScreen)
+  useEffect(() => {
+    const handleSaveUpdate = (recipeId: string, delta: number) => {
+      if (delta > 0) {
+        // Recipe was saved - add to savedRecipes
+        setSavedRecipes((prev) => new Set([...prev, recipeId]));
+      } else {
+        // Recipe was unsaved - remove from savedRecipes
+        setSavedRecipes((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(recipeId);
+          return newSet;
+        });
+        setRecipeToCollectionMap((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(recipeId);
+          return newMap;
+        });
+      }
+      setSavedVersion(v => v + 1);
+    };
+
+    registerSaveUpdateCallback(handleSaveUpdate);
+
+    return () => {
+      unregisterSaveUpdateCallback(handleSaveUpdate);
+    };
+  }, [registerSaveUpdateCallback, unregisterSaveUpdateCallback]);
 
   /**
    * Tải danh sách công thức đã lưu từ backend

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, TextInputProps, ViewStyle, TouchableOpacity } from 'react-native';
+import { View, TextInput, Text, StyleSheet, TextInputProps, ViewStyle, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface InputProps extends TextInputProps {
@@ -67,7 +67,7 @@ export default function Input({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: Platform.OS === 'android' ? 10 : 16,
   },
   label: {
     fontSize: 14,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 52,
+    height: Platform.OS === 'android' ? 44 : 52,
     paddingHorizontal: 16,
     fontSize: 16,
     borderWidth: 0,

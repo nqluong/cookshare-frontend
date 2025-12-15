@@ -1,58 +1,54 @@
-import { StyleSheet } from 'react-native';
-import { isSmallDevice, isTablet, Layout, moderateScale, scale, verticalScale } from '../constants/layout';
+import { StyleSheet, Platform } from 'react-native';
 
 export const authStyles = StyleSheet.create({
   // Container styles
   container: {
     backgroundColor: 'white',
-    padding: isSmallDevice ? Layout.spacing.xl : Layout.spacing.xxxl,
-    marginHorizontal: isSmallDevice ? Layout.spacing.xl : scale(40),
-    borderRadius: Layout.borderRadius.xxl,
+    padding: Platform.OS === 'android' ? 20 : 32,
+    marginHorizontal: 16,
+    borderRadius: 24,
     shadowColor: '#FF6B35',
     shadowOffset: {
       width: 0,
-      height: verticalScale(4),
+      height: 4,
     },
     shadowOpacity: 0.15,
-    shadowRadius: scale(12),
+    shadowRadius: 12,
     elevation: 8,
-    // Giới hạn maxWidth cho tất cả màn hình
-    maxWidth: isTablet ? scale(400) : scale(360),
-    alignSelf: 'center',
   },
 
   // Header styles
   appTitle: {
-    fontSize: isSmallDevice ? moderateScale(28) : moderateScale(36),
+    fontSize: Platform.OS === 'android' ? 30 : 36,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: Layout.spacing.sm,
+    marginBottom: Platform.OS === 'android' ? 4 : 8,
     color: '#FF6B35',
     letterSpacing: 1,
   },
 
   appSubtitle: {
-    fontSize: Layout.fontSize.md,
+    fontSize: 14,
     textAlign: 'center',
     color: '#FF8C42',
-    marginBottom: verticalScale(40),
+    marginBottom: 40,
     fontStyle: 'italic',
   },
 
   title: {
-    fontSize: isSmallDevice ? moderateScale(22) : moderateScale(28),
+    fontSize: Platform.OS === 'android' ? 24 : 28,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: Layout.spacing.sm,
+    marginBottom: Platform.OS === 'android' ? 4 : 8,
     color: '#2D3436',
   },
 
   subtitle: {
-    fontSize: Layout.fontSize.lg,
+    fontSize: Platform.OS === 'android' ? 14 : 16,
     textAlign: 'center',
     color: '#636E72',
-    marginBottom: Layout.spacing.xxxl,
-    lineHeight: verticalScale(24),
+    marginBottom: Platform.OS === 'android' ? 20 : 32,
+    lineHeight: Platform.OS === 'android' ? 20 : 24,
   },
 
   // Form styles
@@ -61,39 +57,39 @@ export const authStyles = StyleSheet.create({
   },
 
   inputContainer: {
-    marginBottom: Layout.spacing.lg,
+    marginBottom: 16,
   },
 
   // Button styles
   primaryButton: {
     backgroundColor: '#FF6B35',
-    height: verticalScale(56),
-    borderRadius: Layout.borderRadius.lg,
+    height: Platform.OS === 'android' ? 46 : 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Layout.spacing.lg,
-    marginBottom: Layout.spacing.xxl,
+    marginTop: Platform.OS === 'android' ? 8 : 16,
+    marginBottom: Platform.OS === 'android' ? 16 : 24,
     shadowColor: '#FF6B35',
     shadowOffset: {
       width: 0,
-      height: verticalScale(4),
+      height: 4,
     },
     shadowOpacity: 0.3,
-    shadowRadius: scale(8),
+    shadowRadius: 8,
     elevation: 6,
   },
 
   primaryButtonText: {
     color: '#ffffff',
-    fontSize: moderateScale(17),
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
 
   secondaryButton: {
     backgroundColor: 'transparent',
-    height: verticalScale(56),
-    borderRadius: Layout.borderRadius.lg,
+    height: 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -102,56 +98,56 @@ export const authStyles = StyleSheet.create({
 
   secondaryButtonText: {
     color: '#FF6B35',
-    fontSize: moderateScale(17),
+    fontSize: 17,
     fontWeight: '700',
   },
 
   // Social login buttons
   googleButton: {
     backgroundColor: '#ffffff',
-    height: verticalScale(56),
-    borderRadius: Layout.borderRadius.lg,
+    height: Platform.OS === 'android' ? 46 : 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Layout.spacing.md,
+    marginBottom: Platform.OS === 'android' ? 10 : 12,
     borderWidth: 2,
     borderColor: '#E8E8E8',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: verticalScale(2),
+      height: 2,
     },
     shadowOpacity: 0.08,
-    shadowRadius: scale(4),
+    shadowRadius: 4,
     elevation: 3,
   },
 
   googleButtonText: {
     color: '#2D3436',
-    fontSize: Layout.fontSize.lg,
+    fontSize: 16,
     fontWeight: '600',
   },
 
   facebookButton: {
     backgroundColor: '#1877f2',
-    height: verticalScale(56),
-    borderRadius: Layout.borderRadius.lg,
+    height: Platform.OS === 'android' ? 46 : 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Layout.spacing.xxl,
+    marginBottom: Platform.OS === 'android' ? 16 : 24,
     shadowColor: '#1877f2',
     shadowOffset: {
       width: 0,
-      height: verticalScale(4),
+      height: 4,
     },
     shadowOpacity: 0.3,
-    shadowRadius: scale(8),
+    shadowRadius: 8,
     elevation: 6,
   },
 
   facebookButtonText: {
     color: '#ffffff',
-    fontSize: Layout.fontSize.lg,
+    fontSize: 16,
     fontWeight: '700',
   },
 
@@ -159,19 +155,19 @@ export const authStyles = StyleSheet.create({
   navigationContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Layout.spacing.xxl,
+    marginTop: Platform.OS === 'android' ? 12 : 24,
   },
 
   navigationText: {
     color: '#636E72',
-    fontSize: moderateScale(15),
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: verticalScale(22),
+    lineHeight: 22,
   },
 
   navigationLink: {
     color: '#FF6B35',
-    fontSize: moderateScale(15),
+    fontSize: 15,
     fontWeight: '700',
     textDecorationLine: 'underline',
   },
@@ -190,7 +186,7 @@ export const authStyles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: Layout.spacing.xxl,
+    marginVertical: Platform.OS === 'android' ? 16 : 24,
   },
 
   dividerLine: {
@@ -200,20 +196,20 @@ export const authStyles = StyleSheet.create({
   },
 
   dividerText: {
-    marginHorizontal: Layout.spacing.lg,
+    marginHorizontal: 16,
     color: '#B2BEC3',
-    fontSize: Layout.fontSize.sm,
+    fontSize: 13,
     fontWeight: '600',
     letterSpacing: 1,
   },
 
   // Terms and conditions
   termsText: {
-    fontSize: Layout.fontSize.xs,
+    fontSize: 12,
     textAlign: 'center',
     color: '#636E72',
-    lineHeight: verticalScale(18),
-    marginBottom: Layout.spacing.xxl,
+    lineHeight: 18,
+    marginBottom: 24,
   },
 
   linkText: {
@@ -225,16 +221,16 @@ export const authStyles = StyleSheet.create({
   // Error styles
   errorText: {
     color: '#D63031',
-    fontSize: Layout.fontSize.xs,
-    marginTop: Layout.spacing.xs,
+    fontSize: 12,
+    marginTop: 4,
     fontWeight: '500',
   },
 
   // Success styles
   successText: {
     color: '#00B894',
-    fontSize: Layout.fontSize.xs,
-    marginTop: Layout.spacing.xs,
+    fontSize: 12,
+    marginTop: 4,
     fontWeight: '500',
   },
 
@@ -245,41 +241,39 @@ export const authStyles = StyleSheet.create({
   },
 
   screenContent: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: isTablet ? Layout.spacing.xxxl : Layout.spacing.sm,
-    paddingVertical: verticalScale(40),
   },
 
   // Decorative elements
   decorativeCircle: {
     position: 'absolute',
-    width: scale(100),
-    height: scale(100),
-    borderRadius: scale(50),
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#FF6B35',
     opacity: 0.1,
   },
 
   decorativeCircleTop: {
-    top: scale(-50),
-    right: scale(-30),
+    top: -50,
+    right: -30,
   },
 
   decorativeCircleBottom: {
-    bottom: scale(-50),
-    left: scale(-30),
+    bottom: -50,
+    left: -30,
   },
 });
 
-// Common spacing values - sử dụng Layout.spacing thay thế
+// Common spacing values
 export const spacing = {
-  xs: Layout.spacing.xs,
-  sm: Layout.spacing.sm,
-  md: Layout.spacing.lg,
-  lg: Layout.spacing.xxl,
-  xl: Layout.spacing.xxxl,
-  xxl: scale(40),
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 40,
 } as const;
 
 // Common colors - Orange Theme
@@ -304,31 +298,31 @@ export const colors = {
   shadow: '#FF6B35',
 } as const;
 
-// Typography - sử dụng responsive font size
+// Typography
 export const typography = {
   appTitle: {
-    fontSize: isSmallDevice ? moderateScale(28) : moderateScale(36),
+    fontSize: 36,
     fontWeight: '700' as const,
     letterSpacing: 1,
   },
   title: {
-    fontSize: isSmallDevice ? moderateScale(22) : moderateScale(28),
+    fontSize: 28,
     fontWeight: '700' as const,
   },
   subtitle: {
-    fontSize: Layout.fontSize.lg,
+    fontSize: 24,
     fontWeight: '400' as const,
   },
   body: {
-    fontSize: moderateScale(15),
+    fontSize: 15,
     fontWeight: '400' as const,
   },
   caption: {
-    fontSize: Layout.fontSize.xs,
+    fontSize: 12,
     fontWeight: '400' as const,
   },
   button: {
-    fontSize: moderateScale(17),
+    fontSize: 17,
     fontWeight: '700' as const,
   },
 } as const;
