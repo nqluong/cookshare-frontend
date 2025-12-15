@@ -1,5 +1,6 @@
 import CollectionListTab from "@/components/profile/CollectionListTab";
 import RecipeGrid from "@/components/profile/RecipeGrid";
+import { moderateScale, scale, verticalScale } from "@/constants/layout";
 import { useFollowWebSocket } from "@/hooks/useFollowWebSocket";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from 'expo-image';
@@ -76,16 +77,12 @@ export default function OwnProfileScreen() {
 
   const loadProfile = async () => {
     if (!user?.username) {
-      console.log('[OwnProfile] No username available, skipping load');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[OwnProfile] Loading profile for username:', user.username);
       const profile = await userService.getUserByUsername(user.username);
-      console.log('[OwnProfile] Profile loaded successfully');
-      console.log('[OwnProfile] Avatar URL:', profile.avatarUrl);
       setUserProfile(profile);
       setLastLoadedAvatarUrl(profile.avatarUrl || null);
     } catch (error: any) {
@@ -93,7 +90,6 @@ export default function OwnProfileScreen() {
 
       // Fallback: Use user from context nếu có
       if (user) {
-        console.log('[OwnProfile] Using user data from context as fallback');
         setUserProfile({
           userId: user.userId,
           username: user.username,
@@ -151,56 +147,58 @@ export default function OwnProfileScreen() {
 
   const renderHeader = () => (
     <>
-      {/* Header (Title & Settings Icon) */}
-      <View style={styles.header}>
+      {/* Avatar Section with Settings Button */}
+      <View style={styles.profileHeader}>
+        {/* Settings Button - Top Right Corner */}
         <TouchableOpacity
           onPress={handleSettings}
           style={styles.settingsButton}
+          activeOpacity={0.7}
         >
           <Ionicons
             name="settings-outline"
-            size={24}
+            size={scale(24)}
             color={Colors.text.primary}
           />
         </TouchableOpacity>
-      </View>
 
-      <View style={styles.avatarSection}>
-        <View style={styles.avatarContainer}>
-          {userProfile?.avatarUrl ? (
-            <>
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarContainer}>
+            {userProfile?.avatarUrl ? (
+              <>
+                <Image
+                  key={userProfile.avatarUrl}
+                  source={{ uri: userProfile.avatarUrl }}
+                  style={styles.avatar}
+                  cachePolicy="memory-disk"
+                  contentFit="cover"
+                  transition={200}
+                  recyclingKey={userProfile.avatarUrl}
+                  onError={(error) => {
+                    console.error('Lỗi load avatar:', error);
+                    console.log('URL gây lỗi:', userProfile.avatarUrl);
+                  }}
+                  onLoad={() => {
+                    console.log('Avatar loaded successfully');
+                  }}
+                />
+              </>
+            ) : (
               <Image
-                key={userProfile.avatarUrl} // Force re-mount when URL changes
-                source={{ uri: userProfile.avatarUrl }}
+                source={require("../../assets/images/default-avatar.png")}
                 style={styles.avatar}
-                cachePolicy="memory-disk"
                 contentFit="cover"
-                transition={200}
-                recyclingKey={userProfile.avatarUrl} // Help with cache
-                onError={(error) => {
-                  console.error('Lỗi load avatar:', error);
-                  console.log('URL gây lỗi:', userProfile.avatarUrl);
-                }}
-                onLoad={() => {
-                  console.log('Avatar loaded successfully');
-                }}
               />
-            </>
-          ) : (
-            <Image
-              source={require("../../assets/images/default-avatar.png")}
-              style={styles.avatar}
-              contentFit="cover"
-            />
-          )}
-        </View>
+            )}
+          </View>
 
-        <Text style={styles.fullNameText}>
-          {userProfile?.fullName || user?.fullName || "Tên người dùng"}
-        </Text>
-        <Text style={styles.bioText}>
-          {userProfile?.bio || "Yêu thích nấu ăn & chia sẻ công thức ngon"}
-        </Text>
+          <Text style={styles.fullNameText}>
+            {userProfile?.fullName || user?.fullName || "Tên người dùng"}
+          </Text>
+          <Text style={styles.bioText}>
+            {userProfile?.bio || "Yêu thích nấu ăn & chia sẻ công thức ngon"}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.statsContainer}>
@@ -349,85 +347,64 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  safeArea: {
-    backgroundColor: Colors.white,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[100],
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text.primary,
-  },
-  placeholder: {
-    width: 32,
+  profileHeader: {
+    position: "relative",
+    backgroundColor: "#fff",
   },
   settingsButton: {
-    padding: 8,
+    position: "absolute",
+    top: verticalScale(12),
+    right: scale(16),
+    zIndex: 10,
+    backgroundColor: Colors.white,
+    borderRadius: scale(20),
+    padding: scale(8),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: verticalScale(2) },
+    shadowOpacity: 0.1,
+    shadowRadius: scale(3),
+    elevation: 3,
   },
   avatarSection: {
     alignItems: "center",
-    paddingVertical: 20,
+    paddingVertical: verticalScale(20),
     backgroundColor: "#fff",
   },
   avatarContainer: {
-    width: 110,
-    height: 110,
+    width: scale(110),
+    height: scale(110),
     justifyContent: "center",
     alignItems: "center",
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(50),
     backgroundColor: "#f0f0f0",
-    borderWidth: 2,
+    borderWidth: scale(2),
     borderColor: "#ffc0cb",
   },
-  editAvatarButton: {
-    position: "absolute",
-    right: 5,
-    bottom: 5,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    zIndex: 10,
-  },
   fullNameText: {
-    fontSize: 18,
+    fontSize: moderateScale(18),
     fontWeight: "bold",
     color: Colors.text.primary,
-    marginTop: 8,
+    marginTop: verticalScale(12),
   },
   bioText: {
-    fontSize: 13,
+    fontSize: moderateScale(13),
     color: Colors.text.secondary,
     textAlign: "center",
-    marginTop: 4,
-    paddingHorizontal: 40,
-    lineHeight: 18,
+    marginTop: verticalScale(4),
+    paddingHorizontal: scale(40),
+    lineHeight: verticalScale(18),
   },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 15,
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(15),
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#e0e0e0",
@@ -437,14 +414,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 18,
+    fontSize: moderateScale(18),
     fontWeight: "bold",
     color: Colors.text.primary,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
     color: Colors.text.secondary,
-    marginTop: 2,
+    marginTop: verticalScale(2),
   },
   statsDivider: {
     width: 1,
@@ -460,22 +437,22 @@ const styles = StyleSheet.create({
   tabItem: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: verticalScale(10),
   },
   tabItemActive: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 3,
+    paddingVertical: verticalScale(10),
+    borderBottomWidth: scale(3),
     borderBottomColor: Colors.primary,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     color: Colors.text.secondary,
     fontWeight: "500",
   },
   tabTextActive: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     color: Colors.primary,
     fontWeight: "600",
   },
@@ -486,27 +463,27 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.3)",
     justifyContent: "flex-start",
     alignItems: "flex-end",
-    paddingTop: 60,
-    paddingRight: 16,
+    paddingTop: verticalScale(60),
+    paddingRight: scale(16),
   },
   settingsMenu: {
     backgroundColor: "white",
-    borderRadius: 12,
-    minWidth: 200,
+    borderRadius: scale(12),
+    minWidth: scale(200),
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: verticalScale(2),
     },
     shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowRadius: scale(8),
     elevation: 8,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(14),
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
@@ -514,34 +491,34 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   menuText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: Colors.text.primary,
-    marginLeft: 12,
+    marginLeft: scale(12),
     fontWeight: "500",
   },
 
   // Dev Button Styles
   devButton: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
+    bottom: verticalScale(20),
+    left: scale(20),
     backgroundColor: '#FF6B35',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 25,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(14),
+    borderRadius: scale(25),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: scale(6),
     zIndex: 9999,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: verticalScale(3) },
     shadowOpacity: 0.4,
-    shadowRadius: 6,
+    shadowRadius: scale(6),
     elevation: 8,
   },
   devButtonText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: moderateScale(12),
     fontWeight: 'bold',
   },
 });

@@ -340,7 +340,7 @@ export default function HomeScreen() {
 
   // Main Content
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
 
       {isOffline && (
         <View style={styles.offlineBar}>
@@ -600,9 +600,10 @@ const styles = StyleSheet.create({
   },
   flatListContent: {
     flexGrow: 1,
+    paddingBottom: verticalScale(100),
   },
   bottomPadding: {
-    height: verticalScale(80),
+    height: verticalScale(20),
   },
   centerContainer: {
     flex: 1,

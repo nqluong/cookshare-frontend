@@ -1,6 +1,8 @@
+import { moderateScale, scale, verticalScale } from "@/constants/layout";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../../styles/colors";
 
 interface FilterOptionsProps {
@@ -54,18 +56,22 @@ export default function FilterOptions({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={Colors.text.primary} />
+            <Ionicons name="close" size={scale(24)} color={Colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Bộ lọc và sắp xếp</Text>
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Content */}
-        <View style={styles.content}>
+        {/* Content - Scrollable */}
+        <ScrollView 
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Sort By Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Sắp xếp theo</Text>
@@ -78,10 +84,11 @@ export default function FilterOptions({
                     tempSortBy === option.value && styles.selectedOption
                   ]}
                   onPress={() => setTempSortBy(option.value)}
+                  activeOpacity={0.7}
                 >
                   <Ionicons 
                     name={option.icon as any} 
-                    size={20} 
+                    size={scale(20)} 
                     color={tempSortBy === option.value ? '#fff' : Colors.text.secondary} 
                   />
                   <Text style={[
@@ -91,7 +98,7 @@ export default function FilterOptions({
                     {option.label}
                   </Text>
                   {tempSortBy === option.value && (
-                    <Ionicons name="checkmark" size={20} color="#fff" />
+                    <Ionicons name="checkmark" size={scale(20)} color="#fff" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -110,10 +117,11 @@ export default function FilterOptions({
                     tempSortDir === direction.value && styles.selectedOption
                   ]}
                   onPress={() => setTempSortDir(direction.value)}
+                  activeOpacity={0.7}
                 >
                   <Ionicons 
                     name={direction.icon as any} 
-                    size={20} 
+                    size={scale(20)} 
                     color={tempSortDir === direction.value ? '#fff' : Colors.text.secondary} 
                   />
                   <Text style={[
@@ -123,27 +131,37 @@ export default function FilterOptions({
                     {direction.label}
                   </Text>
                   {tempSortDir === direction.value && (
-                    <Ionicons name="checkmark" size={20} color="#fff" />
+                    <Ionicons name="checkmark" size={scale(20)} color="#fff" />
                   )}
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-        </View>
+        </ScrollView>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-            <Ionicons name="refresh-outline" size={20} color={Colors.text.secondary} />
-            <Text style={styles.resetButtonText}>Đặt lại</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
-            <Ionicons name="checkmark" size={20} color="#fff" />
-            <Text style={styles.applyButtonText}>Áp dụng</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+        {/* Footer - Fixed at bottom */}
+        <SafeAreaView edges={['bottom']} style={styles.footerSafeArea}>
+          <View style={styles.footer}>
+            <TouchableOpacity 
+              style={styles.resetButton} 
+              onPress={handleReset}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="refresh-outline" size={scale(20)} color={Colors.text.secondary} />
+              <Text style={styles.resetButtonText}>Đặt lại</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.applyButton} 
+              onPress={handleApply}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="checkmark" size={scale(20)} color="#fff" />
+              <Text style={styles.applyButtonText}>Áp dụng</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -157,50 +175,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(12),
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
   closeButton: {
-    padding: 4,
+    padding: scale(4),
   },
   title: {
-    fontSize: 18,
+    fontSize: moderateScale(18),
     fontWeight: '600',
     color: Colors.text.primary,
   },
   headerSpacer: {
-    width: 32,
+    width: scale(32),
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+  },
+  contentContainer: {
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(20),
   },
   section: {
-    paddingVertical: 20,
+    paddingVertical: verticalScale(20),
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 16,
+    marginBottom: verticalScale(16),
   },
   optionsContainer: {
-    gap: 8,
+    gap: verticalScale(8),
   },
   optionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(12),
+    borderRadius: scale(12),
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    gap: 12,
+    gap: scale(12),
   },
   selectedOption: {
     backgroundColor: Colors.primary,
@@ -208,35 +229,40 @@ const styles = StyleSheet.create({
   },
   optionText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: Colors.text.primary,
     fontWeight: '500',
   },
   selectedOptionText: {
     color: '#fff',
   },
+  footerSafeArea: {
+    backgroundColor: '#fff',
+  },
   footer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: scale(16),
+    paddingTop: verticalScale(16),
+    paddingBottom: verticalScale(8),
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    gap: 12,
+    gap: scale(12),
+    backgroundColor: '#fff',
   },
   resetButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: verticalScale(12),
+    borderRadius: scale(8),
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    gap: 8,
+    gap: scale(8),
   },
   resetButtonText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: Colors.text.secondary,
     fontWeight: '600',
   },
@@ -245,13 +271,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: verticalScale(12),
+    borderRadius: scale(8),
     backgroundColor: Colors.primary,
-    gap: 8,
+    gap: scale(8),
   },
   applyButtonText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: '#fff',
     fontWeight: '600',
   },

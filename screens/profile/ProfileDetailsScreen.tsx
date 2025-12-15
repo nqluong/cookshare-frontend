@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -11,14 +12,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { Image } from 'expo-image';
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as ImagePicker from 'expo-image-picker';
-import { useAuth } from "../../context/AuthContext";
-import { userService } from "../../services/userService";
-import { imageUploadService } from "../../services/imageUploadService";
-import { Colors } from "../../styles/colors";
 import EmailVerificationModal from "../../components/profile/EmailVerificationModal";
+import CustomAlert from "../../components/ui/CustomAlert";
+import { useAuth } from "../../context/AuthContext";
+import { imageUploadService } from "../../services/imageUploadService";
+import { userService } from "../../services/userService";
+import { Colors } from "../../styles/colors";
 
 export default function ProfileDetailsScreen() {
     const { user, updateAuthUser } = useAuth();
@@ -28,6 +28,44 @@ export default function ProfileDetailsScreen() {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [lastSyncedAvatarUrl, setLastSyncedAvatarUrl] = useState<string | null>(null);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
+    
+    // Custom Alert states
+    const [alertConfig, setAlertConfig] = useState<{
+        visible: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'error' | 'warning' | 'info';
+        buttons?: Array<{
+            text: string;
+            onPress?: () => void;
+            style?: 'default' | 'cancel' | 'destructive';
+        }>;
+    }>({
+        visible: false,
+        title: '',
+        message: '',
+        type: 'info',
+        buttons: []
+    });
+
+    const showAlert = (
+        title: string,
+        message: string,
+        type: 'success' | 'error' | 'warning' | 'info' = 'info',
+        buttons?: Array<{
+            text: string;
+            onPress?: () => void;
+            style?: 'default' | 'cancel' | 'destructive';
+        }>
+    ) => {
+        setAlertConfig({
+            visible: true,
+            title,
+            message,
+            type,
+            buttons: buttons || [{ text: 'OK' }]
+        });
+    };
 
     const [formData, setFormData] = useState({
         fullName: user?.fullName || "",
@@ -45,8 +83,6 @@ export default function ProfileDetailsScreen() {
         useCallback(() => {
             // Kiểm tra nếu avatar trong context khác với lần sync trước
             if (user?.avatarUrl !== lastSyncedAvatarUrl) {
-                console.log('🔄 ProfileDetailsScreen - avatar changed, syncing data');
-                console.log('👤 User avatar URL:', user?.avatarUrl);
                 if (user) {
                     setFormData({
                         fullName: user.fullName || "",
@@ -58,14 +94,14 @@ export default function ProfileDetailsScreen() {
                     setLastSyncedAvatarUrl(user.avatarUrl || null);
                 }
             } else {
-                console.log('✅ ProfileDetailsScreen - avatar unchanged, skipping sync');
+                console.log('ProfileDetailsScreen - avatar unchanged, skipping sync');
             }
         }, [user?.avatarUrl, lastSyncedAvatarUrl])
     );
 
     const handleSave = async () => {
         if (!user?.userId) {
-            Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng");
+            showAlert("Lỗi", "Không tìm thấy thông tin người dùng", 'error');
             return;
         }
 
@@ -75,24 +111,24 @@ export default function ProfileDetailsScreen() {
 
         // Validation
         if (!formData.fullName.trim()) {
-            Alert.alert("Lỗi", "Tên đầy đủ không được để trống");
+            showAlert("Lỗi", "Tên đầy đủ không được để trống", 'error');
             return;
         }
 
         if (!formData.username.trim()) {
-            Alert.alert("Lỗi", "Tên người dùng không được để trống");
+            showAlert("Lỗi", "Tên người dùng không được để trống", 'error');
             return;
         }
 
         if (!formData.email.trim()) {
-            Alert.alert("Lỗi", "Email không được để trống");
+            showAlert("Lỗi", "Email không được để trống", 'error');
             return;
         }
 
         // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
-            Alert.alert("Lỗi", "Email không hợp lệ");
+            showAlert("Lỗi", "Email không hợp lệ", 'error');
             return;
         }
 
@@ -109,7 +145,7 @@ export default function ProfileDetailsScreen() {
 
             // If nothing changed
             if (Object.keys(updateData).length === 0) {
-                Alert.alert("Thông báo", "Không có thay đổi nào được thực hiện");
+                showAlert("Thông báo", "Không có thay đổi nào được thực hiện", 'info');
                 setIsEditing(false);
                 return;
             }
@@ -118,7 +154,7 @@ export default function ProfileDetailsScreen() {
             if (updateData.username) {
                 const usernameExists = await userService.checkUsernameExists(formData.username);
                 if (usernameExists) {
-                    Alert.alert("Lỗi", "Tên người dùng đã tồn tại. Vui lòng chọn tên khác.");
+                    showAlert("Lỗi", "Tên người dùng đã tồn tại. Vui lòng chọn tên khác.", 'error');
                     return;
                 }
             }
@@ -127,7 +163,7 @@ export default function ProfileDetailsScreen() {
             if (updateData.email) {
                 const emailExists = await userService.checkEmailExists(formData.email);
                 if (emailExists) {
-                    Alert.alert("Lỗi", "Email đã được sử dụng. Vui lòng chọn email khác.");
+                    showAlert("Lỗi", "Email đã được sử dụng. Vui lòng chọn email khác.", 'error');
                     return;
                 }
             }
@@ -144,7 +180,7 @@ export default function ProfileDetailsScreen() {
             // Update local auth context
             updateAuthUser(updatedUser);
 
-            Alert.alert("Thành công", "Cập nhật thông tin thành công", [
+            showAlert("Thành công", "Cập nhật thông tin thành công", 'success', [
                 {
                     text: "OK",
                     onPress: () => setIsEditing(false),
@@ -152,7 +188,7 @@ export default function ProfileDetailsScreen() {
             ]);
         } catch (error: any) {
             console.log("Update profile error:", error);
-            Alert.alert("Lỗi", error.message || "Không thể cập nhật thông tin");
+            showAlert("Lỗi", error.message || "Không thể cập nhật thông tin", 'error');
         } finally {
             setIsSaving(false);
         }
@@ -176,17 +212,19 @@ export default function ProfileDetailsScreen() {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
             if (status !== 'granted') {
-                Alert.alert(
+                showAlert(
                     'Cần quyền truy cập',
-                    'Vui lòng cấp quyền truy cập thư viện ảnh để chọn ảnh đại diện.'
+                    'Vui lòng cấp quyền truy cập thư viện ảnh để chọn ảnh đại diện.',
+                    'warning'
                 );
                 return;
             }
 
             // Hiển thị tùy chọn
-            Alert.alert(
+            showAlert(
                 "Thay đổi ảnh đại diện",
                 "Chọn phương thức",
+                'info',
                 [
                     {
                         text: "Chọn từ thư viện",
@@ -204,7 +242,7 @@ export default function ProfileDetailsScreen() {
             );
         } catch (error) {
             console.log('❌ Lỗi yêu cầu quyền truy cập:', error);
-            Alert.alert("Lỗi", "Không thể truy cập thư viện ảnh");
+            showAlert("Lỗi", "Không thể truy cập thư viện ảnh", 'error');
         }
     };
 
@@ -222,7 +260,7 @@ export default function ProfileDetailsScreen() {
             }
         } catch (error) {
             console.log('❌ Lỗi chọn ảnh:', error);
-            Alert.alert("Lỗi", "Không thể chọn ảnh");
+            showAlert("Lỗi", "Không thể chọn ảnh", 'error');
         }
     };
 
@@ -232,9 +270,10 @@ export default function ProfileDetailsScreen() {
             const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
             if (status !== 'granted') {
-                Alert.alert(
+                showAlert(
                     'Cần quyền truy cập',
-                    'Vui lòng cấp quyền truy cập camera để chụp ảnh.'
+                    'Vui lòng cấp quyền truy cập camera để chụp ảnh.',
+                    'warning'
                 );
                 return;
             }
@@ -250,13 +289,13 @@ export default function ProfileDetailsScreen() {
             }
         } catch (error) {
             console.log('❌ Lỗi camera:', error);
-            Alert.alert("Lỗi", "Không thể mở camera");
+            showAlert("Lỗi", "Không thể mở camera", 'error');
         }
     };
 
     const uploadAvatar = async (imageUri: string) => {
         if (!user?.userId) {
-            Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng");
+            showAlert("Lỗi", "Không tìm thấy thông tin người dùng", 'error');
             return;
         }
 
@@ -302,9 +341,10 @@ export default function ProfileDetailsScreen() {
 
             // Bước 5: Tự động lưu nếu đang ở chế độ chỉnh sửa
             if (isEditing) {
-                Alert.alert(
+                showAlert(
                     "Thành công",
-                    "Ảnh đại diện đã được tải lên. Nhấn 'Lưu thay đổi' để hoàn tất."
+                    "Ảnh đại diện đã được tải lên. Nhấn 'Lưu thay đổi' để hoàn tất.",
+                    'success'
                 );
             } else {
                 // Nếu không ở chế độ chỉnh sửa, lưu ngay lập tức
@@ -313,7 +353,7 @@ export default function ProfileDetailsScreen() {
 
         } catch (error: any) {
             console.log('❌ Lỗi upload avatar:', error);
-            Alert.alert("Lỗi", error.message || "Không thể upload ảnh");
+            showAlert("Lỗi", error.message || "Không thể upload ảnh", 'error');
         } finally {
             setIsUploadingImage(false);
             setUploadProgress(0);
@@ -327,10 +367,10 @@ export default function ProfileDetailsScreen() {
             setIsSaving(true);
             const updatedUser = await userService.updateUserProfile(user.userId, { avatarUrl });
             updateAuthUser(updatedUser);
-            Alert.alert("Thành công", "Ảnh đại diện đã được cập nhật");
+            showAlert("Thành công", "Ảnh đại diện đã được cập nhật", 'success');
         } catch (error: any) {
             console.log('❌ Lỗi cập nhật avatar:', error);
-            Alert.alert("Lỗi", error.message || "Không thể cập nhật ảnh đại diện");
+            showAlert("Lỗi", error.message || "Không thể cập nhật ảnh đại diện", 'error');
         } finally {
             setIsSaving(false);
         }
@@ -586,12 +626,22 @@ export default function ProfileDetailsScreen() {
                         await updateAuthUser({
                             emailVerified: true,
                         });
-                        Alert.alert('Thành công', 'Email đã được xác thực thành công!');
+                        showAlert('Thành công', 'Email đã được xác thực thành công!', 'success');
                     } catch (error) {
                         console.log('Error refreshing user data:', error);
                     }
                 }}
                 userEmail={user?.email || ''}
+            />
+
+            {/* Custom Alert */}
+            <CustomAlert
+                visible={alertConfig.visible}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+                buttons={alertConfig.buttons}
+                onClose={() => setAlertConfig({ ...alertConfig, visible: false })}
             />
         </SafeAreaView>
     );

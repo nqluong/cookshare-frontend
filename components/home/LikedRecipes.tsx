@@ -66,11 +66,11 @@ export default function LikedRecipes({
 
   const toggleLike = async (recipeId: string, event: any) => {
     event.stopPropagation();
-    // ✅ Kiểm tra đang loading hoặc không có callback
+    // Kiểm tra đang loading hoặc không có callback
     if (likingRecipeId === recipeId || !onToggleLike) {
       return;
     }
-    await onToggleLike(recipeId); // ✅ Gọi callback từ parent
+    await onToggleLike(recipeId); // Gọi callback từ parent
   };
 
   const getDifficultyText = (difficulty: string) => {

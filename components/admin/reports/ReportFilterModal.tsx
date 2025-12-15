@@ -1,4 +1,5 @@
 // components/admin/reports/ReportFilterModal.tsx
+import { moderateScale, scale, verticalScale } from "@/constants/layout";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
@@ -9,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../../styles/colors";
 import {
   REPORT_ACTION_TYPE_COLORS,
@@ -102,16 +104,20 @@ export default function ReportFilterModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['bottom']}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Bộ lọc báo cáo</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.text.primary} />
+              <Ionicons name="close" size={scale(24)} color={Colors.text.primary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.content} 
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Report Type Filter */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Loại báo cáo</Text>
@@ -240,17 +246,19 @@ export default function ReportFilterModal({
             <TouchableOpacity 
               style={styles.clearButton}
               onPress={handleClear}
+              activeOpacity={0.7}
             >
               <Text style={styles.clearButtonText}>Xóa bộ lọc</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.applyButton}
               onPress={handleApply}
+              activeOpacity={0.7}
             >
               <Text style={styles.applyButtonText}>Áp dụng</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -264,90 +272,95 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: scale(24),
+    borderTopRightRadius: scale(24),
     maxHeight: '80%',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: scale(20),
+    paddingVertical: verticalScale(16),
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   title: {
-    fontSize: 18,
+    fontSize: moderateScale(18),
     fontWeight: '600',
     color: Colors.text.primary,
   },
   closeButton: {
-    padding: 4,
+    padding: scale(4),
   },
   content: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: scale(20),
+    paddingVertical: verticalScale(16),
+    paddingBottom: verticalScale(20),
   },
   section: {
-    marginBottom: 24,
+    marginBottom: verticalScale(24),
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     fontWeight: '600',
     color: Colors.text.secondary,
-    marginBottom: 12,
+    marginBottom: verticalScale(12),
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: scale(10),
   },
   optionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(10),
+    borderRadius: scale(20),
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.gray[50],
-    gap: 6,
+    gap: scale(6),
   },
   optionIcon: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
   },
   optionText: {
-    fontSize: 13,
+    fontSize: moderateScale(13),
     fontWeight: '500',
     color: Colors.text.primary,
   },
   typeIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: scale(8),
+    height: scale(8),
+    borderRadius: scale(4),
   },
   footer: {
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    gap: scale(12),
+    paddingHorizontal: scale(20),
+    paddingVertical: verticalScale(16),
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    backgroundColor: '#FFFFFF',
   },
   clearButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: verticalScale(14),
+    borderRadius: scale(12),
     borderWidth: 1,
     borderColor: Colors.border,
   },
   clearButtonText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontWeight: '600',
     color: Colors.text.secondary,
   },
@@ -355,12 +368,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: verticalScale(14),
+    borderRadius: scale(12),
     backgroundColor: '#10B981',
   },
   applyButtonText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontWeight: '600',
     color: '#FFFFFF',
   },
