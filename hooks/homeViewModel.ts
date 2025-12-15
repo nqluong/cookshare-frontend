@@ -367,47 +367,74 @@ export class HomeViewModel {
 
     try {
       const currentPage = reset ? 0 : requestedPage ?? this.searchPage;
-      const data = await searchRecipeByUser(queryToSearch, currentPage, 10);
 
-      if ('code' in data && data.code !== 1000) {
-        this.setError(data.message || 'Lỗi từ server');
-        this.setRecipes([]);
+      // Gọi song song: API recipes của user + API suggestions user
+      const [recipesData, usersData] = await Promise.all([
+        searchRecipeByUser(queryToSearch, currentPage, 10),
+        reset ? getUserSuggestions(queryToSearch, 20) : Promise.resolve({ result: [] })
+      ]);
+
+      let combinedResults: SearchRecipe[] = [];
+
+      // Thêm users từ suggestions (chỉ khi reset/search mới)
+      if (reset && usersData && 'result' in usersData && usersData.result) {
+        const usersList = usersData.result.map((user: any) => ({
+          userId: user.userId,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          featuredImage: user.avatarUrl,
+          title: '',
+          slug: null,
+          description: null,
+          recipeId: '', // Không có recipeId = user item
+          cookTime: 0,
+          viewCount: 0,
+          likeCount: 0,
+          saveCount: 0,
+        }));
+        combinedResults = [...usersList];
+      }
+
+      // Thêm recipes từ searchRecipeByUser
+      if ('result' in recipesData && recipesData.result && recipesData.result.content) {
+        combinedResults = [...combinedResults, ...recipesData.result.content];
+      } else if ('code' in recipesData && recipesData.code !== 1000) {
+        this.setError(recipesData.message || 'Lỗi từ server');
+        if (reset) {
+          this.setRecipes(combinedResults.length > 0 ? combinedResults : []);
+        }
         this.setHasMoreSearch(false);
         return;
       }
 
-      if ('result' in data && data.result && data.result.content) {
-        const newRecipes = data.result.content;
+      if (reset) {
+        this.setRecipes(combinedResults);
+        this.setSearchPage(0);
+      } else {
+        this.setRecipes((prev: SearchRecipe[]) => [...prev, ...combinedResults]);
+        this.setSearchPage(currentPage);
+      }
 
-        if (reset) {
-          this.setRecipes(newRecipes);
-          this.setSearchPage(0);
-        } else {
-          this.setRecipes((prev: SearchRecipe[]) => [...prev, ...newRecipes]);
-          this.setSearchPage(currentPage);
-        }
+      this.setHasMoreSearch(recipesData.result ? !recipesData.result.last : false);
 
-        this.setHasMoreSearch(!data.result.last);
+      if (combinedResults.length === 0) {
+        this.setError('Không tìm người dùng nào phù hợp');
+      } else {
+        this.setError(null);
+      }
 
-        if (newRecipes.length === 0) {
-          this.setError('Không tìm người dùng nào phù hợp');
-        } else {
-          this.setError(null);
-        }
-
-        if (reset && this.searchQuery.trim()) {
-          this.setHistory((prev) => {
-            const newItem: SearchHistoryItem = {
-              searchId: Math.random().toString(36).substring(2, 9),
-              userId: 'local',
-              searchQuery: this.searchQuery,
-              searchType: 'recipe',
-              resultCount: newRecipes.length,
-              createdAt: new Date().toISOString(),
-            };
-            return [...prev.filter((item) => item.searchQuery !== this.searchQuery), newItem].slice(0, 5);
-          });
-        }
+      if (reset && this.searchQuery.trim()) {
+        this.setHistory((prev) => {
+          const newItem: SearchHistoryItem = {
+            searchId: Math.random().toString(36).substring(2, 9),
+            userId: 'local',
+            searchQuery: this.searchQuery,
+            searchType: 'recipe',
+            resultCount: combinedResults.length,
+            createdAt: new Date().toISOString(),
+          };
+          return [...prev.filter((item) => item.searchQuery !== this.searchQuery), newItem].slice(0, 5);
+        });
       }
     } catch (err: unknown) {
       let errorMessage = 'Lỗi không xác định';
