@@ -1,13 +1,13 @@
 // services/adminGroupedReportService.ts
 import { API_CONFIG } from '@/config/api.config';
 import {
-  GroupedReportDetail,
-  GroupedReportResponse,
-  ProcessedReport,
-  ProcessedReportResponse,
-  ReportStatistics,
-  ReviewReportRequest,
-  ReviewReportResponse
+    GroupedReportDetail,
+    GroupedReportResponse,
+    ProcessedReport,
+    ProcessedReportResponse,
+    ReportStatistics,
+    ReviewReportRequest,
+    ReviewReportResponse
 } from '@/types/admin/groupedReport.types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -150,16 +150,27 @@ class AdminGroupedReportService {
    * @param page Số trang (bắt đầu từ 0)
    * @param size Số lượng item mỗi trang
    * @param status Lọc theo trạng thái (RESOLVED hoặc REJECTED)
+   * @param reportType Lọc theo loại báo cáo (optional)
+   * @param actionType Lọc theo loại hành động (optional)
    */
   async getProcessedReports(
     page: number = 0,
     size: number = 20,
-    status: 'RESOLVED' | 'REJECTED'
+    status: 'RESOLVED' | 'REJECTED',
+    reportType?: string,
+    actionType?: string
   ): Promise<ProcessedReportResponse> {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('size', size.toString());
     params.append('status', status);
+    
+    if (reportType) {
+      params.append('reportType', reportType);
+    }
+    if (actionType) {
+      params.append('actionType', actionType);
+    }
 
     return this.handleFetchRequest<ProcessedReportResponse>(
       `${BASE_URL}/api/admin/reports?${params.toString()}`

@@ -87,11 +87,6 @@ export default function GroupedReportList({
         </View>
       ) : (
         <>
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryText}>
-              Hiển thị {reports.length} / {totalElements} báo cáo
-            </Text>
-          </View>
           
           {reports.map((report) => (
             <GroupedReportCard

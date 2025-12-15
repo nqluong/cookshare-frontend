@@ -18,6 +18,7 @@ interface SearchBarProps {
   onSearch: (queryOverride?: string) => void;
   placeholder?: string;
   showSuggestions?: boolean;
+  hasSearchResults?: boolean;
 }
 
 export default function SearchBar({ 
@@ -26,19 +27,28 @@ export default function SearchBar({
   onSearch, 
   placeholder = "Tìm kiếm công thức...",
   showSuggestions = true,
+  hasSearchResults = false,
 }: SearchBarProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestionList, setShowSuggestionList] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasSearched = useRef(false);
 
   useEffect(() => {
+    // Ẩn gợi ý khi đã có kết quả tìm kiếm
+    if (hasSearchResults && hasSearched.current) {
+      setShowSuggestionList(false);
+      setSuggestions([]);
+      return;
+    }
+
     // Debounce để tránh gọi API quá nhiều lần
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
 
-    if (value.trim().length >= 2 && showSuggestions) {
+    if (value.trim().length >= 2 && showSuggestions && !hasSearched.current) {
       setIsLoadingSuggestions(true);
       debounceTimer.current = setTimeout(async () => {
         try {
@@ -51,7 +61,7 @@ export default function SearchBar({
         } finally {
           setIsLoadingSuggestions(false);
         }
-      }, 400); // Đợi 400ms sau khi người dùng ngừng gõ
+      }, 400); 
     } else {
       setSuggestions([]);
       setShowSuggestionList(false);
@@ -63,9 +73,10 @@ export default function SearchBar({
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [value, showSuggestions]);
+  }, [value, showSuggestions, hasSearchResults]);
 
   const handleSelectSuggestion = (suggestion: string) => {
+    hasSearched.current = true;
     onChangeText(suggestion);
     setShowSuggestionList(false);
     setSuggestions([]);
@@ -75,6 +86,7 @@ export default function SearchBar({
   };
 
   const handleSearch = () => {
+    hasSearched.current = true;
     setShowSuggestionList(false);
     setSuggestions([]);
     Keyboard.dismiss();
@@ -82,9 +94,18 @@ export default function SearchBar({
   };
 
   const handleClear = () => {
+    hasSearched.current = false;
     onChangeText('');
     setSuggestions([]);
     setShowSuggestionList(false);
+  };
+
+  const handleChangeText = (text: string) => {
+    // Reset hasSearched khi user thay đổi text
+    if (hasSearched.current && text !== value) {
+      hasSearched.current = false;
+    }
+    onChangeText(text);
   };
 
   return (
@@ -96,7 +117,7 @@ export default function SearchBar({
             style={styles.searchInput}
             placeholder={placeholder}
             value={value}
-            onChangeText={onChangeText}
+            onChangeText={handleChangeText}
             placeholderTextColor={Colors.text.light}
             onSubmitEditing={handleSearch}
             returnKeyType="search"
@@ -114,8 +135,8 @@ export default function SearchBar({
         </TouchableOpacity>
       </View>
 
-      {/* Danh sách gợi ý */}
-      {showSuggestionList && suggestions.length > 0 && (
+      {/* Danh sách gợi ý - chỉ hiện khi chưa search hoặc chưa có kết quả */}
+      {showSuggestionList && suggestions.length > 0 && !hasSearched.current && (
         <View style={styles.suggestionsContainer}>
           <FlatList
             data={suggestions}
@@ -137,7 +158,7 @@ export default function SearchBar({
         </View>
       )}
 
-      {isLoadingSuggestions && value.trim().length >= 2 && (
+      {isLoadingSuggestions && value.trim().length >= 2 && !hasSearched.current && (
         <View style={styles.suggestionsContainer}>
           <Text style={styles.loadingText}>Đang tải gợi ý...</Text>
         </View>

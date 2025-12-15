@@ -2,13 +2,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Animated,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { Colors } from "../../../styles/colors";
 import { ProcessedReport } from "../../../types/admin/groupedReport.types";
@@ -41,20 +41,27 @@ export default function IndividualReportList({
   onViewDetail,
   onRetry,
 }: IndividualReportListProps) {
-  // Animation cho fade in
+  // Animation cho fade in - chỉ animate lần đầu
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (!loading && reports.length > 0) {
+    // Chỉ animate lần đầu tiên khi có data
+    if (!loading && reports.length > 0 && !hasAnimated.current) {
+      hasAnimated.current = true;
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }).start();
-    } else {
+    }
+    
+    // Reset khi refresh
+    if (refreshing) {
+      hasAnimated.current = false;
       fadeAnim.setValue(0);
     }
-  }, [loading, reports.length]);
+  }, [loading, reports.length, refreshing]);
 
   if (loading && reports.length === 0) {
     return (
@@ -110,15 +117,10 @@ export default function IndividualReportList({
         </View>
       ) : (
         <Animated.View style={{ opacity: fadeAnim }}>
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryText}>
-              Hiển thị {reports.length} / {totalElements} báo cáo
-            </Text>
-          </View>
 
           {reports.map((report, index) => (
             <IndividualReportCard
-              key={report.reportId || `report-${index}`}
+              key={`${report.reportId}-${index}-${report.createdAt || Date.now()}`}
               report={report}
               onViewDetail={onViewDetail}
             />

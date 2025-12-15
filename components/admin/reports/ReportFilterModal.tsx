@@ -1,7 +1,7 @@
 // components/admin/reports/ReportFilterModal.tsx
 import { moderateScale, scale, verticalScale } from "@/constants/layout";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -80,6 +80,15 @@ export default function ReportFilterModal({
   const [selectedActionType, setSelectedActionType] = useState<ReportActionType | undefined>(
     currentFilters.actionType
   );
+
+  // Sync state with currentFilters when modal opens
+  useEffect(() => {
+    if (visible) {
+      setSelectedType(currentFilters.reportType);
+      setSelectedStatus(currentFilters.status);
+      setSelectedActionType(currentFilters.actionType);
+    }
+  }, [visible, currentFilters]);
 
   const handleApply = () => {
     onApply({ 
@@ -274,7 +283,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: scale(24),
     borderTopRightRadius: scale(24),
-    maxHeight: '80%',
+    maxHeight: '85%',
+    minHeight: verticalScale(400),
   },
   header: {
     flexDirection: 'row',
@@ -294,7 +304,8 @@ const styles = StyleSheet.create({
     padding: scale(4),
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
   },
   contentContainer: {
     paddingHorizontal: scale(20),

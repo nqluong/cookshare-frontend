@@ -98,7 +98,12 @@ export default function AdminReportsScreen() {
 
   // Load reports
   const loadReports = useCallback(
-    async (page: number = 0, reset: boolean = true, statusFilter?: ReportStatus | 'ALL') => {
+    async (
+      page: number = 0, 
+      reset: boolean = true, 
+      statusFilter?: ReportStatus | 'ALL',
+      filtersOverride?: Filters
+    ) => {
       try {
         if (reset) {
           setLoading(true);
@@ -107,15 +112,21 @@ export default function AdminReportsScreen() {
           setLoading(true);
         }
 
+        // Use override filters if provided, otherwise use state
+        const currentFilters = filtersOverride !== undefined ? filtersOverride : filters;
+
         // Determine status filter
         const currentStatus = statusFilter !== undefined ? statusFilter : activeStatusFilter;
         
         // Check if we need individual reports (RESOLVED or REJECTED)
         if (currentStatus === 'RESOLVED' || currentStatus === 'REJECTED') {
+          // For individual reports, apply filters from modal
           const response = await adminGroupedReportService.getProcessedReports(
             page,
             20,
-            currentStatus
+            currentStatus as 'RESOLVED' | 'REJECTED',
+            currentFilters.reportType,
+            currentFilters.actionType
           );
 
           if (reset) {
@@ -135,9 +146,9 @@ export default function AdminReportsScreen() {
           const response = await adminGroupedReportService.getGroupedReports(
             page,
             20,
-            filters.reportType,
+            currentFilters.reportType,
             statusParam,
-            filters.actionType
+            currentFilters.actionType
           );
 
           if (reset) {
@@ -236,15 +247,21 @@ export default function AdminReportsScreen() {
       // Clear data during transition
       setReports([]);
       setIndividualReports([]);
+      
+      // Determine the status to use
+      const statusToUse = newFilters.status || activeStatusFilter;
+      
+      // Update filters state
       setFilters(newFilters);
       setCurrentPage(0);
-      // If status filter from modal is set, update activeStatusFilter
+      
+      // Update active status filter if status is provided
       if (newFilters.status) {
         setActiveStatusFilter(newFilters.status);
-        loadReports(0, true, newFilters.status);
-      } else {
-        loadReports(0, true, activeStatusFilter);
       }
+      
+      // Load reports with the determined status AND pass filters directly
+      loadReports(0, true, statusToUse, newFilters);
     });
   };
 
@@ -287,7 +304,7 @@ export default function AdminReportsScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#10b981" />
       <View style={[styles.headerWrapper, { paddingTop: insets.top }]}>
         <AdminHeader
-          title="🛡️ Quản lý báo cáo"
+          title="Quản lý báo cáo"
           onBack={() => router.back()}
           onExitAdmin={handleExitAdmin}
           onFilterPress={handleFilterPress}
