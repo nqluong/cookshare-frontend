@@ -1,5 +1,5 @@
-// components/admin/dashboard/performance/TrendingRecipes.tsx
 import { TrendingRecipeDTO } from "@/types/admin/report.types";
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 import RecipeCard from "../../shared/RecipeCard";
 
@@ -11,7 +11,10 @@ interface TrendingRecipesProps {
 export default function TrendingRecipes({ trending, limit = 10 }: TrendingRecipesProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>🔥 Trending Recipes</Text>
+      <View style={styles.sectionHeader}>
+        <Ionicons name="flame-outline" size={20} color="#ef4444" />
+        <Text style={styles.sectionTitle}>Trending Recipes</Text>
+      </View>
       {trending.slice(0, limit).map((recipe, index) => (
         <RecipeCard
           key={recipe.recipeId}
@@ -31,10 +34,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 16,
   },
 });

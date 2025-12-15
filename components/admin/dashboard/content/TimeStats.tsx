@@ -16,7 +16,10 @@ const timeStatsConfig = [
 export default function TimeStats({ contentAnalysis }: TimeStatsProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>⏱️ Thời Gian Trung Bình</Text>
+      <View style={styles.sectionHeader}>
+        <Ionicons name="time-outline" size={20} color="#3b82f6" />
+        <Text style={styles.sectionTitle}>Thời Gian Trung Bình</Text>
+      </View>
       <View style={styles.contentStatsGrid}>
         {timeStatsConfig.map((stat) => (
           <View key={stat.key} style={styles.contentStatCard}>
@@ -39,11 +42,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 16,
   },
   contentStatsGrid: {
     flexDirection: "row",

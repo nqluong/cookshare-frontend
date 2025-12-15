@@ -1,9 +1,8 @@
 import { getImageUrl } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
+import { useCachedCollectionDetail } from "@/hooks/useCachedCollectionDetail";
 import { collectionService } from "@/services/collectionService";
-import { CACHE_CATEGORIES, unifiedCacheService } from '@/services/unifiedCacheService';
 import { userService } from "@/services/userService";
-import { CollectionUserDto } from "@/types/collection.types";
 import { Recipe } from "@/types/dish";
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -26,17 +25,24 @@ export default function CollectionDetailScreen() {
   const params = useLocalSearchParams<{ collectionId: string }>();
   const collectionId = params?.collectionId;
 
-  const [collection, setCollection] = useState<CollectionUserDto | null>(null);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
   const [userUUID, setUserUUID] = useState<string>("");
-  const [isOffline, setIsOffline] = useState(false);
+
+  // Sử dụng hook cache mới
+  const {
+    collection,
+    recipes,
+    loading,
+    isOffline,
+    loadAll,
+    refresh,
+    clearRecipesCache,
+  } = useCachedCollectionDetail({
+    userId: userUUID,
+    collectionId: collectionId || "",
+  });
 
   useEffect(() => {
-    console.log(
-      "CollectionDetailScreen mounted with collectionId:",
-      collectionId
-    );
+    console.log("CollectionDetailScreen mounted with collectionId:", collectionId);
     if (user?.username && collectionId) {
       initLoad();
     }
@@ -48,49 +54,14 @@ export default function CollectionDetailScreen() {
       const profile = await userService.getUserByUsername(user!.username);
       setUserUUID(profile.userId);
 
-      // Lấy chi tiết collection + recipes
-      await loadCollectionDetail(profile.userId);
+      // Load collection detail + recipes qua hook
+      await loadAll(
+        collectionService.getCollectionDetail,
+        collectionService.getCollectionRecipes
+      );
     } catch (error) {
       console.log("Error initializing:", error);
       Alert.alert("Lỗi", "Không thể tải dữ liệu");
-      setLoading(false);
-    }
-  };
-
-  const loadCollectionDetail = async (uuid: string) => {
-    if (!uuid || !collectionId) return;
-
-    try {
-       setLoading(true);
-
-      // Lấy collection detail với cache
-      const collectionResult = await unifiedCacheService.fetchWithCache(
-        CACHE_CATEGORIES.COLLECTION_DETAIL,
-        () => collectionService.getCollectionDetail(uuid, collectionId),
-        { id: collectionId }
-      );
-
-      if (collectionResult.data) {
-        setCollection(collectionResult.data.data);
-      }
-
-      // Lấy recipes với cache
-      const recipesResult = await unifiedCacheService.fetchWithCache(
-        CACHE_CATEGORIES.COLLECTION_RECIPES,
-        () => collectionService.getCollectionRecipes(uuid, collectionId, 0, 100),
-        { id: collectionId }
-      );
-
-      if (recipesResult.data) {
-        setRecipes(recipesResult.data.content || []);
-      }
-
-      setIsOffline(collectionResult.isOffline || recipesResult.isOffline);
-    } catch (error) {
-      console.log("Error loading collection detail:", error);
-      Alert.alert("Lỗi", "Không thể tải chi tiết collection");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -106,18 +77,20 @@ export default function CollectionDetailScreen() {
           onPress: async () => {
             try {
               if (userUUID && collectionId) {
-              await collectionService.removeRecipeFromCollection(
-                userUUID,
-                collectionId,
-                recipeId
-              );
-              
-              // Clear cache và reload
-              await unifiedCacheService.removeFromCache(
-                CACHE_CATEGORIES.COLLECTION_RECIPES,
-                collectionId
-              );
-              await loadCollectionDetail(userUUID);
+                await collectionService.removeRecipeFromCollection(
+                  userUUID,
+                  collectionId,
+                  recipeId
+                );
+                
+                //  Xóa cache recipes và reload
+                await clearRecipesCache();
+                await loadAll(
+                  collectionService.getCollectionDetail,
+                  collectionService.getCollectionRecipes,
+                  true // forceRefresh
+                );
+                
                 Alert.alert("Thành công", "Công thức đã được xóa");
               }
             } catch (error) {
@@ -129,7 +102,13 @@ export default function CollectionDetailScreen() {
     );
   };
 
-  // Event Handlers
+  const handleRefresh = async () => {
+    await refresh(
+      collectionService.getCollectionDetail,
+      collectionService.getCollectionRecipes
+    );
+  };
+
   const handleOpenDetail = (recipe: Recipe) => {
     router.push(`/_recipe-detail/${recipe.recipeId}?from=/collection` as any);
   };
@@ -139,14 +118,12 @@ export default function CollectionDetailScreen() {
       onPress={() => handleOpenDetail(item)}
       style={styles.recipeRow}
     >
-      {/* Recipe Image - Left */}
       <Image
         source={{ uri: getImageUrl(item.featuredImage) }}
         style={styles.recipeImage}
         resizeMode="cover"
       />
 
-      {/* Recipe Info - Right */}
       <View style={styles.recipeInfo}>
         <View style={styles.recipeHeader}>
           <Text style={styles.recipeTitle} numberOfLines={2}>
@@ -192,16 +169,16 @@ export default function CollectionDetailScreen() {
     <>
       {collection && (
         <>
-          {/* Header Navigation */}
           <View style={styles.headerNav}>
             <TouchableOpacity onPress={() => router.back()}>
               <Ionicons name="chevron-back" size={28} color="#000" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Bộ Sưu Tập</Text>
-            <View style={{ width: 28 }} />
+            <TouchableOpacity onPress={handleRefresh}>
+              <Ionicons name="refresh" size={24} color="#000" />
+            </TouchableOpacity>
           </View>
 
-          {/* Cover Image */}
           <View style={styles.coverSection}>
             {collection.coverImage ? (
               <Image
@@ -220,7 +197,6 @@ export default function CollectionDetailScreen() {
             )}
           </View>
 
-          {/* Collection Info */}
           <View style={styles.infoSection}>
             <Text style={styles.collectionName}>{collection.name}</Text>
 
@@ -228,7 +204,6 @@ export default function CollectionDetailScreen() {
               {collection.description || " "}
             </Text>
 
-            {/* Stats */}
             <View style={styles.statsRow}>
               <View style={styles.statItemCollection}>
                 <Text style={styles.statValue}>{collection.recipeCount}</Text>
@@ -249,7 +224,6 @@ export default function CollectionDetailScreen() {
             </View>
           </View>
 
-          {/* Recipes Title */}
           <View style={styles.recipesHeader}>
             <Text style={styles.recipesTitle}>
               Công thức trong collection ({recipes.length})
@@ -310,8 +284,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  // Header Navigation
   headerNav: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -327,8 +299,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#000",
   },
-
-  // Cover Section
   coverSection: {
     width: "100%",
     height: 240,
@@ -342,8 +312,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  // Info Section
   infoSection: {
     backgroundColor: "white",
     paddingHorizontal: 16,
@@ -363,8 +331,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 16,
   },
-
-  // Stats
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -390,37 +356,6 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: "#e0e0e0",
   },
-
-  // Buttons
-  buttonGroup: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  playButton: {
-    flex: 1,
-    flexDirection: "row",
-    backgroundColor: "#FF385C",
-    paddingVertical: 12,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  playButtonText: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  actionButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // Recipes Header
   recipesHeader: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -431,14 +366,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#000",
   },
-
-  // List Content
   listContent: {
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-
-  // Recipe Row
   recipeRow: {
     flexDirection: "row",
     backgroundColor: "white",
@@ -484,7 +415,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 4,
   },
-  // Empty
   emptyContainer: {
     justifyContent: "center",
     alignItems: "center",
@@ -500,7 +430,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-
   statNumber: {
     fontSize: 13.5,
     color: "#444",

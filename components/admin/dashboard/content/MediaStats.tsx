@@ -27,7 +27,10 @@ const mediaConfig = [
 export default function MediaStats({ contentAnalysis }: MediaStatsProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>🎨 Thống Kê Media</Text>
+      <View style={styles.sectionHeader}>
+        <Ionicons name="images-outline" size={20} color="#ec4899" />
+        <Text style={styles.sectionTitle}>Thống Kê Media</Text>
+      </View>
       <View style={styles.mediaStatsContainer}>
         {mediaConfig.map((media) => (
           <View key={media.icon} style={styles.mediaStatCard}>
@@ -66,11 +69,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 16,
   },
   mediaStatsContainer: {
     flexDirection: "row",

@@ -10,7 +10,10 @@ interface RecipeCompositionProps {
 export default function RecipeComposition({ contentAnalysis }: RecipeCompositionProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>📝 Cấu Trúc Công Thức</Text>
+      <View style={styles.sectionHeader}>
+        <Ionicons name="document-text-outline" size={20} color="#f59e0b" />
+        <Text style={styles.sectionTitle}>Cấu Trúc Công Thức</Text>
+      </View>
       <View style={styles.contentStatsGrid}>
         <View style={styles.contentStatCard}>
           <Ionicons name="list" size={24} color="#f59e0b" />
@@ -38,11 +41,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 16,
   },
   contentStatsGrid: {
     flexDirection: "row",

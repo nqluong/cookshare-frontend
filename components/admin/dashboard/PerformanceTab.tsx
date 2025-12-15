@@ -38,12 +38,16 @@ export default function PerformanceTab({
       />
       <TrendingRecipes trending={trending} />
       <TopRecipesList
-        title="👁️ Xem Nhiều Nhất"
+        title="Xem Nhiều Nhất"
+        icon="eye-outline"
+        iconColor="#3b82f6"
         recipes={topViewed}
         showStats={["views", "likes", "saves"]}
       />
       <TopRecipesList
-        title="❤️ Yêu Thích Nhất"
+        title="Yêu Thích Nhất"
+        icon="heart-outline"
+        iconColor="#ef4444"
         recipes={topLiked}
         showStats={["likes", "rating"]}
       />

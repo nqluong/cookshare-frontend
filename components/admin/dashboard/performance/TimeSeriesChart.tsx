@@ -1,4 +1,3 @@
-// components/admin/dashboard/performance/TimeSeriesChart.tsx
 import { TimeSeriesStatDTO } from "@/types/admin/report.types";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
