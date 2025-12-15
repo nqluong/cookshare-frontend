@@ -25,7 +25,10 @@ const textLengthConfig = [
 export default function TextLengthStats({ contentAnalysis }: TextLengthStatsProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>📏 Độ Dài Nội Dung</Text>
+      <View style={styles.sectionHeader}>
+        <Ionicons name="resize-outline" size={20} color="#8b5cf6" />
+        <Text style={styles.sectionTitle}>Độ Dài Nội Dung</Text>
+      </View>
       <View style={styles.textLengthContainer}>
         {textLengthConfig.map((config) => (
           <View key={config.key} style={styles.textLengthItem}>
@@ -48,11 +51,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 16,
   },
   textLengthContainer: {
     gap: 12,

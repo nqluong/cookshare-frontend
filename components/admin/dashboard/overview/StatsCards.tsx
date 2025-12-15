@@ -1,4 +1,3 @@
-// app/admin/components/overview/StatsCards.tsx
 import { RecipeOverviewDTO } from "@/types/admin/report.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Dimensions, StyleSheet, Text, View } from "react-native";

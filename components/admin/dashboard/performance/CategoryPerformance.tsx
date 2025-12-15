@@ -1,5 +1,6 @@
 // components/admin/dashboard/performance/CategoryPerformance.tsx
 import { CategoryPerformanceDTO } from "@/types/admin/report.types";
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
 interface CategoryPerformanceProps {
@@ -16,7 +17,10 @@ const statsConfig = [
 export default function CategoryPerformance({ categoryPerformance }: CategoryPerformanceProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>📊 Hiệu Suất Danh Mục</Text>
+      <View style={styles.sectionHeader}>
+        <Ionicons name="bar-chart-outline" size={20} color="#3b82f6" />
+        <Text style={styles.sectionTitle}>Hiệu Suất Danh Mục</Text>
+      </View>
       {categoryPerformance.map((category) => (
         <View key={category.categoryName} style={styles.categoryCard}>
           <Text style={styles.categoryName}>{category.categoryName}</Text>
@@ -48,11 +52,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 16,
   },
   categoryCard: {
     backgroundColor: "#f9fafb",

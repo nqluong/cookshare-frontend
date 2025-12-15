@@ -1,4 +1,3 @@
-// components/admin/dashboard/authors/AuthorsList.tsx
 import { TopAuthorDTO } from "@/types/admin/report.types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -12,7 +11,7 @@ const authorStatsConfig = [
   { icon: "document-text", key: "recipeCount", label: "công thức", color: "#10b981" },
   { icon: "eye", key: "totalViews", label: "views", color: "#6b7280" },
   { icon: "heart", key: "totalLikes", label: "likes", color: "#ef4444" },
-  { icon: "star", key: "avgRating", label: "⭐", color: "#f59e0b", isDecimal: true },
+  { icon: "star", key: "avgRating", label: "", color: "#f59e0b", isDecimal: true },
 ];
 
 export default function AuthorsList({ topAuthors }: AuthorsListProps) {
@@ -27,7 +26,10 @@ export default function AuthorsList({ topAuthors }: AuthorsListProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>👨‍🍳 Top Tác Giả</Text>
+      <View style={styles.sectionHeader}>
+        <Ionicons name="people-outline" size={20} color="#10b981" />
+        <Text style={styles.sectionTitle}>Top Tác Giả</Text>
+      </View>
       {topAuthors.map((author, index) => (
         <TouchableOpacity
           key={author.userId}
@@ -79,11 +81,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 16,
   },
   authorCard: {
     flexDirection: "row",

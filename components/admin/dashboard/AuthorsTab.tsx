@@ -1,4 +1,3 @@
-// components/admin/dashboard/AuthorsTab.tsx
 import { TopAuthorDTO } from "@/types/admin/report.types";
 import { View } from "react-native";
 import AuthorsList from "./authors/AuthorsList";

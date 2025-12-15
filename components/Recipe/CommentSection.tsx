@@ -752,8 +752,8 @@ const CommentModal: React.FC<CommentModalProps> = ({
               styles.inputContainer,
               {
                 paddingBottom: Platform.OS === 'ios' 
-                  ? (isKeyboardOpen ? 40 : insets.bottom -18) 
-                  : (isKeyboardOpen ? 40 : insets.bottom + 14),
+                  ? (isKeyboardOpen ? 10 : Math.max(insets.bottom, 10)) 
+                  : (isKeyboardOpen ? 10 : Math.max(insets.bottom + 10, 16)),
               },
             ]}
           >
@@ -828,19 +828,6 @@ const CommentModal: React.FC<CommentModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-        {isKeyboardOpen && (
-          <TouchableOpacity
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }}
-            activeOpacity={1}
-            onPress={Keyboard.dismiss}
-          />
-        )}
       </KeyboardAvoidingView>
     </Modal>
   );

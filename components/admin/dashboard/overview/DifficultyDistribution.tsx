@@ -6,6 +6,18 @@ interface DifficultyDistributionProps {
   overview: RecipeOverviewDTO | null;
 }
 
+const DIFFICULTY_LABELS: Record<string, string> = {
+  EASY: "Dễ",
+  MEDIUM: "Trung bình",
+  HARD: "Khó",
+};
+
+const DIFFICULTY_COLORS: Record<string, string> = {
+  EASY: "#10b981",
+  MEDIUM: "#f59e0b",
+  HARD: "#ef4444",
+};
+
 export default function DifficultyDistribution({ overview }: DifficultyDistributionProps) {
   if (!overview) return null;
 
@@ -17,15 +29,17 @@ export default function DifficultyDistribution({ overview }: DifficultyDistribut
       <View style={styles.difficultyContainer}>
         {Object.entries(overview.recipesByDifficulty).map(([level, count]) => {
           const percentage = total > 0 ? (count / total) * 100 : 0;
+          const label = DIFFICULTY_LABELS[level] || level;
+          const color = DIFFICULTY_COLORS[level] || "#10b981";
 
           return (
             <View key={level} style={styles.difficultyItem}>
               <View style={styles.difficultyHeader}>
-                <Text style={styles.difficultyLabel}>{level}</Text>
-                <Text style={styles.difficultyValue}>{count}</Text>
+                <Text style={styles.difficultyLabel}>{label}</Text>
+                <Text style={[styles.difficultyValue, { color }]}>{count}</Text>
               </View>
               <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${percentage}%` }]} />
+                <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: color }]} />
               </View>
             </View>
           );
