@@ -1,3 +1,4 @@
+import CustomAlert from "@/components/ui/CustomAlert";
 import { getImageUrl } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
 import { CategoryService } from "@/services/categoryService";
@@ -5,15 +6,13 @@ import { IngredientService } from "@/services/ingredientService";
 import { RecipeService } from "@/services/recipeService";
 import { TagService } from "@/services/tagService";
 import styles from "@/styles/EditRecipeStyle";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { MaterialIcons } from "@expo/vector-icons";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
@@ -107,6 +106,34 @@ export default function EditRecipeScreen() {
 
   const [hasChanges, setHasChanges] = useState(false);
   const [originalData, setOriginalData] = useState<any>(null);
+
+  // Custom Alert state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    buttons: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }>;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    buttons: [{ text: 'OK' }]
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'warning' | 'info' = 'info',
+    buttons: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> = [{ text: 'OK' }]
+  ) => {
+    setAlertConfig({ visible: true, title, message, type, buttons });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig(prev => ({ ...prev, visible: false }));
+  };
 
   // Combined data (server + local)
   const allCategories = [...localCategories, ...categories];
@@ -204,7 +231,7 @@ export default function EditRecipeScreen() {
       console.log('✅ Tải công thức thành công');
     } catch (err: any) {
       console.error('❌ Lỗi khi tải công thức:', err);
-      Alert.alert("Lỗi tải công thức", err.message);
+      showAlert("Lỗi tải công thức", err.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -304,7 +331,7 @@ export default function EditRecipeScreen() {
       });
     } catch (err) {
       console.error('Lỗi khi chọn ảnh bước', err);
-      Alert.alert('Lỗi', 'Không thể chọn ảnh bước');
+      showAlert('Lỗi', 'Không thể chọn ảnh bước', 'error');
     }
   };
 
@@ -411,7 +438,7 @@ export default function EditRecipeScreen() {
         setLocalCategories(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_CATEGORIES, JSON.stringify(updated));
         setSelectedCategories(prev => prev.filter(id => id !== item.id));
-        Alert.alert("Đã xóa", `Đã xóa danh mục "${item.name}"`);
+        showAlert("Đã xóa", `Đã xóa danh mục "${item.name}"`, 'success');
       } else if (modalType === "ingredient") {
         const updated = localIngredients.filter(i => i.id !== item.id);
         setLocalIngredients(updated);
@@ -422,28 +449,28 @@ export default function EditRecipeScreen() {
           delete copy[item.id];
           return copy;
         });
-        Alert.alert("Đã xóa", `Đã xóa nguyên liệu "${item.name}"`);
+        showAlert("Đã xóa", `Đã xóa nguyên liệu "${item.name}"`, 'success');
       } else if (modalType === "tag") {
         const updated = localTags.filter(t => t.id !== item.id);
         setLocalTags(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_TAGS, JSON.stringify(updated));
         setSelectedTags(prev => prev.filter(id => id !== item.id));
-        Alert.alert("Đã xóa", `Đã xóa tag "${item.name}"`);
+        showAlert("Đã xóa", `Đã xóa tag "${item.name}"`, 'success');
       }
     } catch (err) {
       console.error("Error deleting local item:", err);
-      Alert.alert("Lỗi", "Không thể xóa!");
+      showAlert("Lỗi", "Không thể xóa!", 'error');
     }
   };
 
   const handleCreateNew = async () => {
     if (!searchTerm.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập tên!");
+      showAlert("Lỗi", "Vui lòng nhập tên!", 'warning');
       return;
     }
 
     if (!user?.userId) {
-      Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng!");
+      showAlert("Lỗi", "Không tìm thấy thông tin người dùng!", 'error');
       return;
     }
 
@@ -456,7 +483,7 @@ export default function EditRecipeScreen() {
         );
 
         if (exists) {
-          Alert.alert("Đã tồn tại", `Danh mục "${exists.name}" đã có. Bạn có thể chọn nó.`);
+          showAlert("Đã tồn tại", `Danh mục "${exists.name}" đã có. Bạn có thể chọn nó.`, 'info');
           setSelectedCategories(prev => prev.includes(exists.id) ? prev : [...prev, exists.id]);
           setSearchTerm("");
           return;
@@ -474,7 +501,7 @@ export default function EditRecipeScreen() {
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_CATEGORIES, JSON.stringify(updated));
 
         setSelectedCategories(prev => [...prev, newItem.id]);
-        Alert.alert("Thành công", `Đã thêm danh mục "${searchTerm}"`);
+        showAlert("Thành công", `Đã thêm danh mục "${searchTerm}"`, 'success');
         setSearchTerm("");
         setExtraField("");
       }
@@ -485,7 +512,7 @@ export default function EditRecipeScreen() {
 
         if (exists) {
           // If the ingredient exists on server, select it immediately (auto-select)
-          Alert.alert("Đã tồn tại", `Nguyên liệu "${exists.name}" đã có và đã được chọn.`);
+          showAlert("Đã tồn tại", `Nguyên liệu "${exists.name}" đã có và đã được chọn.`, 'info');
           setIngredientInputs(prev => ({
             ...prev,
             [exists.id]: { quantity: '', unit: '', selected: true }
@@ -519,7 +546,7 @@ export default function EditRecipeScreen() {
 
         setSelectedIngredients(prev => [...prev, { id: newItem.id, quantity: '', unit: '' }]);
 
-        Alert.alert("Thành công", `Đã thêm nguyên liệu "${searchTerm}" và đã được chọn.`);
+        showAlert("Thành công", `Đã thêm nguyên liệu "${searchTerm}" và đã được chọn.`, 'success');
         setSearchTerm("");
         setExtraField("");
       }
@@ -529,7 +556,7 @@ export default function EditRecipeScreen() {
         );
 
         if (exists) {
-          Alert.alert("Đã tồn tại", `Tag "${exists.name}" đã có. Bạn có thể chọn nó.`);
+          showAlert("Đã tồn tại", `Tag "${exists.name}" đã có. Bạn có thể chọn nó.`, 'info');
           setSelectedTags(prev => prev.includes(exists.id) ? prev : [...prev, exists.id]);
           setSearchTerm("");
           return;
@@ -548,37 +575,40 @@ export default function EditRecipeScreen() {
         await AsyncStorage.setItem(STORAGE_KEYS.NEW_TAGS, JSON.stringify(updated));
 
         setSelectedTags(prev => [...prev, newItem.id]);
-        Alert.alert("Thành công", `Đã thêm tag "${searchTerm}"`);
+        showAlert("Thành công", `Đã thêm tag "${searchTerm}"`, 'success');
         setSearchTerm("");
       }
     } catch (err: any) {
-      Alert.alert("Lỗi", err.message || "Không thể lưu!");
+      showAlert("Lỗi", err.message || "Không thể lưu!", 'error');
     }
   };
 
   const handleSave = async () => {
     if (!title.trim() || !description.trim() || !prepTime.trim() || !cookTime.trim() || !servings.trim()) {
-      Alert.alert("Thiếu thông tin", "Vui lòng điền đầy đủ!");
+      showAlert("Thiếu thông tin", "Vui lòng điền đầy đủ!", 'warning');
       return;
     }
 
-    if (!user?.userId) return Alert.alert("Lỗi", "Bạn cần đăng nhập để cập nhật công thức");
+    if (!user?.userId) {
+      showAlert("Lỗi", "Bạn cần đăng nhập để cập nhật công thức", 'error');
+      return;
+    }
 
     const validSteps = steps.filter(s => s.instruction.trim());
     if (validSteps.length === 0) {
-      Alert.alert("Thiếu thông tin", "Vui lòng nhập ít nhất một bước!");
+      showAlert("Thiếu thông tin", "Vui lòng nhập ít nhất một bước!", 'warning');
       return;
     }
 
     for (let i = 0; i < steps.length; i++) {
       if (steps[i].image && !steps[i].instruction.trim()) {
-        Alert.alert("Thiếu thông tin", `Bước ${i + 1} có ảnh nhưng chưa có mô tả!`);
+        showAlert("Thiếu thông tin", `Bước ${i + 1} có ảnh nhưng chưa có mô tả!`, 'warning');
         return;
       }
     }
 
     if (!featuredImage) {
-      Alert.alert("Thiếu thông tin", "Vui lòng chọn ảnh đại diện!");
+      showAlert("Thiếu thông tin", "Vui lòng chọn ảnh đại diện!", 'warning');
       return;
     }
 
@@ -588,7 +618,7 @@ export default function EditRecipeScreen() {
     });
 
     if (validIngredients.length === 0) {
-      Alert.alert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu!");
+      showAlert("Thiếu thông tin", "Vui lòng chọn ít nhất một nguyên liệu!", 'warning');
       return;
     }
 
@@ -641,7 +671,7 @@ export default function EditRecipeScreen() {
             createdMap[row.localId] = created.ingredientId || created.id;
           } catch (e) {
             console.error('Failed to create ingredient:', row.name, e);
-            Alert.alert('Lỗi', `Không thể tạo nguyên liệu "${row.name}"`);
+            showAlert('Lỗi', `Không thể tạo nguyên liệu "${row.name}"`, 'error');
             setUpdating(false);
             return;
           }
@@ -740,7 +770,7 @@ export default function EditRecipeScreen() {
         console.log('🔄 Đang tải lại công thức từ server...');
         await fetchRecipe();
 
-        Alert.alert("Cập nhật thành công!", "", [
+        showAlert("Cập nhật thành công!", "Công thức đã được cập nhật.", 'success', [
           {
             text: "OK",
             onPress: () => {
@@ -753,8 +783,30 @@ export default function EditRecipeScreen() {
         ]);
       }
     } catch (err: any) {
-      console.error('❌ Cập nhật thất bại:', err);
-      Alert.alert("Lỗi khi cập nhật", err.message);
+      console.error('Cập nhật thất bại:', err);
+      
+      // Xử lý lỗi từ backend với code 1008 (công thức đã được duyệt)
+      if (err?.code === 1008 || err?.response?.data?.code === 1008) {
+        showAlert(
+          "Không thể chỉnh sửa",
+          "Công thức đã được duyệt, bạn không thể chỉnh sửa. Chỉ có thể chỉnh sửa khi công thức đang ở trạng thái chờ duyệt.",
+          'error',
+          [
+            {
+              text: "Quay lại",
+              onPress: () => {
+                router.replace({ 
+                  pathname: '/(tabs)/profile' as any,
+                  params: { reload: 'true' }
+                });
+              }
+            }
+          ]
+        );
+      } else {
+        const errorMessage = err?.response?.data?.message || err?.message || "Đã xảy ra lỗi khi cập nhật công thức";
+        showAlert("Lỗi khi cập nhật", errorMessage, 'error');
+      }
     } finally {
       setUpdating(false);
     }
@@ -762,9 +814,10 @@ export default function EditRecipeScreen() {
 
   const handleBackPress = () => {
     if (hasChanges) {
-      Alert.alert(
+      showAlert(
         "Xác nhận thoát",
         "Bạn có thay đổi chưa lưu. Bạn có muốn tiếp tục chỉnh sửa không?",
+        'warning',
         [
           {
             text: "Tiếp tục chỉnh sửa",
@@ -1012,7 +1065,7 @@ export default function EditRecipeScreen() {
               source={{ uri: featuredImage.startsWith('file://') ? featuredImage : getImageUrl(featuredImage) }}
               style={styles.image}
               onError={() => {
-                Alert.alert("Lỗi", "Không tải được ảnh. Đường dẫn không hợp lệ hoặc server không phản hồi.");
+                showAlert("Lỗi", "Không tải được ảnh. Đường dẫn không hợp lệ hoặc server không phản hồi.", 'error');
               }}
             />
           ) : (
@@ -1262,6 +1315,15 @@ export default function EditRecipeScreen() {
       </ScrollView>
 
       {renderModal()}
+      
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        buttons={alertConfig.buttons}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 }

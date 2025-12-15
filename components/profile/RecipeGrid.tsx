@@ -302,6 +302,20 @@ const RecipeGrid: React.FC<RecipeGridProps> = ({
           onPressOut={() => setMenuVisible(false)}
         >
           <View style={styles.menu}>
+            {selectedRecipe?.status === 'PENDING' && (
+              <TouchableOpacity
+                onPress={() => {
+                  setMenuVisible(false);
+                  if (selectedRecipe?.recipeId) {
+                    router.push(`/(tabs)/_recipe-edit/${selectedRecipe.recipeId}` as any);
+                  }
+                }}
+              >
+                <Text style={styles.menuItem}>
+                  ✏️ Chỉnh sửa công thức
+                </Text>
+              </TouchableOpacity>
+            )}
             {selectedRecipe?.status === 'APPROVED' && (
               <TouchableOpacity
                 onPress={() => {
